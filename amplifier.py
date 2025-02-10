@@ -145,6 +145,67 @@ class Amplifier():
         print()
         
         return fluence_out, pulse_out
+    
+    def extraction2(self):
+        if np.any(self.crystal.inversion_end):
+            beta_0 = self.crystal.inversion_end           
+        else:
+            beta_0 = self.inversion()
+
+        stepsize = self.seed.stepsize
+
+        pulse_out = np.zeros( (self.passes+1, len(self.seed.pulse)) )
+        pulse_out[0,:] = self.seed.pulse
+        beta_out = np.zeros( (self.passes+1, len(beta_0)) )
+        beta_out[0,:] = np.abs(beta_0)
+        fluence_out = np.zeros(self.passes+1)
+        fluence_out[0] =  np.sum(pulse_out[0,:] ) * stepsize * c * h *c / self.seed.wavelength
+        sigma_tot = self.crystal.sigma_a(self.seed.wavelength) + self.crystal.sigma_e(self.seed.wavelength)
+
+        for k in range(self.passes):
+		# calculate single components
+            if k > 1:
+                beta_out[k, :] = np.flipud(beta_out[k, :])
+
+            # equilibrium inversion and absorption coefficient at the seed wavelength
+            beta_eq = self.crystal.beta_eq(self.seed.wavelength)
+            alpha   = self.crystal.alpha(self.seed.wavelength)
+
+            # Gain G(z), spatial array of the integrated small signal gain, Gain_end: G(z=length)
+            # Note: In theory Gain_end = Gain[-1], but np.sum() is numerically more stable than np.cumsum() !
+            Gain     = np.exp(-alpha *  integ(1-beta_out[k,:]/beta_eq,   self.crystal.dz))
+            Gain_end = np.exp(-alpha * np.sum(1-beta_out[k,:]/beta_eq) * self.crystal.dz)
+
+            print(f"Gain at the end: {Gain_end}, {Gain[-1]}")
+            # Saturation S(t), temporal array of the saturation, Saturation_end: S(t=t_end)
+            Saturation     = np.exp(sigma_tot * c * integ(pulse_out[k,:], self.seed.stepsize))
+            Saturation_end = np.exp(sigma_tot * c * np.sum(pulse_out[k,:]) * self.seed.stepsize)
+
+            # compute temporal pulse shape after amplification at z = length
+            pulse_out[k+1,:] = pulse_out[k,:] * (Saturation*Gain_end)/(1+(Saturation-1)*Gain_end) * (1-self.losses)
+
+            # compute fluence after amplification
+            fluence_out[k+1] =  np.sum(pulse_out[k+1,:] ) * stepsize * c * h * c / self.seed.wavelength # J/m²
+
+            # compute beta after amplification at t = t_end
+            beta_out[k+1,:] = beta_eq + (beta_out[k,:] - beta_eq) / (1 + (Saturation_end - 1)*Gain) * (1-self.losses)
+
+            if k % 2:
+                beta_out[k+1,:] = np.flipud(beta_out[k+1,:])
+
+        self.fluence_out = fluence_out
+        self.pulse_out = pulse_out
+
+        max_fluence = np.max(fluence_out) 
+        pump_fluence = self.pump.duration * self.pump.intensity
+        max_gain = np.max(fluence_out[1::] / fluence_out[0:-1])
+        print()
+        print("Maximal laser fluence in J/cm^2:", max_fluence/1e4)
+        print("Total pump fluecne in J/cm^2:", pump_fluence/1e4)
+        print("Maximal gain:", max_gain)
+        print()
+        
+        return fluence_out, pulse_out
 
 if __name__ == "__main__":
     amplifier = Amplifier()
@@ -156,7 +217,11 @@ if __name__ == "__main__":
     plt.show()
 
     fluence_out, pulse_out = amplifier.extraction()
+    fluence_out2, pulse_out2 = amplifier.extraction2()
 
     plt.figure()
     plt.plot(fluence_out)
+    plt.plot(fluence_out2)
     plt.show()
+
+    print(fluence_out2)

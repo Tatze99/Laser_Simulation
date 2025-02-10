@@ -24,6 +24,7 @@ class Crystal():
     def load_txt(self, file="YbCaF2/basedata.json"):
         self.dict = json.loads(file)
     
+    # absorption cross section
     def sigma_a(self,lambd):
         return np.interp(lambd*1e9, self.table_sigma_a[:,0], self.table_sigma_a[:,1])*1e-4
     
@@ -32,7 +33,8 @@ class Crystal():
             return 0.8E-24
         else:
             return 1.1e-25
-    
+        
+    # emission cross section
     def sigma_e(self,lambd):
         return np.interp(lambd*1e9, self.table_sigma_e[:,0], self.table_sigma_e[:,1])*1e-4
     
@@ -41,9 +43,14 @@ class Crystal():
             return 0.16E-24
         else:
             return 2.3E-24
-        
+    
+    # equilibrium inversion
     def beta_eq(self,lambd):
         return self.sigma_a(lambd)/(self.sigma_a(lambd)+self.sigma_e(lambd))
+    
+    # Absorption coefficient
+    def alpha(self,lambd):
+        return self.doping_concentration * self.sigma_a(lambd)
 
     def __repr__(self):
         txt = f"Crystal:\nmaterial= {self.material}\nlength = {self.length*1e3} mm \ntau_f = {self.tau_f*1e3} ms \ndoping_concentration = {self.doping_concentration*1e-6} cm^-3"
