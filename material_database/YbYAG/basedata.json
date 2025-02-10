@@ -1,0 +1,6 @@
+{
+    "name": "YbYAG",     
+    "tau_f": "0.95e-3",    // [s]
+    "N_dop": "6e26",  // [m^-3]
+    "thickness": "1e-2", //[m]
+}
