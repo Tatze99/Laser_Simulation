@@ -5,33 +5,38 @@ c = 3e8 # [m/s]
 h = 6.626e-34 # [Js]
 
 # numerical resolution
-numres = 200
+numres = 300
 
 # integration routines: integ(x) = integral(0, x, y dx')
 # convention integ: 1D
 # f(t, z) -> 2D Matrix N x M with N in time und M in space
 
 def integ(y, dx):
-    os = np.cumsum(y)
-    us = np.array(os)
-    us[1::] = os[0:-1]
-    us[0] = 0
-    return (os + us) / 2 * dx
+    upper_sum = np.cumsum(y[1:])
+    lower_sum = np.cumsum(y[:-1])
+	
+    integral = (upper_sum + lower_sum) / 2 * dx
+    return np.insert(integral, 0, 0)
     
 
 def t_integ(mat, dt):
-    os = np.cumsum(mat, axis=0)
-    us = np.array(os)
-    us[1::, :] = os[0:-1,:]
-    us[0,:] = 0
-    return (os + us) / 2 * dt
+    """
+    integrates the matrix along the t-dimension, along axis 0
+    """
+    upper_sum = np.cumsum(mat[1:,:], axis=0)
+    lower_sum = np.cumsum(mat[:-1,:], axis=0)
+    lower_sum = np.array(upper_sum)
+
+    integral = (upper_sum + lower_sum) / 2 * dt
+    return np.insert(integral, 0, 0, axis=0)
 
 def z_integ(mat, dz):
     """
     integrates the matrix along the z-dimension, along axis 1
     """
-    os = np.cumsum(mat, axis=1)
-    us = np.array(os)
-    us[:, 1::] = os[:,0:-1]
-    us[:,0] = 0
-    return (os + us) / 2 * dz
+    upper_sum = np.cumsum(mat[:,1:], axis=1)
+    lower_sum = np.cumsum(mat[:,:-1], axis=1)
+    lower_sum = np.array(upper_sum)
+
+    integral = (upper_sum + lower_sum) / 2 * dz
+    return np.insert(integral, 0, 0, axis=1)

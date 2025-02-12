@@ -1,8 +1,8 @@
 {
-    "name": "YbCaF2",     
-    "tau_f": "1.9e-3",    // [s]
-    "N_dop": "1.635e26",  // [m^-3]
-    "energy_upper_level": "[0, 50, 110, 530]",  // [cm^-1]
-    "energy_upper_level": "[10205, 10300, 10580]",  // [cm^-1]
-    "thickness": "1.1e-2", //[m]
+    "name": "YbCaF2",
+    "length": 1.1e-2,
+    "tau_f": 1.9e-3,
+    "N_dop": 1.635e26,
+    "energy_lower_level": [0, 50, 110, 530],
+    "energy_upper_level": [10205, 10300, 10580]
 }
