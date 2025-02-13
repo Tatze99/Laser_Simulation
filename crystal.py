@@ -57,6 +57,8 @@ class Crystal():
     def alpha(self,lambd):
         return self.doping_concentration * self.sigma_a(lambd)
     
+    def small_signal_gain(self, lambd):
+        Gain = np.exp(self.doping_concentration*(self.sigma_e(lambd)))
 
     def __repr__(self):
         txt = f"Crystal:\nmaterial = {self.name}\nlength = {self.length*1e3} mm \ntau_f = {self.tau_f*1e3} ms \nN_dop = {self.doping_concentration*1e-6} cm^-3"
@@ -73,8 +75,8 @@ def plot_cross_sections(crystal):
     plt.legend()
 
 if __name__ == "__main__":
-    crystal = Crystal(material="YbCaF2", temperature=300)
     crystal = Crystal(material="YbYAG", temperature=100)
+    crystal = Crystal(material="YbCaF2", temperature=300)
     print(crystal)
 
     plot_cross_sections(crystal)
