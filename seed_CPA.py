@@ -3,19 +3,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class Seed_CPA():
-    def __init__(self):
-        self.bandwidth = 10e-9    # [m]
-        self.wavelength = 1030e-9   # [m]
-        self.fluence = 100     # [J/m²]
+    def __init__(self, bandwidth = 10e-9, wavelength = 1030e-9, fluence = 100, seed_type = "gauss"):
+        self.bandwidth = bandwidth    # [m]
+        self.wavelength = wavelength   # [m]
+        self.fluence = fluence     # [J/m²]
         self.GDD = 1.3e-24        # [s²]
         self.gauss_order = 2
-        self.seed_type = "gauss"
+        self.seed_type = seed_type
         self.seedres = 200
         self.dlambda = 2*self.bandwidth / self.seedres
         self.dt = self.GDD*2*np.pi*c/self.wavelength**2
         self.time, self.lambdas, self.pulse = self.pulse_gen()
         self.spectral_fluence = self.fluence*np.ones(self.seedres)*1/(self.seedres-1)
-        self.lambdas = np.linspace(1000,1060, self.seedres)
+        self.lambdas = np.linspace(1000e-9,1060e-9, self.seedres)
 
     def temporal_delay(self, lamb):
         angular_frequency = 2*np.pi*c/(self.wavelength)

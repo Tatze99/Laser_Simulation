@@ -11,12 +11,12 @@ from utilities import z_integ, t_integ, integ, numres, h, c
 
 class Amplifier():
 
-    def __init__(self, material="YbCaF2", pump=Pump(), seed=Seed()):
+    def __init__(self, material="YbCaF2", pump=Pump(), seed=Seed(), passes = 6, losses = 2e-2):
         self.pump = pump
         self.seed = seed
         self.crystal = Crystal(material=material)
-        self.passes = 6
-        self.losses = 2e-2 
+        self.passes = passes
+        self.losses = losses
 
     def inversion(self):
         beta_eq = self.crystal.beta_eq(self.pump.wavelength)
@@ -105,7 +105,6 @@ class Amplifier():
         fluence_out = np.zeros(self.passes+1)
         fluence_out[0] =  np.sum(pulse_out[0,:] ) * stepsize * c * h *c / self.seed.wavelength
         sigma_tot = self.crystal.sigma_a(self.seed.wavelength) + self.crystal.sigma_e(self.seed.wavelength)
-
         for k in range(self.passes):
 		# calculate single components
             if k > 1:
@@ -167,14 +166,14 @@ class Amplifier():
                 beta_out[k, :] = np.flipud(beta_out[k, :])
 
             for n, lambd in enumerate(self.seed.lambdas):
-                total_beta = integ(beta_out[k,:], self.crystal.dz)
-                Saturation = np.exp(self.seed.spectral_fluence[n]/Fsat[n])
-                Gain = np.exp(self.crystal.doping_concentration*(self.crystal.sigma_e(lambd)*total_beta-(self.crystal.length-total_beta)*self.crystal.sigma_a(lambd)))
+                # total_beta = integ(beta_out[k,:], self.crystal.dz)
+                Saturation = np.exp(spectral_fluence_out[k,n]/Fsat[n])
+                Gain = np.exp(self.crystal.doping_concentration*integ(self.crystal.sigma_e(lambd)*beta_out[k,:]-(1-beta_out[k,:])*self.crystal.sigma_a(lambd),self.crystal.dz))
 
                 spectral_fluence_out[k+1, n] = Fsat[n] * np.log(1+Gain[-1]*(Saturation-1))
                 beta_out[k+1,:] = beta_eq[n] + (beta_out[k,:]-beta_eq[n])/(1+Gain*(Saturation-1))
         
-                print(Gain)
+                # print(n, k, Gain[-1], np.exp(self.seed.spectral_fluence[n]/Fsat[n]))
         return spectral_fluence_out
 # =============================================================================
 # Display of results
@@ -193,10 +192,11 @@ def plot_inversion1D(amplifier):
     amplifier.inversion()
 
     plt.figure()
-    plt.plot(amplifier.crystal.z_axis*1e3, amplifier.crystal.inversion_end)
+    plt.plot(amplifier.crystal.z_axis*1e3, amplifier.crystal.inversion_end, label=f"$\\beta$ mean = {np.mean(amplifier.crystal.inversion_end):.4f}")
     plt.xlabel("depth $z$ in mm")
     plt.ylabel("inversion $\\beta$")
     plt.title('$\\beta(z)$ at the end of pumping')
+    plt.legend()
 
 def plot_inversion2D(amplifier):
     amplifier.inversion()
@@ -213,19 +213,20 @@ def plot_spectral_gain(amplifier):
     spectral_fluence = amplifier.extraction_CPA()
 
     plt.figure()
-    for i in range(6):
-        plt.plot(amplifier.seed.lambdas, spectral_fluence[i,:], label=i)
-    plt.xlabel("wavlength")
-    plt.ylabel("fluence")
+    for i in range(max(amplifier.passes-10,0), amplifier.passes):
+        plt.plot(amplifier.seed.lambdas*1e9, spectral_fluence[i,:]*1e-4, label=i)
+    plt.xlabel("wavlength in nm")
+    plt.ylabel("fluence in J/cm²")
     plt.legend()
     plt.grid()
 
 if __name__ == "__main__":
     pump = Pump(intensity =30, wavelength=940, duration=2)
-    amplifier = Amplifier(material="YbFP15", pump=pump, seed=Seed_CPA())
-    amplifier.inversion()
+    seed = Seed_CPA(fluence=1)
+    amplifier = Amplifier(material="YbFP15_Toepfer", pump=pump, seed=seed, passes=6, losses=2e-2)
+    amplifier.inversion() 
 
     plot_spectral_gain(amplifier)
-    # plot_inversion1D(amplifier)
+    plot_inversion1D(amplifier)
     # plot_inversion2D(amplifier)
     # plot_fluence(amplifier)

@@ -1,0 +1,8 @@
+{
+    "name": "YbFP15",
+    "length": 0.65e-2,
+    "tau_f": 1.4e-3,
+    "N_dop": 6e26,
+    "energy_lower_level": [0, 180, 323, 568],
+    "energy_upper_level": [10266, 10474, 10773]
+}
