@@ -197,6 +197,7 @@ def plot_inversion1D(amplifier):
     plt.ylabel("inversion $\\beta$")
     plt.title('$\\beta(z)$ at the end of pumping')
     plt.legend()
+    print(amplifier.crystal.inversion_end[0])
 
 def plot_inversion2D(amplifier):
     amplifier.inversion()
@@ -214,7 +215,10 @@ def plot_spectral_gain(amplifier):
 
     plt.figure()
     for i in range(max(amplifier.passes-10,0), amplifier.passes):
-        plt.plot(amplifier.seed.lambdas*1e9, spectral_fluence[i,:]*1e-4, label=i)
+        # plt.plot(amplifier.seed.lambdas*1e9, spectral_fluence[i,:]*1e-4, label=i)
+        plt.plot(amplifier.seed.lambdas*1e9, spectral_fluence[i,:]/np.max(spectral_fluence[0,:]), label=i)
+    Gain = amplifier.crystal.small_signal_gain(amplifier.seed.lambdas, np.mean(amplifier.crystal.inversion_end))
+    plt.plot(amplifier.seed.lambdas*1e9, Gain**(amplifier.passes-1), '--',label=f"small signal gain")
     plt.xlabel("wavlength in nm")
     plt.ylabel("fluence in J/cm²")
     plt.legend()
@@ -223,7 +227,7 @@ def plot_spectral_gain(amplifier):
 if __name__ == "__main__":
     pump = Pump(intensity =30, wavelength=940, duration=2)
     seed = Seed_CPA(fluence=1)
-    amplifier = Amplifier(material="YbFP15_Toepfer", pump=pump, seed=seed, passes=6, losses=2e-2)
+    amplifier = Amplifier(material="YbFP15_Toepfer", pump=pump, seed=seed, passes=2, losses=2e-2)
     amplifier.inversion() 
 
     plot_spectral_gain(amplifier)

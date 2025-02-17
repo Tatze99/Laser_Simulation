@@ -49,13 +49,13 @@ class Crystal():
         
     # absorption cross section
     def sigma_a(self,lambd):
-        return self.spline_sigma_a(lambd*1e9)*1e-4
-        # return np.interp(lambd*1e9, self.table_sigma_a[:,0], self.table_sigma_a[:,1])*1e-4
+        # return self.spline_sigma_a(lambd*1e9)*1e-4
+        return np.interp(lambd*1e9, self.table_sigma_a[:,0], self.table_sigma_a[:,1])*1e-4
         
     # emission cross section
     def sigma_e(self,lambd):
-        return self.spline_sigma_e(lambd*1e9)*1e-4
-        # return np.interp(lambd*1e9, self.table_sigma_e[:,0], self.table_sigma_e[:,1])*1e-4
+        # return self.spline_sigma_e(lambd*1e9)*1e-4
+        return np.interp(lambd*1e9, self.table_sigma_e[:,0], self.table_sigma_e[:,1])*1e-4
     
     # equilibrium inversion
     def beta_eq(self,lambd):
@@ -70,7 +70,7 @@ class Crystal():
         return Gain
 
     def __repr__(self):
-        txt = f"Crystal:\nmaterial = {self.name}\nlength = {self.length*1e3} mm \ntau_f = {self.tau_f*1e3} ms \nN_dop = {self.doping_concentration*1e-6} cm^-3\nsigma_a = {self.sigma_a(940e-9)*1e4:.3e}cm²\nsigma_e = {self.sigma_e(940e-9)*1e4:.3e}cm²"
+        txt = f"Crystal:\nmaterial = {self.name}\nlength = {self.length*1e3} mm \ntau_f = {self.tau_f*1e3} ms \nN_dop = {self.doping_concentration*1e-6} cm^-3\nsigma_a(940nm) = {self.sigma_a(940e-9)*1e4:.3e}cm²\nsigma_e(940nm) = {self.sigma_e(940e-9)*1e4:.3e}cm²"
         return txt
 
 
@@ -99,6 +99,6 @@ if __name__ == "__main__":
     print(crystal)
 
     plot_cross_sections(crystal)
-    plot_small_signal_gain(crystal, 0.17)
+    # plot_small_signal_gain(crystal, 0.22)
 
 

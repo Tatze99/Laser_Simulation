@@ -10,7 +10,7 @@ class Seed_CPA():
         self.GDD = 1.3e-24        # [s²]
         self.gauss_order = 2
         self.seed_type = seed_type
-        self.seedres = 200
+        self.seedres = 500
         self.dlambda = 2*self.bandwidth / self.seedres
         self.dt = self.GDD*2*np.pi*c/self.wavelength**2
         self.time, self.lambdas, self.pulse = self.pulse_gen()
