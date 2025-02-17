@@ -13,9 +13,9 @@ class Pump():
         self.t_axis = np.linspace(0, self.duration, numres)
 
     def __repr__(self):
-        txt = f"Pump:\nintensity = {self.intensity*1e-7} kW/cm² \nduration = {self.duration*1e3} ms \nwavelength = {self.wavelength*1e9} nm"
+        txt = f"Pump:\nintensity = {self.intensity*1e-7} kW/cm² \nduration = {self.duration*1e3} ms \nwavelength = {self.wavelength*1e9:.2f} nm\n\n"
         return txt
 
 if __name__ == "__main__":
-    p1 = Pump()
-    print(p1)
+    pump = Pump()
+    print(pump)

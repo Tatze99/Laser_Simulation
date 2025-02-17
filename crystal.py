@@ -5,6 +5,7 @@ import os
 import glob
 import matplotlib.pyplot as plt
 from scipy.interpolate import CubicSpline
+plt.rcParams["figure.figsize"] = (10,5)
 
 Folder = os.path.dirname(os.path.abspath(__file__))
 
@@ -13,14 +14,15 @@ class Crystal():
     def __init__(self, material="YbCaF2", temperature="300"):
         self.inversion = np.zeros(numres)
         self.temperature = temperature
+        self.use_spline_interpolation = True
 
         basedata_path = os.path.join(Folder,"material_database", material, "basedata.json")
         
         self.load_basedata(basedata_path)
         self.load_cross_sections(material)
 
-        self.spline_sigma_a = CubicSpline(self.table_sigma_a[:,0], self.table_sigma_a[:,1])
-        self.spline_sigma_e = CubicSpline(self.table_sigma_e[:,0], self.table_sigma_e[:,1])
+        self.spline_sigma_a = CubicSpline(self.table_sigma_a[:,0], self.table_sigma_a[:,1], bc_type="clamped")
+        self.spline_sigma_e = CubicSpline(self.table_sigma_e[:,0], self.table_sigma_e[:,1], bc_type="clamped")
 
         self.z_axis = np.linspace(0, self.length, numres)
         self.dz = self.length / (numres-1)
@@ -49,13 +51,17 @@ class Crystal():
         
     # absorption cross section
     def sigma_a(self,lambd):
-        # return self.spline_sigma_a(lambd*1e9)*1e-4
-        return np.interp(lambd*1e9, self.table_sigma_a[:,0], self.table_sigma_a[:,1])*1e-4
+        if self.use_spline_interpolation:
+            return self.spline_sigma_a(lambd*1e9)*1e-4
+        else:
+            return np.interp(lambd*1e9, self.table_sigma_a[:,0], self.table_sigma_a[:,1])*1e-4
         
     # emission cross section
     def sigma_e(self,lambd):
-        # return self.spline_sigma_e(lambd*1e9)*1e-4
-        return np.interp(lambd*1e9, self.table_sigma_e[:,0], self.table_sigma_e[:,1])*1e-4
+        if self.use_spline_interpolation:
+            return self.spline_sigma_e(lambd*1e9)*1e-4
+        else:
+            return np.interp(lambd*1e9, self.table_sigma_e[:,0], self.table_sigma_e[:,1])*1e-4
     
     # equilibrium inversion
     def beta_eq(self,lambd):
@@ -70,12 +76,15 @@ class Crystal():
         return Gain
 
     def __repr__(self):
-        txt = f"Crystal:\nmaterial = {self.name}\nlength = {self.length*1e3} mm \ntau_f = {self.tau_f*1e3} ms \nN_dop = {self.doping_concentration*1e-6} cm^-3\nsigma_a(940nm) = {self.sigma_a(940e-9)*1e4:.3e}cm²\nsigma_e(940nm) = {self.sigma_e(940e-9)*1e4:.3e}cm²"
+        txt = f"Crystal:\nmaterial = {self.name}\nlength = {self.length*1e3} mm \ntau_f = {self.tau_f*1e3} ms \nN_dop = {self.doping_concentration*1e-6} cm^-3\nsigma_a(940nm) = {self.sigma_a(940e-9)*1e4:.3e}cm²\nsigma_e(940nm) = {self.sigma_e(940e-9)*1e4:.3e}cm²\n\n"
         return txt
 
+# =============================================================================
+# Display of results
+# =============================================================================
 
 def plot_cross_sections(crystal):
-    plt.figure(figsize=(8,4))
+    plt.figure()
     plt.plot(crystal.table_sigma_a[:,0], crystal.table_sigma_a[:,1], label="absorption $\\sigma_a$")
     plt.plot(crystal.table_sigma_e[:,0], crystal.table_sigma_e[:,1], label="emission $\\sigma_e$")
     plt.xlabel("wavelength in nm")
@@ -83,15 +92,36 @@ def plot_cross_sections(crystal):
     plt.title(f"{crystal.name} at {crystal.temperature}K")
     plt.legend()
 
-def plot_small_signal_gain(crystal, beta):
-    plt.figure(figsize=(8,4))
-    lambd = np.linspace(1000e-9, 1060e-9,100)
-    Gain = crystal.small_signal_gain(lambd, beta)
-    plt.plot(lambd, Gain, label=f"$\\beta$ = {beta:.2f}")
+def plot_small_signal_gain(crystal, beta, lam_min = 1000, lam_max = 1060):
+    plt.figure()
+    lambd = np.linspace(lam_min*1e-9, lam_max*1e-9,100)
+
+    # make multiple plots if beta is an array!
+    if isinstance(beta, (list, tuple, np.ndarray)): 
+        for b in beta:
+            Gain = crystal.small_signal_gain(lambd, b)
+            plt.plot(lambd*1e9, Gain, label=f"$\\beta$ = {b:.2f}")
+    # if beta is just a number, plot a single plot
+    else:
+        Gain = crystal.small_signal_gain(lambd, beta)
+        plt.plot(lambd*1e9, Gain, label=f"$\\beta$ = {beta:.2f}")
     plt.xlabel("wavelength in nm")
     plt.ylabel("Gain G")
-    plt.title(f"{crystal.name} at {crystal.temperature}K")
+    plt.title(f"small signal gain, {crystal.name} at {crystal.temperature}K")
     plt.legend()
+
+def plot_beta_eq(crystal):
+    plt.figure()
+    lambd = crystal.table_sigma_a[:,0]*1e-9
+    beta_eq = crystal.beta_eq(lambd)
+    plt.plot(lambd*1e9, beta_eq)
+    plt.xlabel("wavelength in nm")
+    plt.ylabel("equilibrium inversion $\\beta_{eq}$")
+    plt.title(f"equilibrium inversion, {crystal.name} at {crystal.temperature}K")
+
+# =============================================================================
+# main script, if this file is executed
+# =============================================================================
 
 if __name__ == "__main__":
     # crystal = Crystal(material="YbYAG", temperature=100)
@@ -99,6 +129,7 @@ if __name__ == "__main__":
     print(crystal)
 
     plot_cross_sections(crystal)
-    # plot_small_signal_gain(crystal, 0.22)
+    plot_small_signal_gain(crystal, [0.2,0.22,0.24])
+    plot_beta_eq(crystal)
 
 

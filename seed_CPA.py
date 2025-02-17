@@ -1,50 +1,45 @@
-from utilities import numres, h, c
+from utilities import numres, h, c, integ
 import numpy as np
 import matplotlib.pyplot as plt
 
 class Seed_CPA():
-    def __init__(self, bandwidth = 10e-9, wavelength = 1030e-9, fluence = 100, seed_type = "gauss"):
-        self.bandwidth = bandwidth    # [m]
-        self.wavelength = wavelength   # [m]
-        self.fluence = fluence     # [J/m²]
-        self.GDD = 1.3e-24        # [s²]
+    def __init__(self, bandwidth = 30, wavelength = 1030, fluence = 1, seed_type = "rect"):
+        self.bandwidth = bandwidth*1e-9     # [m]
+        self.wavelength = wavelength*1e-9   # [m]
+        self.fluence = fluence*1e4          # [J/m²]
         self.gauss_order = 2
         self.seed_type = seed_type
         self.seedres = 500
-        self.dlambda = 2*self.bandwidth / self.seedres
-        self.dt = self.GDD*2*np.pi*c/self.wavelength**2
-        self.time, self.lambdas, self.pulse = self.pulse_gen()
-        self.spectral_fluence = self.fluence*np.ones(self.seedres)*1/(self.seedres-1)
-        self.lambdas = np.linspace(1000e-9,1060e-9, self.seedres)
+        self.dlambda = 2*self.bandwidth / (self.seedres-1)
 
-    def temporal_delay(self, lamb):
-        angular_frequency = 2*np.pi*c/(self.wavelength)
-        return self.GDD*angular_frequency*(1-lamb/self.wavelength)
-
-    def spectral_delay(self, tau):
-        angular_frequency = 2*np.pi*c/(self.wavelength)
-        return self.wavelength*(1-tau/(self.GDD*angular_frequency))
+        self.lambdas = np.linspace(self.wavelength-self.bandwidth,self.wavelength+self.bandwidth, self.seedres)
+        self.spectral_fluence = self.pulse_gen()
 
     def pulse_gen(self):
         pulse = np.zeros(self.seedres)
-        time = np.linspace(-(self.seedres)/2, (self.seedres)/2, self.seedres)*self.dt
-        lambdas = self.spectral_delay(time)+self.wavelength
 
         if self.seed_type == 'gauss':
-            pulse = np.exp( -((lambdas-self.wavelength) / self.bandwidth * 2) ** (2*self.gauss_order))
-            # pulse = self.fluence / h / c * self.wavelength / c / np.sum(pulse) / self.stepsize * pulse
+            pulse = np.exp( -((self.lambdas-self.wavelength) / self.bandwidth * 2) ** (2*self.gauss_order))
+            pulse *= 1/integ(pulse, self.dlambda)[-1]
+        
+        elif self.seed_type == 'rect':
+            pulse = np.ones(self.seedres) / self.bandwidth
+            pulse = np.where(self.lambdas < self.wavelength-0.5*self.bandwidth, 0, pulse)
+            pulse = np.where(self.lambdas > self.wavelength+0.5*self.bandwidth, 0, pulse)
 
-        return time, lambdas, pulse
+        pulse *= self.fluence
+        return pulse
     
     
     def __repr__(self):
-        txt = f"Seed pulse:\nduration= {self.duration*1e9} ns\nwavelength = {self.wavelength*1e9} nm \nfluence = {self.fluence*1e4} J/cm²"
+        txt = f"Seed CPA pulse:\nbandwidth = {self.bandwidth*1e9:.2f} nm (FWHM)\nwavelength = {self.wavelength*1e9:.2f} nm \nfluence = {self.fluence*1e-4} J/cm²\npulse type = '{self.seed_type}'\n\n"
         return txt
 
 if __name__ == "__main__":
-    p1 = Seed_CPA()
-    # print(p1)
+    p1 = Seed_CPA(seed_type = "rect")
+
+    print(p1)
     plt.figure()
-    print(p1.pulse)
-    plt.plot(p1.lambdas, p1.pulse)
-    plt.show()
+    plt.plot(p1.lambdas*1e9, p1.spectral_fluence*1e-4*1e-9)
+    plt.xlabel("wavlength in nm")
+    plt.ylabel("spectral fluence in J/cm²/nm")
