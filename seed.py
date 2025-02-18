@@ -1,14 +1,18 @@
 from utilities import numres, h, c, integ
 import numpy as np
 import matplotlib.pyplot as plt
+plt.rcParams["figure.figsize"] = (10,5)
+plt.rcParams["axes.grid"] = True
+plt.rcParams["xtick.direction"] = "in"
+plt.rcParams["ytick.direction"] = "in"
 
 class Seed():
-    def __init__(self):
-        self.duration = 5e-9    # [s]
-        self.wavelength = 1030e-9   # [m]
-        self.fluence = 100     # [J/m²]
-        self.gauss_order = 2
-        self.seed_type = "gauss"
+    def __init__(self, fluence = 100, duration = 5e-9, wavelength = 1030e-9, gauss_order = 2, seed_type = "gauss"):
+        self.duration = duration        # [s]
+        self.wavelength = wavelength    # [m]
+        self.fluence = fluence          # [J/m²]
+        self.gauss_order = gauss_order
+        self.seed_type = seed_type
         self.seedres = 200
         self.dt = 2*self.duration / (self.seedres-1)
         self.time, self.pulse = self.pulse_gen()
@@ -19,14 +23,14 @@ class Seed():
 
         if self.seed_type == 'gauss':
             pulse = np.exp( -(t / self.duration * 2) ** (2*self.gauss_order))
-            pulse *= 1/integ(pulse, self.dt)[-1]*self.fluence / h / c * self.wavelength / c
+            pulse *= 1/integ(pulse, self.dt)[-1]
         
         elif self.seed_type == 'rect':
             pulse = np.ones(self.seedres) / self.duration
-            pulse = np.where(self.time < -0.5*self.duration, 0, pulse)
-            pulse = np.where(self.time >  0.5*self.duration, 0, pulse)
-            pulse *= self.fluence / h / c * self.wavelength / c
+            pulse = np.where(t < -0.5*self.duration, 0, pulse)
+            pulse = np.where(t >  0.5*self.duration, 0, pulse)
 
+        pulse *= self.fluence / h / c * self.wavelength / c
         # if self.seed_type == 'gauss':
         #     pulse = np.exp( -(t / self.duration * 2) ** (2*self.gauss_order))
         #     pulse = self.fluence / h / c * self.wavelength / c / np.sum(pulse) / self.dt * pulse
@@ -38,8 +42,8 @@ class Seed():
         return txt
 
 if __name__ == "__main__":
-    p1 = Seed()
-    print(p1)
+    seed = Seed()
+    print(seed)
     plt.figure()
-    # plt.plot(p1.time, p1.pulse)
-    plt.show()
+    plt.plot(seed.time*1e9, seed.pulse, label=f"F = {integ(seed.pulse, seed.dt)[-1]* c * h *c / seed.wavelength:.2f} J/m²")
+    plt.legend()

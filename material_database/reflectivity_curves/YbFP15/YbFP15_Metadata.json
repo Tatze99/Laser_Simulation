@@ -1,0 +1,15 @@
+{
+    "name": "YbFP15",
+    "spectral_unit": 1e-9,
+    "reflectivity_unit": 1e-2,
+    "file_type": ".txt",
+    "angles": [
+        42.5,
+        45.0,
+        47.5
+    ],
+    "ymax": 6,
+    "n2": 1.6861454912183922,
+    "prop_constant": 667.364313592783,
+    "slope": -0.009334021068502387
+}

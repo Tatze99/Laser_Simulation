@@ -2,6 +2,7 @@ from crystal import Crystal
 from pump import Pump
 from seed import Seed
 from seed_CPA import Seed_CPA
+from spectral_losses import Spectral_Losses
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -15,12 +16,14 @@ plt.rcParams["ytick.direction"] = "in"
 
 class Amplifier():
 
-    def __init__(self, crystal=Crystal(), pump=Pump(), seed=Seed(), passes = 6, losses = 2e-2):
+    def __init__(self, crystal=Crystal(), pump=Pump(), seed=Seed(), passes = 6, losses = 2e-2, print_iteration = False, spectral_losses = None):
         self.pump = pump
         self.seed = seed
         self.crystal = crystal
         self.passes = passes
         self.losses = losses
+        self.print_iteration = print_iteration
+        self.spectral_losses = spectral_losses
 
     def inversion(self):
         beta_eq = self.crystal.beta_eq(self.pump.wavelength)
@@ -45,9 +48,9 @@ class Amplifier():
             fehler = 1/numres
             A = (it > max_it)
             B = (abweichung < fehler)
-            if A:
+            if A and self.print_iteration:
                 print("Max iterations of " + str(it) + " exceeded.")
-            if B:
+            if B and self.print_iteration:
                 print("Deviation between beta_low and beta_high =",
                     abweichung, "<", fehler)
             return A or B
@@ -65,7 +68,7 @@ class Amplifier():
         # Iteration
         while not break_condition(beta_low, beta_high, iteration):
             iteration += 1
-            print("Iteration Nummer: " + str(iteration))
+            if self.print_iteration: print("Iteration Nummer: " + str(iteration))
             R_high = Ra * Rb(beta_high)
             R_low = Ra * Rb(beta_low)
             beta_high = beta(R_high)
@@ -100,15 +103,12 @@ class Amplifier():
         else:
             beta_0 = self.inversion()
 
-        stepsize = self.seed.dt
-
         pulse_out = np.zeros((self.passes+1, len(self.seed.pulse)))
+        beta_out  = np.zeros( (self.passes+1, len(beta_0)) )
         pulse_out[0,:] = self.seed.pulse
-        beta_out = np.zeros( (self.passes+1, len(beta_0)) )
         beta_out[0,:] = np.abs(beta_0)
-        fluence_out = np.zeros(self.passes+1)
-        fluence_out[0] =  np.sum(pulse_out[0,:] ) * stepsize * c * h *c / self.seed.wavelength
         sigma_tot = self.crystal.sigma_a(self.seed.wavelength) + self.crystal.sigma_e(self.seed.wavelength)
+
         for k in range(self.passes):
 		# calculate single components
             if k > 1:
@@ -127,28 +127,25 @@ class Amplifier():
             # compute temporal pulse shape after amplification at z = length
             pulse_out[k+1,:] = pulse_out[k,:] * (Saturation*Gain[-1])/(1+(Saturation-1)*Gain[-1]) * (1-self.losses)
 
-            # compute fluence after amplification
-            fluence_out[k+1] =  np.sum(pulse_out[k+1,:] ) * stepsize * c * h * c / self.seed.wavelength # J/m²
-
             # compute beta after amplification at t = t_end
             beta_out[k+1,:] = beta_eq + (beta_out[k,:] - beta_eq) / (1 + (Saturation[-1] - 1)*Gain)
 
             if k % 2:
                 beta_out[k+1,:] = np.flipud(beta_out[k+1,:])
 
-        self.fluence_out = fluence_out
         self.pulse_out = pulse_out
+        self.temporal_fluence_out = pulse_out * c * h *c / self.seed.wavelength 
+        self.fluence_out = z_integ(self.temporal_fluence_out, self.seed.dt)[:,-1]
 
-        max_fluence = np.max(fluence_out)
+        max_fluence = np.max(self.fluence_out)
         pump_fluence = self.pump.duration * self.pump.intensity
-        max_gain = np.max(fluence_out[1::] / fluence_out[0:-1])
-        print()
-        print("Maximal laser fluence in J/cm^2:", max_fluence/1e4)
-        print("Total pump fluence in J/cm^2:", pump_fluence/1e4)
+        max_gain = np.max(self.fluence_out[1::] / self.fluence_out[0:-1])
+
+        print("Maximal laser fluence in J/cm²:", max_fluence/1e4)
+        print("Total pump fluence in J/cm²:", pump_fluence/1e4)
         print("Maximal gain:", max_gain)
-        print()
         
-        return fluence_out, pulse_out
+        return self.fluence_out, self.temporal_fluence_out
 
     # =============================================================================
     # Calculate energy extraction for a CPA pulse
@@ -159,6 +156,9 @@ class Amplifier():
             beta_0 = self.crystal.inversion_end           
         else:
             beta_0 = self.inversion()
+
+        if self.spectral_losses is None:
+            self.spectral_losses = np.zeros(len(self.seed.lambdas)) 
         
         beta_out = np.zeros( (self.passes+1, len(beta_0)) )
         beta_out[0,:] = np.abs(beta_0)
@@ -174,11 +174,11 @@ class Amplifier():
                 beta_out[k, :] = np.flipud(beta_out[k, :])
 
             for n, lambd in enumerate(self.seed.lambdas):
-                # total_beta = integ(beta_out[k,:], self.crystal.dz)
+
                 Saturation = np.exp(spectral_fluence_out[k,n]*self.seed.dlambda/Fsat[n])
                 Gain = np.exp(self.crystal.doping_concentration*integ(self.crystal.sigma_e(lambd)*beta_out[k,:]-(1-beta_out[k,:])*self.crystal.sigma_a(lambd),self.crystal.dz))
 
-                spectral_fluence_out[k+1, n] = Fsat[n] * np.log(1+Gain[-1]*(Saturation-1))/self.seed.dlambda*(1-self.losses)
+                spectral_fluence_out[k+1, n] = Fsat[n] * np.log(1+Gain[-1]*(Saturation-1))/self.seed.dlambda*(1-self.losses-self.spectral_losses[n])
                 beta_out[k+1,:] = beta_eq[n] + (beta_out[k,:]-beta_eq[n])/(1+Gain*(Saturation-1))
         
                 # print(n, k, Gain[-1], np.exp(self.seed.spectral_fluence[n]/Fsat[n]))
@@ -194,9 +194,17 @@ def plot_fluence(amplifier):
     plt.figure()
     plt.plot(fluence_out*1e-4, "-o")
     plt.xlabel("Pass number")
-    plt.ylabel("Fluence in J/cm^2")
+    plt.ylabel("output fluence in J/cm²")
     plt.title('output fluence vs pass number')
-    plt.grid()
+
+    plt.figure()
+    for i in range(max(amplifier.passes-10,0), amplifier.passes+1):
+        total_fluence = integ(pulse_out[i,:], amplifier.seed.dt)[-1]*1e-4
+        plt.plot(amplifier.seed.time*1e9, pulse_out[i,:]*1e-9*1e-4, label=f"$F =$ {total_fluence:.3f} J/cm²")
+
+    plt.xlabel("time $t$ in s")
+    plt.ylabel("temporal fluence in J/cm²/ns")
+    plt.legend()
 
 def plot_inversion1D(amplifier):
     amplifier.inversion()
@@ -239,15 +247,18 @@ if __name__ == "__main__":
     crystal  = Crystal(material="YbFP15_Toepfer")
     pump     = Pump(intensity=23, wavelength=940, duration=2)
     seed_CPA = Seed_CPA(fluence=1e-6, wavelength=1030, bandwidth=60, seed_type="gauss")
-    seed     = Seed()
+    seed     = Seed(fluence=100, seed_type = "gauss")
+    losses   = Spectral_Losses(material="YbFP15")
     print(crystal,pump,seed_CPA,seed,sep='')
 
-    CW_amplifier  = Amplifier(crystal=crystal, pump=pump, seed=seed, passes=50, losses=1.3e-1)
-    CPA_amplifier = Amplifier(crystal=crystal, pump=pump, seed=seed_CPA, passes=120, losses=1.3e-1)
+    spectral_losses = np.interp(seed_CPA.lambdas, losses.lambdas, losses.calc_reflectivity(45.5, angle_unit="deg"))
+
+    # CW_amplifier  = Amplifier(crystal=crystal, pump=pump, seed=seed, passes=60, losses=1.3e-1)
+    CPA_amplifier = Amplifier(crystal=crystal, pump=pump, seed=seed_CPA, passes=120, losses=1.1e-1, spectral_losses = spectral_losses)
 
     CPA_amplifier.inversion()
     # plot_inversion1D(CW_amplifier)
     # plot_inversion2D(CW_amplifier)
-    plot_fluence(CW_amplifier)
+    # plot_fluence(CW_amplifier)
 
     plot_spectral_gain(CPA_amplifier)

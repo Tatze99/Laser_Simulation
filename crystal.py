@@ -26,6 +26,7 @@ class Crystal():
 
         self.z_axis = np.linspace(0, self.length, numres)
         self.dz = self.length / (numres-1)
+        self.inversion_end = None
 
     def load_basedata(self, filename):
         with open(filename, "r") as file:
