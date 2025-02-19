@@ -25,7 +25,6 @@ class Spectral_Losses():
         index = np.argmin(array)
         for j in range(2, len(array)-2):
             if array[j] >= array[j-1] and array[j] >= array[j+1]:
-                print(j, array[j])
                 if array[j] > array[index]:
                     index =  j
         return index 
@@ -76,30 +75,66 @@ class Spectral_Losses():
         
         
         return shifted_array
+    
+    # returns the total reflectivity for a given array of reflectivities
+    def calc_total_reflectivity(self, reflectivity_array, n=0):
+        if n == len(reflectivity_array)-1:
+            return reflectivity_array[n]
+        return reflectivity_array[n] + (1-reflectivity_array[n])*self.calc_total_reflectivity(reflectivity_array, n+1)
+    
+    # returns the total reflectivity for a given array of angles
+    def reflectivity_by_angles(self, angle_array, angle_unit="grad"):
+        reflectivity_array = []
+        for angle in angle_array:
+            reflectivity_array.append(self.calc_reflectivity(angle, angle_unit=angle_unit))
+        
+        return self.calc_total_reflectivity(np.array(reflectivity_array))
 
-if __name__ == "__main__":
-    losses = Spectral_Losses(material="YbFP15")
-
+def test_reflectivity_approximation(losses):
     plt.figure()
     plt.tick_params(direction="in",right=True,top=True)
+    colors = plt.cm.tab10.colors
 
-    # plot the originally measured spectra
-    for i,f in enumerate(losses.fnames):
-        plt.plot(losses.lambdas*1e9, losses.arrays[i],label=f[-5-len(str(losses.angles[i])):-4])
-
-    # reset color cycle
-    plt.gca().set_prop_cycle(None)
-    # plot the wavelength shifted spectra determined from the 45° measurement
-    for i,angle in enumerate(losses.angles):
-        name = losses.fnames[i][-5-len(str(losses.angles[i])):-4]
-        plt.plot(losses.lambdas*1e9, losses.calc_reflectivity(angle, angle_unit="deg"), "--", label=name)
+    for i,fname in enumerate(losses.fnames):
+        name = fname[-5-len(str(losses.angles[i])):-4]
+        plt.plot(losses.lambdas*1e9, losses.arrays[i],label=name, color=colors[i])
+        plt.plot(losses.lambdas*1e9, losses.calc_reflectivity(losses.angles[i], angle_unit="deg"), "--", label=name, color=colors[i])
 
     # plt.ylim(0,)
     plt.xlim(1000,1080)
+    plt.ylim(0,1e-1)
     plt.xlabel("wavelength in nm")
     plt.ylabel("reflectivity R")
     plt.legend(loc="upper right")
     plt.title("Reflectivity TSF of "+ losses.name)
+
+def test_total_reflectivity(losses):
+    plt.figure()
+    r1 = losses.calc_reflectivity(43, angle_unit="deg")
+    r2 = losses.calc_reflectivity(44, angle_unit="deg")
+    r3 = losses.calc_reflectivity(45, angle_unit="deg")
+    r4 = losses.calc_reflectivity(46, angle_unit="deg")
+
+    total_reflectivity = losses.reflectivity_by_angles([43,44,45,46], angle_unit="deg")
+    reflectivity_array = np.array([r1,r2,r3,r4])
+    total_reflectivity2 = np.sum(reflectivity_array, axis=0)
+
+    plt.plot(losses.lambdas*1e9, total_reflectivity, label="total reflectivity")
+    plt.plot(losses.lambdas*1e9, total_reflectivity2, label="sum of reflectivities")
+    for ref in reflectivity_array:
+        plt.plot(losses.lambdas*1e9, ref)
+    plt.xlabel("wavelength in nm")
+    plt.ylabel("total reflectivity R")
+    plt.ylim(0,0.2)
+    plt.title("Total Reflectivity TSF")
+    plt.legend()
+
+
+if __name__ == "__main__":
+    losses = Spectral_Losses(material="YbCaF2_Garbsen")
+
+    test_reflectivity_approximation(losses)
+    test_total_reflectivity(losses)
 
     # Serialize data into file:
     # with open(os.path.join(Folder, material["name"]+'_Metadata.json'), 'w', encoding='utf-8') as f: 

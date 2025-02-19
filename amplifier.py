@@ -16,7 +16,7 @@ plt.rcParams["ytick.direction"] = "in"
 
 class Amplifier():
 
-    def __init__(self, crystal=Crystal(), pump=Pump(), seed=Seed(), passes = 6, losses = 2e-2, print_iteration = False, spectral_losses = None):
+    def __init__(self, crystal=Crystal(), pump=Pump(), seed=Seed(), passes = 6, losses = 2e-2, print_iteration = False, spectral_losses = None, max_fluence=10):
         self.pump = pump
         self.seed = seed
         self.crystal = crystal
@@ -24,6 +24,7 @@ class Amplifier():
         self.losses = losses
         self.print_iteration = print_iteration
         self.spectral_losses = spectral_losses
+        self.max_fluence = max_fluence*1e4  # [J/m²]
 
     def inversion(self):
         beta_eq = self.crystal.beta_eq(self.pump.wavelength)
@@ -178,10 +179,14 @@ class Amplifier():
                 Saturation = np.exp(spectral_fluence_out[k,n]*self.seed.dlambda/Fsat[n])
                 Gain = np.exp(self.crystal.doping_concentration*integ(self.crystal.sigma_e(lambd)*beta_out[k,:]-(1-beta_out[k,:])*self.crystal.sigma_a(lambd),self.crystal.dz))
 
-                spectral_fluence_out[k+1, n] = Fsat[n] * np.log(1+Gain[-1]*(Saturation-1))/self.seed.dlambda*(1-self.losses-self.spectral_losses[n])
+                spectral_fluence_out[k+1, n] = Fsat[n] * np.log(1+Gain[-1]*(Saturation-1))/self.seed.dlambda
+
+                if k % 2:
+                    spectral_fluence_out[k+1, n] *= (1-self.losses-self.spectral_losses[n])
                 beta_out[k+1,:] = beta_eq[n] + (beta_out[k,:]-beta_eq[n])/(1+Gain*(Saturation-1))
-        
-                # print(n, k, Gain[-1], np.exp(self.seed.spectral_fluence[n]/Fsat[n]))
+            
+            if integ(spectral_fluence_out[k+1,:], self.seed.dlambda)[-1] > self.max_fluence:
+                return spectral_fluence_out[~np.all(spectral_fluence_out == 0, axis=1)]
         return spectral_fluence_out
 
 # =============================================================================
@@ -198,7 +203,7 @@ def plot_fluence(amplifier):
     plt.title('output fluence vs pass number')
 
     plt.figure()
-    for i in range(max(amplifier.passes-10,0), amplifier.passes+1):
+    for i in range(max(len(pulse_out[0,:])-10,0), len(pulse_out[0,:])+1):
         total_fluence = integ(pulse_out[i,:], amplifier.seed.dt)[-1]*1e-4
         plt.plot(amplifier.seed.time*1e9, pulse_out[i,:]*1e-9*1e-4, label=f"$F =$ {total_fluence:.3f} J/cm²")
 
@@ -231,30 +236,55 @@ def plot_inversion2D(amplifier):
 
 def plot_spectral_gain(amplifier):
     spectral_fluence = amplifier.extraction_CPA()
-
+    passes = len(spectral_fluence[:,0])-1
     plt.figure()
-    for i in range(max(amplifier.passes-10,0), amplifier.passes+1):
+    for i in range(max(passes-20,0), passes+1, 2):
         total_fluence = integ(spectral_fluence[i,:], amplifier.seed.dlambda)[-1]*1e-4
         plt.plot(amplifier.seed.lambdas*1e9, spectral_fluence[i,:]*1e-9*1e-4, label=f"$F =$ {total_fluence:.3f} J/cm²")
 
     plt.xlabel("wavlength in nm")
+    plt.xlim(1010,1050)
     plt.ylabel("spectral fluence in J/cm²/nm")
+    plt.title(f"{crystal.name} with {passes} passes")
     plt.legend()
     
-
-if __name__ == "__main__":
-
+def simulate_YbFP15():
     crystal  = Crystal(material="YbFP15_Toepfer")
     pump     = Pump(intensity=23, wavelength=940, duration=2)
     seed_CPA = Seed_CPA(fluence=1e-6, wavelength=1030, bandwidth=60, seed_type="gauss")
-    seed     = Seed(fluence=100, seed_type = "gauss")
     losses   = Spectral_Losses(material="YbFP15")
-    print(crystal,pump,seed_CPA,seed,sep='')
 
-    spectral_losses = np.interp(seed_CPA.lambdas, losses.lambdas, losses.calc_reflectivity(45.5, angle_unit="deg"))
+    angle1 = 47
+    angle2 = 43.3
+    total_reflectivity = losses.reflectivity_by_angles([angle1,angle2,angle1,angle2], angle_unit="deg")
+    spectral_losses = np.interp(seed_CPA.lambdas, losses.lambdas, total_reflectivity)
 
-    # CW_amplifier  = Amplifier(crystal=crystal, pump=pump, seed=seed, passes=60, losses=1.3e-1)
-    CPA_amplifier = Amplifier(crystal=crystal, pump=pump, seed=seed_CPA, passes=120, losses=1.1e-1, spectral_losses = spectral_losses)
+    CPA_amplifier = Amplifier(crystal=crystal, pump=pump, seed=seed_CPA, passes=200, losses=1.3e-1, spectral_losses=None, max_fluence = 1)
+
+    CPA_amplifier.inversion()
+
+    plot_spectral_gain(CPA_amplifier)
+
+    plt.figure()
+    plt.plot(seed_CPA.lambdas*1e9, spectral_losses)
+    plt.xlim(1010,1050)
+
+
+if __name__ == "__main__":
+
+    crystal  = Crystal(material="YbCaF2_Toepfer")
+    pump     = Pump(intensity=33, wavelength=920, duration=4)
+    seed_CPA = Seed_CPA(fluence=1e-6, wavelength=1030, bandwidth=60, seed_type="gauss")
+    losses   = Spectral_Losses(material="YbCaF2_Garbsen")
+    # print(crystal,pump,seed_CPA,seed,sep='')
+
+    angle1 = 43
+    angle2 = 46
+    total_reflectivity = losses.reflectivity_by_angles([angle1,angle2], angle_unit="deg")
+    spectral_losses = np.interp(seed_CPA.lambdas, losses.lambdas, total_reflectivity)
+
+    # CW_amplifier  = Amplifier(crystal=crystal, pump=pump, passes=60, losses=1.3e-1)
+    CPA_amplifier = Amplifier(crystal=crystal, pump=pump, seed=seed_CPA, passes=10, losses=1e-1, spectral_losses=spectral_losses, max_fluence = 1)
 
     CPA_amplifier.inversion()
     # plot_inversion1D(CW_amplifier)
@@ -262,3 +292,8 @@ if __name__ == "__main__":
     # plot_fluence(CW_amplifier)
 
     plot_spectral_gain(CPA_amplifier)
+
+    plt.figure()
+    plt.plot(seed_CPA.lambdas*1e9, spectral_losses)
+    plt.xlim(1010,1050)
+    plt.ylim(0,0.2)

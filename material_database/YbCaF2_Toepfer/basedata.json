@@ -4,5 +4,5 @@
     "tau_f": 1.9e-3,
     "N_dop": 3.3e26,
     "energy_lower_level": [0, 50, 110, 530],
-    "energy_upper_level": [10205, 10300, 10580]
+    "energy_upper_level": [10205,10300,10580]
 }
