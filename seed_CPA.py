@@ -3,29 +3,29 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class Seed_CPA():
-    def __init__(self, bandwidth = 30, wavelength = 1030, fluence = 1, seed_type = "rect"):
+    def __init__(self, bandwidth = 30, wavelength = 1030, fluence = 1e-6, seed_type = "rect"):
         self.bandwidth = bandwidth*1e-9     # [m]
         self.wavelength = wavelength*1e-9   # [m]
         self.fluence = fluence*1e4          # [J/m²]
         self.gauss_order = 2
         self.seed_type = seed_type
-        self.seedres = 500
-        self.dlambda = 2*self.bandwidth / (self.seedres-1)
-
-        self.lambdas = np.linspace(self.wavelength-self.bandwidth,self.wavelength+self.bandwidth, self.seedres)
+        self.seedres = 250
+        
         self.spectral_fluence = self.pulse_gen()
 
     def pulse_gen(self):
         pulse = np.zeros(self.seedres)
 
         if self.seed_type == 'gauss':
+            self.dlambda = 2*self.bandwidth / (self.seedres-1)
+            self.lambdas = np.linspace(self.wavelength-self.bandwidth,self.wavelength+self.bandwidth, self.seedres)
             pulse = np.exp( -((self.lambdas-self.wavelength) / self.bandwidth * 2) ** (2*self.gauss_order))
             pulse *= 1/integ(pulse, self.dlambda)[-1]
         
         elif self.seed_type == 'rect':
+            self.dlambda = self.bandwidth / (self.seedres-1)
+            self.lambdas = np.linspace(self.wavelength-self.bandwidth/2,self.wavelength+self.bandwidth/2, self.seedres)
             pulse = np.ones(self.seedres) / self.bandwidth
-            pulse = np.where(self.lambdas < self.wavelength-0.5*self.bandwidth, 0, pulse)
-            pulse = np.where(self.lambdas > self.wavelength+0.5*self.bandwidth, 0, pulse)
 
         pulse *= self.fluence
         return pulse

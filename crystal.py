@@ -1,4 +1,4 @@
-from utilities import numres, h, c, integ
+from utilities import numres, h, c, moving_average, fourier_filter
 import json
 import numpy as np
 import os
@@ -55,6 +55,15 @@ class Crystal():
         else:
             raise FileNotFoundError(f"No file found for file pattern: {Folder} -> material_database -> {self.name} @ {self.temperature}K")
         
+    def smooth_cross_sections(self, FF_filter, mov_average):
+        self.table_sigma_a[:,1] = fourier_filter(self.table_sigma_a, FF_filter)
+        self.table_sigma_e[:,1] = fourier_filter(self.table_sigma_e, FF_filter)
+        self.table_sigma_a[:,1] = moving_average(self.table_sigma_a[:,1], mov_average)
+        self.table_sigma_e[:,1] = moving_average(self.table_sigma_e[:,1], mov_average)
+
+        self.McCumber_absorption()
+        self.load_spline_interpolation()
+        
     # absorption cross section
     def sigma_a(self,lambd):
         if self.use_spline_interpolation:
@@ -82,13 +91,13 @@ class Crystal():
         return Gain
     
     def McCumber_absorption(self, lambda_min=980e-9):
-        lambd = crystal.table_sigma_a[:,0]*1e-9
+        lambd = self.table_sigma_a[:,0]*1e-9
         min_index = np.argmin(np.abs(lambd-lambda_min))
-        beta_eq = crystal.beta_eq(lambd)
+        beta_eq = self.beta_eq(lambd)
         params, _ = curve_fit(logistic_function, lambd, beta_eq, p0=[1,980e-9])
-        interpolated_sigma_e = np.interp(lambd*1e9, crystal.table_sigma_e[:,0], crystal.table_sigma_e[:,1])
-        crystal.table_sigma_a[min_index:,1] = interpolated_sigma_e[min_index:] * logistic_function(lambd[min_index:], *params)/(1-logistic_function(lambd[min_index:], *params))
-        crystal.load_spline_interpolation()
+        interpolated_sigma_e = np.interp(lambd*1e9, self.table_sigma_e[:,0], self.table_sigma_e[:,1])
+        self.table_sigma_a[min_index:,1] = interpolated_sigma_e[min_index:] * logistic_function(lambd[min_index:], *params)/(1-logistic_function(lambd[min_index:], *params))
+        self.load_spline_interpolation()
 
 
 
@@ -116,7 +125,7 @@ def plot_small_signal_gain(crystal, beta, lam_min = 1000, lam_max = 1060):
     # make multiple plots if beta is an array!
     if isinstance(beta, (list, tuple, np.ndarray)): 
         for b in beta:
-            Gain = crystal.small_signal_gain(lambd, b)
+            Gain = crystal.small_signal_gain(lambd, b)**2*(1-0.078)
             plt.plot(lambd*1e9, Gain, label=f"$\\beta$ = {b:.2f}")
     # if beta is just a number, plot a single plot
     else:
@@ -124,6 +133,9 @@ def plot_small_signal_gain(crystal, beta, lam_min = 1000, lam_max = 1060):
         plt.plot(lambd*1e9, Gain, label=f"$\\beta$ = {beta:.2f}")
     plt.xlabel("wavelength in nm")
     plt.ylabel("Gain G")
+    
+    plt.xlim(lam_min,lam_max)
+    plt.ylim(bottom=1.1)
     plt.title(f"small signal gain, {crystal.name} at {crystal.temperature}K")
     plt.legend()
 
@@ -132,7 +144,7 @@ def plot_beta_eq(crystal):
     lambd = crystal.table_sigma_a[:,0]*1e-9
     beta_eq = crystal.beta_eq(lambd)
     params, _ = curve_fit(logistic_function, lambd, beta_eq, p0=[1,980e-9])
-    print(params)
+
     plt.plot(lambd*1e9, beta_eq)
     plt.plot(lambd*1e9, logistic_function(lambd, *params), "--")
     plt.xlabel("wavelength in nm")
@@ -140,20 +152,18 @@ def plot_beta_eq(crystal):
     plt.title(f"equilibrium inversion, {crystal.name} at {crystal.temperature}K")
     plt.ylim(-0.1,1.1)
 
-    crystal.McCumber_absorption()
-
-    beta_eq = crystal.beta_eq(lambd)
-    plt.plot(lambd*1e9, beta_eq)
-
 # =============================================================================
 # main script, if this file is executed
 # =============================================================================
 
 if __name__ == "__main__":
     # crystal = Crystal(material="YbYAG", temperature=100)
-    crystal = Crystal(material="YbCaF2", temperature=300)
+    crystal = Crystal(material="YbCaF2_Toepfer", temperature=300)
     print(crystal)
+    plot_beta_eq(crystal)
 
     plot_cross_sections(crystal)
-    plot_beta_eq(crystal)
+    plot_small_signal_gain(crystal, [0.3,0.22,0.24])
+
+    crystal.smooth_cross_sections(0.7, 8)
     plot_small_signal_gain(crystal, [0.2,0.22,0.24])
