@@ -274,31 +274,18 @@ if __name__ == "__main__":
 
     crystal  = Crystal(material="YbCaF2_Toepfer")
     crystal.smooth_cross_sections(0.9, 10)
-    pump     = Pump(intensity=32, wavelength=920, duration=4)
+    pump     = Pump(intensity=39, wavelength=920, duration=4)
     seed_CPA = Seed_CPA(fluence=2.7e-6, wavelength=1030, bandwidth=60, seed_type="rect")
     losses   = Spectral_Losses(material="YbCaF2_Garbsen")
     # print(crystal,pump,seed_CPA,seed,sep='')
 
-    angle1 = 41
-    angle2 = 48
-    angle3 = 44.5
-    angle4 = 45
-    total_reflectivity = losses.reflectivity_by_angles([angle1,angle2,angle3, angle4], angle_unit="deg")
-    spectral_losses = np.interp(seed_CPA.lambdas, losses.lambdas, total_reflectivity)
 
-    # CW_amplifier  = Amplifier(crystal=crystal, pump=pump, passes=60, losses=1e-1)
-    CPA_amplifier = Amplifier(crystal=crystal, pump=pump, seed=seed_CPA, passes=100, losses=1e-1, spectral_losses=spectral_losses, max_fluence = 1)
+    CW_amplifier  = Amplifier(crystal=crystal, pump=pump, passes=60, losses=1e-1)
+    CPA_amplifier = Amplifier(crystal=crystal, pump=pump, seed=seed_CPA, passes=100, losses=1e-1, spectral_losses=None, max_fluence = 1)
 
     CPA_amplifier.inversion()
-    # plot_inversion1D(CW_amplifier)
+    plot_inversion1D(CW_amplifier)
     # plot_inversion2D(CW_amplifier)
     # plot_fluence(CW_amplifier)
 
     plot_spectral_gain(CPA_amplifier)
-
-    plt.figure()
-    plt.plot(seed_CPA.lambdas*1e9, spectral_losses)
-    for angle in [angle1, angle2, angle3, angle4]:
-        plt.plot(seed_CPA.lambdas*1e9, np.interp(seed_CPA.lambdas, losses.lambdas, losses.calc_reflectivity(angle, angle_unit="deg")))
-    plt.xlim(1010,1050)
-    plt.ylim(0,0.2)

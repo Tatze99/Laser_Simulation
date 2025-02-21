@@ -85,9 +85,11 @@ class Spectral_Losses():
     # returns the total reflectivity for a given array of angles
     def reflectivity_by_angles(self, angle_array, angle_unit="grad"):
         reflectivity_array = []
+        if angle_array is None:
+            return np.zeros(len(self.lambdas))
+        
         for angle in angle_array:
             reflectivity_array.append(self.calc_reflectivity(angle, angle_unit=angle_unit))
-        
         return self.calc_total_reflectivity(np.array(reflectivity_array))
 
 def test_reflectivity_approximation(losses):

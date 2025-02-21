@@ -55,13 +55,13 @@ class Crystal():
         else:
             raise FileNotFoundError(f"No file found for file pattern: {Folder} -> material_database -> {self.name} @ {self.temperature}K")
         
-    def smooth_cross_sections(self, FF_filter, mov_average):
+    def smooth_cross_sections(self, FF_filter, mov_average, lambda_min=980e-9):
         self.table_sigma_a[:,1] = fourier_filter(self.table_sigma_a, FF_filter)
         self.table_sigma_e[:,1] = fourier_filter(self.table_sigma_e, FF_filter)
         self.table_sigma_a[:,1] = moving_average(self.table_sigma_a[:,1], mov_average)
         self.table_sigma_e[:,1] = moving_average(self.table_sigma_e[:,1], mov_average)
 
-        self.McCumber_absorption()
+        self.McCumber_absorption(lambda_min)
         self.load_spline_interpolation()
         
     # absorption cross section
@@ -133,7 +133,7 @@ def plot_small_signal_gain(crystal, beta, lam_min = 1000, lam_max = 1060):
         plt.plot(lambd*1e9, Gain, label=f"$\\beta$ = {beta:.2f}")
     plt.xlabel("wavelength in nm")
     plt.ylabel("Gain G")
-    
+
     plt.xlim(lam_min,lam_max)
     plt.ylim(bottom=1.1)
     plt.title(f"small signal gain, {crystal.name} at {crystal.temperature}K")
@@ -158,12 +158,12 @@ def plot_beta_eq(crystal):
 
 if __name__ == "__main__":
     # crystal = Crystal(material="YbYAG", temperature=100)
-    crystal = Crystal(material="YbCaF2_Toepfer", temperature=300)
+    crystal = Crystal(material="YbFP15_Toepfer", temperature=300)
     print(crystal)
     plot_beta_eq(crystal)
 
     plot_cross_sections(crystal)
     plot_small_signal_gain(crystal, [0.3,0.22,0.24])
 
-    crystal.smooth_cross_sections(0.7, 8)
-    plot_small_signal_gain(crystal, [0.2,0.22,0.24])
+    crystal.smooth_cross_sections(0.7, 1, lambda_min=1050e-9)
+    plot_small_signal_gain(crystal, [0.3,0.22,0.24])

@@ -26,6 +26,8 @@ class Seed_CPA():
             self.dlambda = self.bandwidth / (self.seedres-1)
             self.lambdas = np.linspace(self.wavelength-self.bandwidth/2,self.wavelength+self.bandwidth/2, self.seedres)
             pulse = np.ones(self.seedres) / self.bandwidth
+            pulse = np.where(self.lambdas < self.wavelength-0.5*self.bandwidth, 0, pulse)
+            pulse = np.where(self.lambdas > self.wavelength+0.5*self.bandwidth, 0, pulse)
 
         pulse *= self.fluence
         return pulse
