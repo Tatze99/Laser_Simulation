@@ -7,7 +7,7 @@ class Seed_CPA():
         self.bandwidth = bandwidth*1e-9     # [m]
         self.wavelength = wavelength*1e-9   # [m]
         self.fluence = fluence*1e4          # [J/m²]
-        self.gauss_order = 2
+        self.gauss_order = 1
         self.seed_type = seed_type
         self.seedres = 250
         

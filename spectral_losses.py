@@ -10,16 +10,21 @@ Folder = os.path.dirname(os.path.abspath(__file__))
 
 
 class Spectral_Losses():
-    def __init__(self, material= "YbCaF2"):
+    def __init__(self, material= "YbCaF2", calc_formula = True):
         File = os.path.join(Folder, "material_database", "reflectivity_curves", material)
+        self.TSF_name = material
         self.load_basedata(os.path.join(File, material + "_Metadata.json"))
-        self.fnames = glob(os.path.join(File, self.name +"*"+ self.file_type))
+        self.fnames = glob(os.path.join(File, "*"+ self.file_type))
         self.arrays = np.array([np.loadtxt(f)[:,1] for f in self.fnames])*self.reflectivity_unit
         self.lambdas = np.loadtxt(self.fnames[0])[:,0]*self.spectral_unit
         self.dlambda = self.lambdas[1] - self.lambdas[0]
-        self.reflectivity = self.arrays[1]
-        self.calc_angle_formula()
-
+        if calc_formula and len(self.angles) > 1:
+            self.reflectivity = self.arrays[1]
+            self.calc_angle_formula()
+        else:
+            print("loading angle formula from metadata file") 
+            self.reflectivity = self.arrays[0]
+            self.load_angle_formula()
 
     def calc_max_index(self, array):
         index = np.argmin(array)
@@ -56,6 +61,11 @@ class Spectral_Losses():
         self.prop_constant = L_max[0]/np.sqrt(self.n2**2-np.sin(phi[0])**2)
         self.slope = (1 - R_max[0]/R_max[-1])/(L_max[-1] - L_max[0])
     
+    # load the angle formula from the metadata
+    def load_angle_formula(self):
+        self.n2 = self.dict["n2"]
+        self.prop_constant = self.dict["prop_constant"]
+        self.slope = self.dict["slope"]
 
     def calc_reflectivity(self, phi, angle_unit="rad"):
         # ensure that the reflectivity is not given in percent, and the angle is in radians
@@ -91,6 +101,10 @@ class Spectral_Losses():
         for angle in angle_array:
             reflectivity_array.append(self.calc_reflectivity(angle, angle_unit=angle_unit))
         return self.calc_total_reflectivity(np.array(reflectivity_array))
+
+    def __repr__(self):
+        txt = f"name: {self.name}\nangles = {self.angles}\nfile_type = {self.file_type}\nreflectivity_unit = {self.reflectivity_unit}\nspectral_unit = {self.spectral_unit}\nn2 = {self.n2}\nprop_constant = {self.prop_constant}\nslope = {self.slope}\n"
+        return txt
 
 def test_reflectivity_approximation(losses):
     plt.figure()
@@ -133,8 +147,9 @@ def test_total_reflectivity(losses):
 
 
 if __name__ == "__main__":
-    losses = Spectral_Losses(material="YbCaF2_Garbsen")
+    losses = Spectral_Losses(material="YbCaF2_2408_Design_Gauss")
 
+    print(losses)
     test_reflectivity_approximation(losses)
     test_total_reflectivity(losses)
 
