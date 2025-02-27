@@ -155,15 +155,16 @@ def simulate_A2_CaF2():
 
     mirror_losses = gauss(CPA_amplifier.seed.lambdas, 0.1, 1010e-9, 10e-9, 0)
 
+    CPA_amplifier.plot_inversion1D()
     # plot_small_signal_gain(CPA_amplifier, [0.3], "240719_Q-Switch_CaF2_TFP_Gain100A.txt", losses=0.7e-1, mirror_losses=mirror_losses)
-    plot_spectral_gain_losses(CPA_amplifier, spectral_losses, angles = [45,45, 45, 45], mirror_losses = mirror_losses, save=True)
+    # plot_spectral_gain_losses(CPA_amplifier, spectral_losses, angles = [45,45, 45, 45], mirror_losses = mirror_losses, save=True)
     # angle_variation_TSF(CPA_amplifier, spectral_losses, angle_low=44, angle_high=46, angle_step=0.5, save=True, mirror_losses=mirror_losses, number_of_TSF_pairs=1)
 
 
 if __name__ == "__main__":
 
-    # simulate_A2_CaF2()
-    simulate_CaF2()
+    simulate_A2_CaF2()
+    # simulate_CaF2()
     # simulate_YbFP15()
 
     

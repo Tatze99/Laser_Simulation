@@ -1,13 +1,16 @@
-from utilities import numres, h, c, integ
+from utilities import numres, h, c, integ, set_plot_params
 import numpy as np
 import matplotlib.pyplot as plt
+import os
+set_plot_params()
+Folder = os.path.dirname(os.path.abspath(__file__))
 
 class Seed_CPA():
-    def __init__(self, bandwidth = 30, wavelength = 1030, fluence = 1e-6, seed_type = "rect"):
+    def __init__(self, bandwidth = 30, wavelength = 1030, fluence = 1e-6, seed_type = "rect", gauss_order = 1):
         self.bandwidth = bandwidth*1e-9     # [m]
         self.wavelength = wavelength*1e-9   # [m]
         self.fluence = fluence*1e4          # [J/m²]
-        self.gauss_order = 1
+        self.gauss_order = gauss_order
         self.seed_type = seed_type
         self.seedres = 250
         
@@ -37,11 +40,19 @@ class Seed_CPA():
         txt = f"Seed CPA pulse:\nbandwidth = {self.bandwidth*1e9:.2f} nm (FWHM)\nwavelength = {self.wavelength*1e9:.2f} nm \nfluence = {self.fluence*1e-4} J/cm²\npulse type = '{self.seed_type}'\n\n"
         return txt
 
-if __name__ == "__main__":
-    p1 = Seed_CPA(seed_type = "rect")
-
-    print(p1)
+def plot_seed_pulse(seed, save=False):
     plt.figure()
-    plt.plot(p1.lambdas*1e9, p1.spectral_fluence*1e-4*1e-9)
+    plt.plot(seed.lambdas*1e9, seed.spectral_fluence*1e-4*1e-9, label=f"F = {integ(seed.spectral_fluence, seed.dlambda)[-1]/1e4:.1e} J/cm²")
+    plt.legend()
     plt.xlabel("wavlength in nm")
     plt.ylabel("spectral fluence in J/cm²/nm")
+    if save:
+        plt.tight_layout()
+        plt.savefig(os.path.join(Folder, "material_database","plots", f"Seed_Spectrum_{seed.wavelength*1e9}nm_{seed.bandwidth*1e9:.1f}nm.pdf"))
+
+if __name__ == "__main__":
+    seed = Seed_CPA(seed_type = "gauss", gauss_order = 1)
+
+    print(seed)
+    plot_seed_pulse(seed, save=True)
+    

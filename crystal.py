@@ -1,4 +1,4 @@
-from utilities import numres, h, c, moving_average, fourier_filter
+from utilities import numres, h, c, moving_average, fourier_filter, set_plot_params
 import json
 import numpy as np
 import os
@@ -6,7 +6,8 @@ import glob
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from scipy.interpolate import CubicSpline
-plt.rcParams["figure.figsize"] = (10,5)
+set_plot_params()
+# plt.rcParams["figure.figsize"] = (10,5)
 
 Folder = os.path.dirname(os.path.abspath(__file__))
 
@@ -18,6 +19,7 @@ class Crystal():
         self.inversion = np.zeros(numres)
         self.temperature = temperature
         self.use_spline_interpolation = True
+        self.material = material
 
         basedata_path = os.path.join(Folder,"material_database", material, "basedata.json")
         
@@ -109,7 +111,7 @@ class Crystal():
 # Display of results
 # =============================================================================
 
-def plot_cross_sections(crystal):
+def plot_cross_sections(crystal, save=False):
     plt.figure()
     plt.plot(crystal.table_sigma_a[:,0], crystal.table_sigma_a[:,1], label="absorption $\\sigma_a$")
     plt.plot(crystal.table_sigma_e[:,0], crystal.table_sigma_e[:,1], label="emission $\\sigma_e$")
@@ -118,7 +120,11 @@ def plot_cross_sections(crystal):
     plt.title(f"{crystal.name} at {crystal.temperature}K")
     plt.legend()
 
-def plot_small_signal_gain(crystal, beta, lam_min = 1000, lam_max = 1060):
+    if save:
+        plt.tight_layout()
+        plt.savefig(os.path.join(Folder, "material_database","plots", f"{crystal.material}_{crystal.temperature}K_cross_sections.pdf"))
+
+def plot_small_signal_gain(crystal, beta, lam_min = 1000, lam_max = 1060, save=False):
     plt.figure()
     lambd = np.linspace(lam_min*1e-9, lam_max*1e-9,100)
 
@@ -139,6 +145,10 @@ def plot_small_signal_gain(crystal, beta, lam_min = 1000, lam_max = 1060):
     plt.title(f"small signal gain, {crystal.name} at {crystal.temperature}K")
     plt.legend()
 
+    if save:
+        plt.tight_layout()
+        plt.savefig(os.path.join(Folder, "material_database","plots", f"{crystal.material}_{crystal.temperature}K_small_signal_gain.pdf"))
+
 def plot_beta_eq(crystal):
     plt.figure()
     lambd = crystal.table_sigma_a[:,0]*1e-9
@@ -158,12 +168,12 @@ def plot_beta_eq(crystal):
 
 if __name__ == "__main__":
     # crystal = Crystal(material="YbYAG", temperature=100)
-    crystal = Crystal(material="YbFP15_Toepfer", temperature=300)
+    crystal = Crystal(material="YbCaF2_Toepfer", temperature=300)
     print(crystal)
     plot_beta_eq(crystal)
 
-    plot_cross_sections(crystal)
-    plot_small_signal_gain(crystal, [0.3,0.22,0.24])
+    plot_cross_sections(crystal, save=True)
+    plot_small_signal_gain(crystal, [0.2,0.22,0.24], save=True)
 
     crystal.smooth_cross_sections(0.7, 1, lambda_min=1050e-9)
     plot_small_signal_gain(crystal, [0.3,0.22,0.24])

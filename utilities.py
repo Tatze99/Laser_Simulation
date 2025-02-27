@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib.pyplot as plt 
+
 
 # define speed of light and planck's constant
 c = 3e8 # [m/s]
@@ -7,10 +9,16 @@ h = 6.626e-34 # [Js]
 # numerical resolution
 numres = 300
 
+def set_plot_params():
+    plt.rcParams["figure.figsize"] = (8,4)
+    plt.rcParams["axes.grid"] = True
+    plt.rcParams['grid.linewidth'] = 0.5  # Adjust the value to make it thinner
+    plt.rcParams["xtick.direction"] = "in"
+    plt.rcParams["ytick.direction"] = "in"
+
 # integration routines: integ(x) = integral(0, x, y dx')
 # convention integ: 1D
 # f(t, z) -> 2D Matrix N x M with N in time und M in space
-
 def integ(y, dx):
     upper_sum = np.cumsum(y[1:])
     lower_sum = np.cumsum(y[:-1])
