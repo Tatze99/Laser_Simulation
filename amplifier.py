@@ -7,12 +7,11 @@ from spectral_losses import Spectral_Losses
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.matlib as npm
-from utilities import z_integ, t_integ, integ, numres, h, c
-plt.rcParams["figure.figsize"] = (10,5)
-plt.rcParams["axes.grid"] = True
-plt.rcParams["xtick.direction"] = "in"
-plt.rcParams["ytick.direction"] = "in"
+from utilities import z_integ, t_integ, integ, numres, h, c, set_plot_params
+import os
 
+set_plot_params()
+Folder = os.path.dirname(os.path.abspath(__file__))
 
 class Amplifier():
 
@@ -211,18 +210,23 @@ def plot_fluence(amplifier):
     plt.ylabel("temporal fluence in J/cm²/ns")
     plt.legend()
 
-def plot_inversion1D(amplifier):
+def plot_inversion1D(amplifier, save=False):
     amplifier.inversion()
+    crystal = amplifier.crystal 
+    pump = amplifier.pump
 
     plt.figure()
-    plt.plot(amplifier.crystal.z_axis*1e3, amplifier.crystal.inversion_end, label=f"$\\beta$ mean = {np.mean(amplifier.crystal.inversion_end):.4f}")
+    plt.plot(crystal.z_axis*1e3, crystal.inversion_end, label=f"$\\beta$ mean = {np.mean(crystal.inversion_end):.4f}")
     plt.xlabel("depth $z$ in mm")
     plt.ylabel("inversion $\\beta$")
     plt.title('$\\beta(z)$ at the end of pumping')
     plt.legend()
-    print(amplifier.crystal.inversion_end[0])
 
-def plot_inversion2D(amplifier):
+    if save:
+        plt.tight_layout()
+        plt.savefig(os.path.join(Folder, "material_database","plots", f"{crystal.material}_{crystal.temperature}K_{pump.intensity*1e-7}_inversion1D.pdf"))
+
+def plot_inversion2D(amplifier, save=False):
     amplifier.inversion()
 
     plt.figure()
@@ -233,6 +237,10 @@ def plot_inversion2D(amplifier):
     plt.xlabel("z in mm")
     plt.title(r'$\beta$ vs time and space')
     plt.grid()
+
+    if save:
+        plt.tight_layout()
+        plt.savefig(os.path.join(Folder, "material_database","plots", f"{crystal.material}_{crystal.temperature}K_{pump.intensity*1e-7}_inversion1D.pdf"))
 
 def plot_spectral_gain(amplifier):
     spectral_fluence = amplifier.extraction_CPA()

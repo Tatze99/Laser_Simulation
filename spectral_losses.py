@@ -106,7 +106,7 @@ class Spectral_Losses():
         txt = f"name: {self.name}\nangles = {self.angles}\nfile_type = {self.file_type}\nreflectivity_unit = {self.reflectivity_unit}\nspectral_unit = {self.spectral_unit}\nn2 = {self.n2}\nprop_constant = {self.prop_constant}\nslope = {self.slope}\n"
         return txt
 
-def test_reflectivity_approximation(losses):
+def test_reflectivity_approximation(losses, save=False):
     plt.figure()
     plt.tick_params(direction="in",right=True,top=True)
     colors = plt.cm.tab10.colors
@@ -123,6 +123,10 @@ def test_reflectivity_approximation(losses):
     plt.ylabel("reflectivity R")
     plt.legend(loc="upper right")
     plt.title("Reflectivity TSF of "+ losses.name)
+
+    if save:
+        plt.tight_layout()
+        plt.savefig(os.path.join(Folder, "material_database","plots", f"{losses.TSF_name}_reflectivity_approximation.pdf"))
 
 def test_total_reflectivity(losses):
     plt.figure()
@@ -147,10 +151,10 @@ def test_total_reflectivity(losses):
 
 
 if __name__ == "__main__":
-    losses = Spectral_Losses(material="YbCaF2_2408_Design_Gauss")
+    losses = Spectral_Losses(material="YbCaF2_Garbsen")
 
     print(losses)
-    test_reflectivity_approximation(losses)
+    test_reflectivity_approximation(losses, save=True)
     test_total_reflectivity(losses)
 
     # Serialize data into file:
