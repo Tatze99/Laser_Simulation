@@ -60,6 +60,9 @@ def plot_spectral_gain_losses(amplifier, losses, angles = None, mirror_losses = 
         plt.plot(amplifier.seed.lambdas*1e9, mirror_losses, color="black", label="mirror losses")
     plt.xlim(1010,1060)
     plt.ylim(0,0.2)
+    plt.xlabel("wavelength in nm")
+    plt.ylabel("reflectivity")
+    plt.title(f"TSF for {amplifier.crystal.name}")
     plt.legend()
 
     if save and angles is not None:
@@ -98,6 +101,30 @@ def angle_variation_TSF(amplifier, losses, angle_low=43, angle_high=46, angle_st
         plt.tight_layout()
         plt.savefig(os.path.join(Folder, f"TSF_Angle_variation_{losses.TSF_name}_{angle_low}_{angle_high}_{len(angle_array)}TSF.pdf"))
 
+def compare_small_signal_gain(amplifier, beta, spectral_losses, angles, losses = 0, mirror_losses = 0, save=False):
+    
+    lambd = amplifier.seed.lambdas
+    total_reflectivity = spectral_losses.reflectivity_by_angles(angles, angle_unit="deg")
+    TSF_losses = np.interp(lambd, spectral_losses.lambdas, total_reflectivity)
+
+    Gain = amplifier.crystal.small_signal_gain(lambd, beta)**2*(1-losses)
+    Gain *= (1-mirror_losses)
+
+    compensated_gain = Gain*(1-TSF_losses)
+
+    plt.figure()
+    plt.plot(lambd*1e9, Gain, label="Uncompensated gain")
+    plt.plot(lambd*1e9,compensated_gain, label="Compensated gain")
+    plt.xlabel("wavelength in nm")
+    plt.ylabel("Gain G per round trip")
+    plt.ylim(bottom=1.05)
+    if save:
+        angle_name = ""
+        for angle in angles:
+            angle_name += "_" + str(angle)
+        plt.tight_layout()
+        plt.savefig(os.path.join(Folder, f"Small_signal_gain_{spectral_losses.TSF_name}_{angle_name}.pdf"))
+
 def plot_small_signal_gain(amplifier, beta, measured_gain_name, losses = 0, mirror_losses = 0, lam_min=1010, lam_max=1060, save=False):
     measured_gain = np.loadtxt(os.path.join(Folder, measured_gain_name))
     fig, ax = plt.subplots()
@@ -113,7 +140,8 @@ def plot_small_signal_gain(amplifier, beta, measured_gain_name, losses = 0, mirr
             lines += ax.plot(lambd*1e9, Gain, label=f"$\\beta$ = {b:.2f}")
     # if beta is just a number, plot a single plot
     else:
-        Gain = amplifier.crystal.small_signal_gain(lambd, beta)
+        Gain = amplifier.crystal.small_signal_gain(lambd, beta)**2*(1-losses)
+        Gain *= (1-mirror_losses)
         lines.append(ax.plot(lambd*1e9, Gain, label=f"$\\beta$ = {beta:.2f}"))
     
     lines += ax.plot(measured_gain[:,0], measured_gain[:,1], label="measured gain", color="black")
@@ -155,16 +183,16 @@ def simulate_CaF2():
     crystal.smooth_cross_sections(0.9, 10)
     pump     = Pump(intensity=32, wavelength=920, duration=4)
     seed_CPA = Seed_CPA(fluence=2.7e-7, wavelength=1035, bandwidth=70, seed_type="rect")
-    spectral_losses   = Spectral_Losses(material="YbCaF2_Garbsen")
+    spectral_losses   = Spectral_Losses(material="YbCaF2_2502_Design_Gauss")
 
-    CPA_amplifier = Amplifier(crystal=crystal, pump=pump, seed=seed_CPA, passes=30, losses=0.7e-1, spectral_losses=None, max_fluence = 1)
+    CPA_amplifier = Amplifier(crystal=crystal, pump=pump, seed=seed_CPA, passes=20, losses=0.7e-1, spectral_losses=None, max_fluence = 1)
     CPA_amplifier.inversion()
 
     mirror_losses = gauss_higher_order(CPA_amplifier.seed.lambdas, 0.08, 1010e-9, 11e-9, 0, order=1)
     mirror_losses += gauss_higher_order(CPA_amplifier.seed.lambdas, 0.07, 1050e-9, 9e-9, 0, order=2)
 
     # plot_small_signal_gain(CPA_amplifier, [0.3], "240719_Q-Switch_CaF2_TFP_Gain100A.txt", losses=0.7e-1, mirror_losses=mirror_losses)
-    plot_spectral_gain_losses(CPA_amplifier, spectral_losses, angles = [46,45,45,45], mirror_losses = mirror_losses, save=False)
+    plot_spectral_gain_losses(CPA_amplifier, spectral_losses, angles = [47.1,45.3,44.4,44], mirror_losses = mirror_losses, save=False)
     # angle_variation_TSF(CPA_amplifier, spectral_losses, angle_low=44, angle_high=46, angle_step=0.5, save=True, mirror_losses=mirror_losses, number_of_TSF_pairs=2)
 
 
@@ -182,9 +210,11 @@ def simulate_A2_CaF2():
     mirror_losses = gauss_higher_order(CPA_amplifier.seed.lambdas, 0.08, 1010e-9, 11e-9, 0, order=1)
     mirror_losses += gauss_higher_order(CPA_amplifier.seed.lambdas, 0.07, 1050e-9, 9e-9, 0, order=2)
 
+    angles = [46,45,45,45]
     # plot_inversion1D(CPA_amplifier, save=True)
-    # plot_small_signal_gain(CPA_amplifier, [0.3], "240719_Q-Switch_CaF2_TFP_Gain100A.txt", losses=0.7e-1, mirror_losses=mirror_losses, save=True)
-    plot_spectral_gain_losses(CPA_amplifier, spectral_losses, angles = None, mirror_losses = mirror_losses, save=True)
+    compare_small_signal_gain(CPA_amplifier, 0.3, spectral_losses, angles, losses=0.7e-1, mirror_losses = mirror_losses, save=True)
+    # plot_small_signal_gain(CPA_amplifier, [0.3], "240719_Q-Switch_CaF2_TFP_Gain100A.txt", losses=0.7e-1, mirror_losses=mirror_losses, save=False)
+    # plot_spectral_gain_losses(CPA_amplifier, spectral_losses, angles =angles, mirror_losses = mirror_losses, save=True)
     # angle_variation_TSF(CPA_amplifier, spectral_losses, angle_low=44, angle_high=46, angle_step=0.5, save=True, mirror_losses=mirror_losses, number_of_TSF_pairs=1)
 
 
