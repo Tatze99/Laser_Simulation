@@ -127,6 +127,7 @@ def compare_small_signal_gain(amplifier, beta, spectral_losses, angles, losses =
 
 def plot_small_signal_gain(amplifier, beta, measured_gain_name, losses = 0, mirror_losses = 0, lam_min=1010, lam_max=1060, save=False):
     measured_gain = np.loadtxt(os.path.join(Folder, measured_gain_name))
+    single_gain = np.loadtxt(os.path.join(Folder, "250305_ylim_0.9999_Gain_wavelength_diode.txt"))
     fig, ax = plt.subplots()
     lambd = amplifier.seed.lambdas
 
@@ -144,6 +145,7 @@ def plot_small_signal_gain(amplifier, beta, measured_gain_name, losses = 0, mirr
         Gain *= (1-mirror_losses)
         lines.append(ax.plot(lambd*1e9, Gain, label=f"$\\beta$ = {beta:.2f}"))
     
+    lines += ax.plot(single_gain[:,0], single_gain[:,1], '-o', label="photo diode measurement", color="tab:orange")
     lines += ax.plot(measured_gain[:,0], measured_gain[:,1], label="measured gain", color="black")
     if not isinstance(mirror_losses, int): 
         ax2 = ax.twinx()
@@ -212,8 +214,8 @@ def simulate_A2_CaF2():
 
     angles = [46,45,45,45]
     # plot_inversion1D(CPA_amplifier, save=True)
-    compare_small_signal_gain(CPA_amplifier, 0.3, spectral_losses, angles, losses=0.7e-1, mirror_losses = mirror_losses, save=True)
-    # plot_small_signal_gain(CPA_amplifier, [0.3], "240719_Q-Switch_CaF2_TFP_Gain100A.txt", losses=0.7e-1, mirror_losses=mirror_losses, save=False)
+    # compare_small_signal_gain(CPA_amplifier, 0.3, spectral_losses, angles, losses=0.7e-1, mirror_losses = mirror_losses, save=True)
+    plot_small_signal_gain(CPA_amplifier, [0.3], "240719_Q-Switch_CaF2_TFP_Gain100A.txt", losses=0.7e-1, mirror_losses=mirror_losses, save=False)
     # plot_spectral_gain_losses(CPA_amplifier, spectral_losses, angles =angles, mirror_losses = mirror_losses, save=True)
     # angle_variation_TSF(CPA_amplifier, spectral_losses, angle_low=44, angle_high=46, angle_step=0.5, save=True, mirror_losses=mirror_losses, number_of_TSF_pairs=1)
 

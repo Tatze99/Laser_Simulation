@@ -162,6 +162,19 @@ def plot_beta_eq(crystal):
     plt.title(f"equilibrium inversion, {crystal.name} at {crystal.temperature}K")
     plt.ylim(-0.1,1.1)
 
+def plot_Isat(crystal):
+    plt.figure()
+    lambd = crystal.table_sigma_a[:,0]*1e-9
+
+    Isat = h*c/lambd / (crystal.sigma_a(lambd)+crystal.sigma_e(lambd)) / crystal.tau_f * 1e-7
+
+    plt.plot(lambd*1e9, Isat)
+    plt.xlabel("wavelength in nm")
+    plt.ylabel("saturation intensity")
+    plt.title(f"saturation intensity, {crystal.name} at {crystal.temperature}K")
+    plt.ylim(0,100)
+    plt.xlim(900, 1000)
+
 # =============================================================================
 # main script, if this file is executed
 # =============================================================================
@@ -171,9 +184,10 @@ if __name__ == "__main__":
     crystal = Crystal(material="YbCaF2_Toepfer", temperature=300)
     print(crystal)
     plot_beta_eq(crystal)
+    plot_Isat(crystal)
 
-    plot_cross_sections(crystal, save=True)
-    plot_small_signal_gain(crystal, [0.2,0.22,0.24], save=True)
+    plot_cross_sections(crystal, save=False)
+    plot_small_signal_gain(crystal, [0.2,0.22,0.24,0.26,0.28,0.3,0.32], save=False)
 
-    crystal.smooth_cross_sections(0.7, 1, lambda_min=1050e-9)
-    plot_small_signal_gain(crystal, [0.3,0.22,0.24])
+    # crystal.smooth_cross_sections(0.7, 1, lambda_min=1050e-9)
+    # plot_small_signal_gain(crystal, [0.3,0.22,0.24])
