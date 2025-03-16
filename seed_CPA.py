@@ -22,7 +22,7 @@ class Seed_CPA():
         if self.seed_type == 'gauss':
             self.dlambda = 2*self.bandwidth / (self.seedres-1)
             self.lambdas = np.linspace(self.wavelength-self.bandwidth,self.wavelength+self.bandwidth, self.seedres)
-            pulse = np.exp( -((self.lambdas-self.wavelength) / self.bandwidth * 2) ** (2*self.gauss_order))
+            pulse = np.exp( -np.log(2)*((self.lambdas-self.wavelength) / self.bandwidth * 2) ** (2*self.gauss_order))
             pulse *= 1/integ(pulse, self.dlambda)[-1]
         
         elif self.seed_type == 'rect':

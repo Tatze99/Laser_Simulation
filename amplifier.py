@@ -296,4 +296,4 @@ if __name__ == "__main__":
     # plot_inversion2D(CW_amplifier)
     # plot_fluence(CW_amplifier)
 
-    # plot_spectral_gain(CPA_amplifier)
+    plot_spectral_gain(CPA_amplifier)
