@@ -98,6 +98,10 @@ class Amplifier():
     # =============================================================================
     
     def extraction(self):
+        """
+        Calculate the energy extraction for a monochromatic, temporal pulse.
+        Returns the total fluence at the end of each pass and the temporal fluence at the end of each pass.
+        """
         if np.any(self.crystal.inversion_end):
             beta_0 = self.crystal.inversion_end           
         else:
@@ -152,6 +156,10 @@ class Amplifier():
     # =============================================================================
 
     def extraction_CPA(self):
+        """
+        Calculate the energy extraction for a CPA pulse. 
+        Returns the spectral fluence at the end of each pass.
+        """
         if np.any(self.crystal.inversion_end):
             beta_0 = self.crystal.inversion_end           
         else:
@@ -193,27 +201,35 @@ class Amplifier():
 # =============================================================================
 
 def plot_fluence(amplifier):
+    """
+    Plot the fluence at the end of each pass and the temporal fluence at the end of each pass.
+    """
     fluence_out, pulse_out = amplifier.extraction()
-
     plt.figure()
     plt.plot(fluence_out*1e-4, "-o")
     plt.xlabel("Pass number")
     plt.ylabel("output fluence in J/cm²")
     plt.title('output fluence vs pass number')
 
+    # plot the temporal fluence at the end of the last ten passes
+    passes = len(pulse_out[:,0])-1
     plt.figure()
-    for i in range(max(len(pulse_out[0,:])-10,0), len(pulse_out[0,:])+1):
+    for i in range(max(len(pulse_out[:,0])-10,0), len(pulse_out[:,0])):
         total_fluence = integ(pulse_out[i,:], amplifier.seed.dt)[-1]*1e-4
         plt.plot(amplifier.seed.time*1e9, pulse_out[i,:]*1e-9*1e-4, label=f"$F =$ {total_fluence:.3f} J/cm²")
 
     plt.xlabel("time $t$ in s")
     plt.ylabel("temporal fluence in J/cm²/ns")
-    plt.legend()
+    plt.title(f"{crystal.name} with {int(passes/2)} RT, F$_0$ = {seed.fluence*1e-4:.2e} J/cm²")
+    plt.legend(bbox_to_anchor=(1.01, 1), loc='upper left')
+
 
 def plot_inversion1D(amplifier, save=False):
+    """
+    Plot the inversion in the crystal after the pumping process
+    """
     amplifier.inversion()
-    crystal = amplifier.crystal 
-    pump = amplifier.pump
+    crystal, pump = amplifier.crystal, amplifier.pump
 
     plt.figure()
     plt.plot(crystal.z_axis*1e3, crystal.inversion_end, label=f"$\\beta$ mean = {np.mean(crystal.inversion_end):.4f}")
@@ -226,74 +242,66 @@ def plot_inversion1D(amplifier, save=False):
         plt.tight_layout()
         plt.savefig(os.path.join(Folder, "material_database","plots", f"{crystal.material}_{crystal.temperature}K_{pump.intensity*1e-7}_inversion1D.pdf"))
 
-def plot_inversion2D(amplifier, save=False):
+def plot_inversion2D(amplifier, cmap="magma", save=False):
+    """
+    Plot the inversion in the crystal over time and space
+    """
     amplifier.inversion()
+    crystal, pump = amplifier.crystal, amplifier.pump
 
     plt.figure()
-    ext = [0, amplifier.crystal.z_axis[-1]*1e3, amplifier.pump.duration*1e3, 0]
-    plt.imshow(amplifier.crystal.inversion, aspect='auto', extent=ext, cmap="magma")
+    extent = [0, crystal.z_axis[-1]*1e3, pump.duration*1e3, 0]
+    plt.imshow(crystal.inversion, aspect='auto', extent=extent, cmap=cmap)
     plt.colorbar(label="inversion $\\beta$")
-    plt.ylabel("pump time in ms")
-    plt.xlabel("z in mm")
-    plt.title(r'$\beta$ vs time and space')
+    plt.ylabel("pump time $\\tau_p$ in ms")
+    plt.xlabel("$z$ in mm")
+    plt.title(r"$\beta$ vs time and space")
     plt.grid()
 
     if save:
         plt.tight_layout()
-        plt.savefig(os.path.join(Folder, "material_database","plots", f"{crystal.material}_{crystal.temperature}K_{pump.intensity*1e-7}_inversion1D.pdf"))
+        plt.savefig(os.path.join(Folder, "material_database","plots", f"{crystal.material}_{crystal.temperature}K_{pump.intensity*1e-7}_inversion2D.pdf"))
 
-def plot_spectral_gain(amplifier):
+def plot_spectral_fluence(amplifier, lam_min = 1010, lam_max = 1050, save=False):
+    """
+    Plot the spectral fluence at the end of the ten last roundtrips. Note, that a roundtrip corresponds to two passes through the material.
+    """
     spectral_fluence = amplifier.extraction_CPA()
+    crystal, pump, seed = amplifier.crystal, amplifier.pump, amplifier.seed
+
     passes = len(spectral_fluence[:,0])-1
     plt.figure()
     for i in range(max(passes-20,0), passes+1, 2):
-        total_fluence = integ(spectral_fluence[i,:], amplifier.seed.dlambda)[-1]*1e-4
-        plt.plot(amplifier.seed.lambdas*1e9, spectral_fluence[i,:]*1e-9*1e-4, label=f"$F =$ {total_fluence:.3f} J/cm²")
+        total_fluence = integ(spectral_fluence[i,:], seed.dlambda)[-1]*1e-4
+        plt.plot(seed.lambdas*1e9, spectral_fluence[i,:]*1e-9*1e-4, label=f"$F =$ {total_fluence:.3f} J/cm²")
 
-    plt.xlabel("wavlength in nm")
-    plt.xlim(1010,1050)
+    plt.xlabel("wavlength $\\lambda$ in nm")
     plt.ylabel("spectral fluence in J/cm²/nm")
-    plt.title(f"{crystal.name} with {passes} passes")
-    plt.legend()
+    plt.xlim(lam_min, lam_max)
+    plt.title(f"{crystal.name} with {int(passes/2)} RT, F$_0$ = {seed.fluence*1e-4:.2e} J/cm²")
+    plt.legend(bbox_to_anchor=(1.01, 1), loc='upper left')
+
+    if save:
+        plt.tight_layout()
+        plt.savefig(os.path.join(Folder, "material_database","plots", f"{crystal.material}_{crystal.temperature}K_{pump.intensity*1e-7}kW/cm2_{seed.fluence*1e-4}J/cm2_spectral_fluence.pdf"))
     
-def simulate_YbFP15():
-    crystal  = Crystal(material="YbFP15_Toepfer")
-    pump     = Pump(intensity=23, wavelength=940, duration=2)
-    seed_CPA = Seed_CPA(fluence=1e-6, wavelength=1030, bandwidth=60, seed_type="gauss")
-    losses   = Spectral_Losses(material="YbFP15")
-
-    angle1 = 47
-    angle2 = 43.3
-    total_reflectivity = losses.reflectivity_by_angles([angle1,angle2,angle1,angle2], angle_unit="deg")
-    spectral_losses = np.interp(seed_CPA.lambdas, losses.lambdas, total_reflectivity)
-
-    CPA_amplifier = Amplifier(crystal=crystal, pump=pump, seed=seed_CPA, passes=200, losses=1.3e-1, spectral_losses=None, max_fluence = 1)
-
-    CPA_amplifier.inversion()
-
-    plot_spectral_gain(CPA_amplifier)
-
-    plt.figure()
-    plt.plot(seed_CPA.lambdas*1e9, spectral_losses)
-    plt.xlim(1010,1050)
-
 
 if __name__ == "__main__":
-
     crystal  = Crystal(material="YbCaF2_Toepfer")
     crystal.smooth_cross_sections(0.9, 10)
     pump     = Pump(intensity=39, wavelength=920, duration=4)
+
+    seed = Seed(fluence=0.01, duration=5, wavelength=1030, gauss_order=1, seed_type="gauss")
+    CW_amplifier = Amplifier(crystal=crystal, pump=pump, seed=seed, passes=50, losses=1e-1)
+    
     seed_CPA = Seed_CPA(fluence=2.7e-6, wavelength=1030, bandwidth=60, seed_type="rect")
-    losses   = Spectral_Losses(material="YbCaF2_Garbsen")
-    # print(crystal,pump,seed_CPA,seed,sep='')
-
-
-    CW_amplifier  = Amplifier(crystal=crystal, pump=pump, passes=60, losses=1e-1)
     CPA_amplifier = Amplifier(crystal=crystal, pump=pump, seed=seed_CPA, passes=100, losses=1e-1, spectral_losses=None, max_fluence = 1)
+
+    print(crystal,pump,seed_CPA,seed,sep='===========================\n')
 
     CPA_amplifier.inversion()
     plot_inversion1D(CW_amplifier)
-    # plot_inversion2D(CW_amplifier)
-    # plot_fluence(CW_amplifier)
+    plot_inversion2D(CW_amplifier)
+    plot_fluence(CW_amplifier)
+    plot_spectral_fluence(CPA_amplifier)
 
-    plot_spectral_gain(CPA_amplifier)

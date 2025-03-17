@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from scipy.interpolate import CubicSpline
 set_plot_params()
-# plt.rcParams["figure.figsize"] = (10,5)
 
 Folder = os.path.dirname(os.path.abspath(__file__))
 
@@ -15,11 +14,13 @@ def logistic_function(x, a,b):
     return 1/(1+np.exp(-a*(x-b)))
 
 class Crystal():
-    def __init__(self, material="YbCaF2", temperature="300"):
+    def __init__(self, material="YbCaF2", temperature="300", lambda_a = 940, lambda_e = 1030):
         self.inversion = np.zeros(numres)
         self.temperature = temperature
         self.use_spline_interpolation = True
         self.material = material
+        self.lambda_a = lambda_a  # absorption wavelength in nm (used for displaying cross sections with print)
+        self.lambda_e = lambda_e  # emission wavelength in nm (used for displaying cross sections with print)   
 
         basedata_path = os.path.join(Folder,"material_database", material, "basedata.json")
         
@@ -32,6 +33,9 @@ class Crystal():
         self.inversion_end = None
 
     def load_basedata(self, filename):
+        """
+        load the basic crystal data from a json file
+        """
         with open(filename, "r") as file:
             self.dict = json.load(file)
             self.length = self.dict["length"]
@@ -40,10 +44,16 @@ class Crystal():
             self.name = self.dict["name"]
 
     def load_spline_interpolation(self):
+        """"
+        Perform a spline interpolation of the absorption and emission cross sections
+        """
         self.spline_sigma_a = CubicSpline(self.table_sigma_a[:,0], self.table_sigma_a[:,1], bc_type="clamped")
         self.spline_sigma_e = CubicSpline(self.table_sigma_e[:,0], self.table_sigma_e[:,1], bc_type="clamped")
 
     def load_cross_sections(self, material):
+        """
+        load the absorption and emission cross sections from the database
+        """
         sigma_a_path = glob.glob(os.path.join(Folder, "material_database", material, f"*{self.temperature}Ka.*"))
         sigma_e_path = glob.glob(os.path.join(Folder, "material_database", material, f"*{self.temperature}Kf.*"))
 
@@ -56,25 +66,37 @@ class Crystal():
                 self.table_sigma_e = np.flipud(self.table_sigma_e)
         else:
             raise FileNotFoundError(f"No file found for file pattern: {Folder} -> material_database -> {self.name} @ {self.temperature}K")
-        
-    def smooth_cross_sections(self, FF_filter, mov_average, lambda_min=980e-9):
+
+
+    def smooth_cross_sections(self, FF_filter, mov_average, useMcCumber = True, lambda_min=980e-9):
+        """
+        smooth the cross sections with a fourier filter and a moving average    
+        FF_filter: fourier filter cutoff: 0 ... 1 (0: no filter, 1: all frequencies are filtered)
+        mov_average: number of neighbouring points for the moving average        
+        """
         self.table_sigma_a[:,1] = fourier_filter(self.table_sigma_a, FF_filter)
         self.table_sigma_e[:,1] = fourier_filter(self.table_sigma_e, FF_filter)
         self.table_sigma_a[:,1] = moving_average(self.table_sigma_a[:,1], mov_average)
         self.table_sigma_e[:,1] = moving_average(self.table_sigma_e[:,1], mov_average)
-
-        self.McCumber_absorption(lambda_min)
+        if useMcCumber:
+            self.McCumber_absorption(lambda_min)
         self.load_spline_interpolation()
         
-    # absorption cross section
     def sigma_a(self,lambd):
+        """
+        return the absorption cross section at a given wavelength in m²
+        Use either the spline interpolation or a linear interpolation
+        """
         if self.use_spline_interpolation:
             return self.spline_sigma_a(lambd*1e9)*1e-4
         else:
             return np.interp(lambd*1e9, self.table_sigma_a[:,0], self.table_sigma_a[:,1])*1e-4
         
-    # emission cross section
     def sigma_e(self,lambd):
+        """
+        return the emission cross section at a given wavelength in m²
+        Use either the spline interpolation or a linear interpolation
+        """
         if self.use_spline_interpolation:
             return self.spline_sigma_e(lambd*1e9)*1e-4
         else:
@@ -88,30 +110,44 @@ class Crystal():
     def alpha(self,lambd):
         return self.doping_concentration * self.sigma_a(lambd)
     
+    # Calculate the small signal gain
     def small_signal_gain(self, lambd, beta):
         Gain = np.exp(self.doping_concentration*(self.sigma_e(lambd)*beta-self.sigma_a(lambd)*(1-beta))*self.length)
         return Gain
     
     def McCumber_absorption(self, lambda_min=980e-9):
+        """
+        Use the McCumber relation to approximate the absorption cross section at wavelengths longer than lambda_min
+        """
         lambd = self.table_sigma_a[:,0]*1e-9
         min_index = np.argmin(np.abs(lambd-lambda_min))
         beta_eq = self.beta_eq(lambd)
-        params, _ = curve_fit(logistic_function, lambd, beta_eq, p0=[1,980e-9])
+        params, _ = curve_fit(logistic_function, lambd, beta_eq, p0=[1,lambda_min])
         interpolated_sigma_e = np.interp(lambd*1e9, self.table_sigma_e[:,0], self.table_sigma_e[:,1])
         self.table_sigma_a[min_index:,1] = interpolated_sigma_e[min_index:] * logistic_function(lambd[min_index:], *params)/(1-logistic_function(lambd[min_index:], *params))
         self.load_spline_interpolation()
 
-
-
     def __repr__(self):
-        txt = f"Crystal:\nmaterial = {self.name}\nlength = {self.length*1e3} mm \ntau_f = {self.tau_f*1e3} ms \nN_dop = {self.doping_concentration*1e-6} cm^-3\nsigma_a(940nm) = {self.sigma_a(940e-9)*1e4:.3e}cm²\nsigma_e(940nm) = {self.sigma_e(940e-9)*1e4:.3e}cm²\n\n"
-        return txt
+        return (
+        f"Crystal:\n"
+        f"- material = {self.name}\n"
+        f"- length = {self.length*1e3} mm\n"
+        f"- tau_f = {self.tau_f*1e3} ms\n"
+        f"- N_dop = {self.doping_concentration*1e-6} cm^-3\n"
+        f"- sigma_a({self.lambda_a}nm) = {self.sigma_a(self.lambda_a*1e-9)*1e4:.3e}cm²\n"
+        f"- sigma_e({self.lambda_a}nm) = {self.sigma_e(self.lambda_a*1e-9)*1e4:.3e}cm²\n"
+        f"- sigma_a({self.lambda_e}nm) = {self.sigma_a(self.lambda_e*1e-9)*1e4:.3e}cm²\n"
+        f"- sigma_e({self.lambda_e}nm) = {self.sigma_e(self.lambda_e*1e-9)*1e4:.3e}cm²\n\n"
+    )
 
 # =============================================================================
 # Display of results
 # =============================================================================
 
 def plot_cross_sections(crystal, save=False):
+    """
+    Plot the absorption and emission cross sections of a crystal
+    """
     plt.figure()
     plt.plot(crystal.table_sigma_a[:,0], crystal.table_sigma_a[:,1], label="absorption $\\sigma_a$")
     plt.plot(crystal.table_sigma_e[:,0], crystal.table_sigma_e[:,1], label="emission $\\sigma_e$")
@@ -125,6 +161,9 @@ def plot_cross_sections(crystal, save=False):
         plt.savefig(os.path.join(Folder, "material_database","plots", f"{crystal.material}_{crystal.temperature}K_cross_sections.pdf"))
 
 def plot_small_signal_gain(crystal, beta, lam_min = 1000, lam_max = 1060, save=False):
+    """
+    Plot the small signal gain of a crystal for a given beta value
+    """
     plt.figure()
     lambd = np.linspace(lam_min*1e-9, lam_max*1e-9,100)
 
@@ -150,6 +189,9 @@ def plot_small_signal_gain(crystal, beta, lam_min = 1000, lam_max = 1060, save=F
         plt.savefig(os.path.join(Folder, "material_database","plots", f"{crystal.material}_{crystal.temperature}K_small_signal_gain.pdf"))
 
 def plot_beta_eq(crystal):
+    """
+    Plot the equilibrium inversion beta_eq = sigma_a / (sigma_a + sigma_e) and a perform a logistic fit (c.f. McCumber relation)
+    """
     plt.figure()
     lambd = crystal.table_sigma_a[:,0]*1e-9
     beta_eq = crystal.beta_eq(lambd)
@@ -163,6 +205,9 @@ def plot_beta_eq(crystal):
     plt.ylim(-0.1,1.1)
 
 def plot_Isat(crystal):
+    """
+    Plot the wavelength dependent saturation intensity of a crystal 
+    """
     plt.figure()
     lambd = crystal.table_sigma_a[:,0]*1e-9
 
@@ -180,7 +225,6 @@ def plot_Isat(crystal):
 # =============================================================================
 
 if __name__ == "__main__":
-    # crystal = Crystal(material="YbYAG", temperature=100)
     crystal = Crystal(material="YbCaF2_Toepfer", temperature=300)
     print(crystal)
     plot_beta_eq(crystal)
@@ -188,6 +232,3 @@ if __name__ == "__main__":
 
     plot_cross_sections(crystal, save=False)
     plot_small_signal_gain(crystal, [0.2,0.22,0.24,0.26,0.28,0.3,0.32], save=False)
-
-    # crystal.smooth_cross_sections(0.7, 1, lambda_min=1050e-9)
-    # plot_small_signal_gain(crystal, [0.3,0.22,0.24])

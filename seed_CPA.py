@@ -6,7 +6,7 @@ set_plot_params()
 Folder = os.path.dirname(os.path.abspath(__file__))
 
 class Seed_CPA():
-    def __init__(self, bandwidth = 30, wavelength = 1030, fluence = 1e-6, seed_type = "rect", gauss_order = 1):
+    def __init__(self, bandwidth = 30, wavelength = 1030, fluence = 1e-6, seed_type = "gauss", gauss_order = 1):
         self.bandwidth = bandwidth*1e-9     # [m]
         self.wavelength = wavelength*1e-9   # [m]
         self.fluence = fluence*1e4          # [J/m²]
@@ -37,10 +37,18 @@ class Seed_CPA():
     
     
     def __repr__(self):
-        txt = f"Seed CPA pulse:\nbandwidth = {self.bandwidth*1e9:.2f} nm (FWHM)\nwavelength = {self.wavelength*1e9:.2f} nm \nfluence = {self.fluence*1e-4} J/cm²\npulse type = '{self.seed_type}'\n\n"
-        return txt
+        return(
+        f"Seed CPA pulse:\n"
+        f"- bandwidth = {self.bandwidth*1e9:.2f}nm (FWHM)\n"
+        f"- wavelength = {self.wavelength*1e9:.2f}nm \n"
+        f"- fluence = {self.fluence*1e-4}J/cm²\n"
+        f"- pulse type = '{self.seed_type}'\n\n"
+        )
 
 def plot_seed_pulse(seed, save=False):
+    """
+    Plot the seed pulse spectrum.
+    """
     plt.figure()
     plt.plot(seed.lambdas*1e9, seed.spectral_fluence*1e-4*1e-9, label=f"F = {integ(seed.spectral_fluence, seed.dlambda)[-1]/1e4:.1e} J/cm²")
     plt.legend()
@@ -55,4 +63,3 @@ if __name__ == "__main__":
 
     print(seed)
     plot_seed_pulse(seed, save=True)
-    

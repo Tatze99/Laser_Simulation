@@ -20,6 +20,8 @@ def set_plot_params():
 # convention integ: 1D
 # f(t, z) -> 2D Matrix N x M with N in time und M in space
 def integ(y, dx):
+    """
+    integrates a 1D array y along the its axis using the trapezian rule"""
     upper_sum = np.cumsum(y[1:])
     lower_sum = np.cumsum(y[:-1])
 	
@@ -50,7 +52,10 @@ def z_integ(mat, dz):
     return np.insert(integral, 0, 0, axis=1)
 
 def fourier_filter(sigma, filter_width):
-    
+    """
+    fourier filter for the given sigma array
+    fourier filter cutoff: 0 ... 1 (0: no filter, 1: all frequencies are filtered)
+    """
     if filter_width == 0:
         return sigma[:,1]
     

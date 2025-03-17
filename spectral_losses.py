@@ -26,6 +26,7 @@ class Spectral_Losses():
             self.reflectivity = self.arrays[0]
             self.load_angle_formula()
 
+    # calculate the index of the maximum value of an array
     def calc_max_index(self, array):
         index = np.argmin(array)
         for j in range(2, len(array)-2):
@@ -34,6 +35,7 @@ class Spectral_Losses():
                     index =  j
         return index 
     
+    # load the basic data from a json file
     def load_basedata(self, filename):
         with open(filename, "r") as file:
             self.dict = json.load(file)
@@ -43,6 +45,7 @@ class Spectral_Losses():
             self.reflectivity_unit = self.dict["reflectivity_unit"]
             self.spectral_unit = self.dict["spectral_unit"]
 
+    # calculate the angle formula constants (n2, prop_constant) from the three given reflectivity curves,
     def calc_angle_formula(self):                
         L_max = np.zeros(len(self.arrays))
         R_max = np.zeros(len(self.arrays))
@@ -51,8 +54,6 @@ class Spectral_Losses():
         
             L_max[i] = self.lambdas[index]
             R_max[i] = array[index]
-            
-            # print(self.angles[i], L_max[i], R_max[i])
         
         phi = np.pi/180*np.array(self.angles)
         
@@ -61,13 +62,19 @@ class Spectral_Losses():
         self.prop_constant = L_max[0]/np.sqrt(self.n2**2-np.sin(phi[0])**2)
         self.slope = (1 - R_max[0]/R_max[-1])/(L_max[-1] - L_max[0])
     
-    # load the angle formula from the metadata
     def load_angle_formula(self):
+        """
+        load the angle formula from the metadata if there are no reflectivity curves given to calculate it
+        this is useful, if a different design is tested with similar angle formula constants"""
         self.n2 = self.dict["n2"]
         self.prop_constant = self.dict["prop_constant"]
         self.slope = self.dict["slope"]
 
+
     def calc_reflectivity(self, phi, angle_unit="rad"):
+        """
+        Calculate the reflectivity for a given angle phi in radians or degrees by shifting the original reflectivity curve and multiply it with a linear factor (self.slope)
+        """
         # ensure that the reflectivity is not given in percent, and the angle is in radians
         if angle_unit == "deg": phi *= np.pi/180
 
@@ -81,19 +88,21 @@ class Spectral_Losses():
         shifted_array = np.roll(self.reflectivity, int(Delta_lambda/self.dlambda))
         # transform the maximum amplitude due to the linear transform
         shifted_array *= (1 + self.slope * Delta_lambda)
-        # print(L_max, int(Delta_lambda/self.dlambda))
-        
         
         return shifted_array
     
-    # returns the total reflectivity for a given array of reflectivities
     def calc_total_reflectivity(self, reflectivity_array, n=0):
+        """
+        Calculate the total reflectivity for a given array of reflectivities by recursively multiplying the reflectivity with the complement of the previous reflectivity
+        """
         if n == len(reflectivity_array)-1:
             return reflectivity_array[n]
         return reflectivity_array[n] + (1-reflectivity_array[n])*self.calc_total_reflectivity(reflectivity_array, n+1)
     
-    # returns the total reflectivity for a given array of angles
     def reflectivity_by_angles(self, angle_array, angle_unit="grad"):
+        """
+        Calculate the total reflectivity for a given array of angles in radians or degrees
+        """
         reflectivity_array = []
         if angle_array is None:
             return np.zeros(len(self.lambdas))
@@ -107,6 +116,8 @@ class Spectral_Losses():
         return txt
 
 def test_reflectivity_approximation(losses, save=False):
+    """
+    Test the reflectivity approximation by comparing the calculated reflectivity with the original reflectivity curves"""
     plt.figure()
     plt.tick_params(direction="in",right=True,top=True)
     colors = plt.cm.tab10.colors
@@ -128,35 +139,8 @@ def test_reflectivity_approximation(losses, save=False):
         plt.tight_layout()
         plt.savefig(os.path.join(Folder, "material_database","plots", f"{losses.TSF_name}_reflectivity_approximation.pdf"))
 
-def test_total_reflectivity(losses):
-    plt.figure()
-    r1 = losses.calc_reflectivity(43, angle_unit="deg")
-    r2 = losses.calc_reflectivity(44, angle_unit="deg")
-    r3 = losses.calc_reflectivity(45, angle_unit="deg")
-    r4 = losses.calc_reflectivity(46, angle_unit="deg")
-
-    total_reflectivity = losses.reflectivity_by_angles([43,44,45,46], angle_unit="deg")
-    reflectivity_array = np.array([r1,r2,r3,r4])
-    total_reflectivity2 = np.sum(reflectivity_array, axis=0)
-
-    plt.plot(losses.lambdas*1e9, total_reflectivity, label="total reflectivity")
-    plt.plot(losses.lambdas*1e9, total_reflectivity2, label="sum of reflectivities")
-    for ref in reflectivity_array:
-        plt.plot(losses.lambdas*1e9, ref)
-    plt.xlabel("wavelength in nm")
-    plt.ylabel("total reflectivity R")
-    plt.ylim(0,0.2)
-    plt.title("Total Reflectivity TSF")
-    plt.legend()
-
-
 if __name__ == "__main__":
     losses = Spectral_Losses(material="YbCaF2_Garbsen")
 
     print(losses)
     test_reflectivity_approximation(losses, save=True)
-    test_total_reflectivity(losses)
-
-    # Serialize data into file:
-    # with open(os.path.join(Folder, material["name"]+'_Metadata.json'), 'w', encoding='utf-8') as f: 
-    #     json.dump(material, f, ensure_ascii=False, indent=4)
