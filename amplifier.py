@@ -1,4 +1,4 @@
-from crystal import Crystal
+from crystal import Crystal, plot_beta_eq
 from pump import Pump
 from seed import Seed
 from seed_CPA import Seed_CPA
@@ -25,7 +25,10 @@ class Amplifier():
         self.spectral_losses = spectral_losses
         self.max_fluence = max_fluence*1e4  # [J/m²]
 
-    def inversion(self):
+    def inversion(self, pump_intensity = None):
+
+        if pump_intensity is None:
+            pump_intensity = self.pump.intensity
         beta_eq = self.crystal.beta_eq(self.pump.wavelength)
         tau_f = self.crystal.tau_f
         sigma_a = self.crystal.sigma_a(self.pump.wavelength)
@@ -58,7 +61,7 @@ class Amplifier():
         # Initialisierung
         beta_low = np.zeros((numres, numres))
         beta_high = np.ones((numres, numres)) * beta_eq
-        R0 = self.pump.intensity * sigma_a / h / (c / self.pump.wavelength)
+        R0 = pump_intensity * sigma_a / h / (c / self.pump.wavelength)
         lambert_beer = np.exp(-alpha * z_axis)
         Ra = R0 * npm.repmat(lambert_beer, numres, 1)
         iteration = 0
@@ -82,14 +85,11 @@ class Amplifier():
         pumprate = (R_high + R_low) / 2
 
         stored_fluence = h * c / self.seed.wavelength * self.crystal.doping_concentration * np.sum(beta_total - self.crystal.beta_eq(self.seed.wavelength), 1) * self.crystal.dz
-        storage_efficiency = np.array(stored_fluence)
-        # storage_efficiency[0] = -1
-        # storage_efficiency[1::] = np.clip(stored_fluence[1::] / t_axis[1::] / self.pump.intensity, -1, 10.0)
+
         self.crystal.inversion = beta_total
         self.pump.pumprate = pumprate
         self.crystal.inversion_end = beta_end
         self.crystal.stored_fluence = stored_fluence
-        self.crystal.storage_efficiency = storage_efficiency
 
         return beta_end
 
@@ -196,6 +196,24 @@ class Amplifier():
                 return spectral_fluence_out[~np.all(spectral_fluence_out == 0, axis=1)]
         return spectral_fluence_out
 
+
+    def storage_efficiency(self, pump_intensities):
+        """
+        Calculate the storage efficiency of the crystal.
+        """
+
+        inversion_array = np.zeros((len(pump_intensities),len(self.crystal.z_axis)))
+
+        for i, pump_intensity in enumerate(pump_intensities):
+            inversion_array[i,:] = self.inversion(pump_intensity=pump_intensity)
+
+        extractable_fluence = z_integ(inversion_array - self.crystal.beta_eq(self.seed.wavelength), self.crystal.dz)[:,-1] * h * c * self.crystal.doping_concentration / (self.seed.wavelength)
+
+        efficiency = extractable_fluence / (pump_intensities * self.pump.duration)
+        efficiency = np.where(efficiency < 0, 0, efficiency)
+
+        return efficiency.T
+
 # =============================================================================
 # Display of results
 # =============================================================================
@@ -285,11 +303,18 @@ def plot_spectral_fluence(amplifier, lam_min = 1010, lam_max = 1050, save=False)
         plt.tight_layout()
         plt.savefig(os.path.join(Folder, "material_database","plots", f"{crystal.material}_{crystal.temperature}K_{pump.intensity*1e-7}kW/cm2_{seed.fluence*1e-4}J/cm2_spectral_fluence.pdf"))
     
+def test(amplifier):
+    pump_intensites = np.linspace(0,50e7,20)
+    efficiency = amplifier.storage_efficiency(pump_intensites)
+    plt.figure()
+    plt.plot(pump_intensites*1e-7, efficiency, 'o-')
+
 
 if __name__ == "__main__":
-    crystal  = Crystal(material="YbCaF2_Toepfer")
-    crystal.smooth_cross_sections(0.9, 10)
-    pump     = Pump(intensity=39, wavelength=920, duration=4)
+    crystal  = Crystal(material="YbCaF2", temperature=100)
+    plot_beta_eq(crystal,lambda_max=980e-9)
+    crystal.smooth_cross_sections(0.9, 10, lambda_max=990e-9)
+    pump     = Pump(intensity=39, wavelength=940, duration=crystal.tau_f*1e3)
 
     seed = Seed(fluence=0.01, duration=5, wavelength=1030, gauss_order=1, seed_type="gauss")
     CW_amplifier = Amplifier(crystal=crystal, pump=pump, seed=seed, passes=50, losses=1e-1)
@@ -297,11 +322,13 @@ if __name__ == "__main__":
     seed_CPA = Seed_CPA(fluence=2.7e-6, wavelength=1030, bandwidth=60, seed_type="rect")
     CPA_amplifier = Amplifier(crystal=crystal, pump=pump, seed=seed_CPA, passes=100, losses=1e-1, spectral_losses=None, max_fluence = 1)
 
-    print(crystal,pump,seed_CPA,seed,sep='===========================\n')
+    # print(crystal,pump,seed_CPA,seed,sep='===========================\n')
 
-    CPA_amplifier.inversion()
-    plot_inversion1D(CW_amplifier)
-    plot_inversion2D(CW_amplifier)
-    plot_fluence(CW_amplifier)
-    plot_spectral_fluence(CPA_amplifier)
+    test(CW_amplifier)
+    
+    # CPA_amplifier.inversion()
+    # plot_inversion1D(CW_amplifier)
+    # plot_inversion2D(CW_amplifier)
+    # plot_fluence(CW_amplifier)
+    # plot_spectral_fluence(CPA_amplifier)
 

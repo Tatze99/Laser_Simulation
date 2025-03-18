@@ -14,19 +14,22 @@ def logistic_function(x, a,b):
     return 1/(1+np.exp(-a*(x-b)))
 
 class Crystal():
-    def __init__(self, material="YbCaF2", temperature="300", lambda_a = 940, lambda_e = 1030):
+    def __init__(self, material="YbCaF2", temperature="300", lambda_a = 940, lambda_e = 1030, length=None):
         self.inversion = np.zeros(numres)
         self.temperature = temperature
         self.use_spline_interpolation = True
         self.material = material
         self.lambda_a = lambda_a  # absorption wavelength in nm (used for displaying cross sections with print)
-        self.lambda_e = lambda_e  # emission wavelength in nm (used for displaying cross sections with print)   
+        self.lambda_e = lambda_e  # emission wavelength in nm (used for displaying cross sections with print)    
 
         basedata_path = os.path.join(Folder,"material_database", material, "basedata.json")
         
         self.load_basedata(basedata_path)
         self.load_cross_sections(material)
         self.load_spline_interpolation()
+
+        # overwrite length if given in the constructor
+        if length is not None: self.length = length
 
         self.z_axis = np.linspace(0, self.length, numres)
         self.dz = self.length / (numres-1)
@@ -42,6 +45,7 @@ class Crystal():
             self.tau_f = self.dict["tau_f"]
             self.doping_concentration = self.dict["N_dop"]
             self.name = self.dict["name"]
+            self.lambda_ZPL = self.dict["ZPL"]
 
     def load_spline_interpolation(self):
         """"
@@ -68,7 +72,7 @@ class Crystal():
             raise FileNotFoundError(f"No file found for file pattern: {Folder} -> material_database -> {self.name} @ {self.temperature}K")
 
 
-    def smooth_cross_sections(self, FF_filter, mov_average, useMcCumber = True, lambda_min=980e-9):
+    def smooth_cross_sections(self, FF_filter, mov_average, useMcCumber = True, lambda_max=None):
         """
         smooth the cross sections with a fourier filter and a moving average    
         FF_filter: fourier filter cutoff: 0 ... 1 (0: no filter, 1: all frequencies are filtered)
@@ -79,7 +83,7 @@ class Crystal():
         self.table_sigma_a[:,1] = moving_average(self.table_sigma_a[:,1], mov_average)
         self.table_sigma_e[:,1] = moving_average(self.table_sigma_e[:,1], mov_average)
         if useMcCumber:
-            self.McCumber_absorption(lambda_min)
+            self.McCumber_absorption(lambda_max=lambda_max)
         self.load_spline_interpolation()
         
     def sigma_a(self,lambd):
@@ -115,14 +119,15 @@ class Crystal():
         Gain = np.exp(self.doping_concentration*(self.sigma_e(lambd)*beta-self.sigma_a(lambd)*(1-beta))*self.length)
         return Gain
     
-    def McCumber_absorption(self, lambda_min=980e-9):
+    def McCumber_absorption(self, lambda_max=None):
         """
-        Use the McCumber relation to approximate the absorption cross section at wavelengths longer than lambda_min
+        Use the McCumber relation to approximate the absorption cross section at wavelengths longer than self.lambda_ZPL
         """
         lambd = self.table_sigma_a[:,0]*1e-9
-        min_index = np.argmin(np.abs(lambd-lambda_min))
+        min_index = np.argmin(np.abs(lambd-self.lambda_ZPL))
+        max_index = np.argmin(np.abs(lambd-lambda_max)) if lambda_max else len(lambd)
         beta_eq = self.beta_eq(lambd)
-        params, _ = curve_fit(logistic_function, lambd, beta_eq, p0=[1,lambda_min])
+        params, _ = curve_fit(logistic_function, lambd[:max_index], beta_eq[:max_index], p0=[1,self.lambda_ZPL])
         interpolated_sigma_e = np.interp(lambd*1e9, self.table_sigma_e[:,0], self.table_sigma_e[:,1])
         self.table_sigma_a[min_index:,1] = interpolated_sigma_e[min_index:] * logistic_function(lambd[min_index:], *params)/(1-logistic_function(lambd[min_index:], *params))
         self.load_spline_interpolation()
@@ -188,14 +193,15 @@ def plot_small_signal_gain(crystal, beta, lam_min = 1000, lam_max = 1060, save=F
         plt.tight_layout()
         plt.savefig(os.path.join(Folder, "material_database","plots", f"{crystal.material}_{crystal.temperature}K_small_signal_gain.pdf"))
 
-def plot_beta_eq(crystal):
+def plot_beta_eq(crystal, lambda_max =None):
     """
     Plot the equilibrium inversion beta_eq = sigma_a / (sigma_a + sigma_e) and a perform a logistic fit (c.f. McCumber relation)
     """
     plt.figure()
     lambd = crystal.table_sigma_a[:,0]*1e-9
     beta_eq = crystal.beta_eq(lambd)
-    params, _ = curve_fit(logistic_function, lambd, beta_eq, p0=[1,980e-9])
+    index_max = np.argmin(np.abs(lambd-lambda_max)) if lambda_max else len(lambd)
+    params, _ = curve_fit(logistic_function, lambd[:index_max], beta_eq[:index_max], p0=[1,980e-9])
 
     plt.plot(lambd*1e9, beta_eq)
     plt.plot(lambd*1e9, logistic_function(lambd, *params), "--")
@@ -225,7 +231,7 @@ def plot_Isat(crystal):
 # =============================================================================
 
 if __name__ == "__main__":
-    crystal = Crystal(material="YbCaF2_Toepfer", temperature=300)
+    crystal = Crystal(material="YbCaF2", temperature=300)
     print(crystal)
     plot_beta_eq(crystal)
     plot_Isat(crystal)
