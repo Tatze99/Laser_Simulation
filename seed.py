@@ -1,40 +1,72 @@
-from utilities import numres, h, c
+from utilities import numres, h, c, integ, set_plot_params
 import numpy as np
 import matplotlib.pyplot as plt
+import os
+set_plot_params()
+Folder = os.path.dirname(os.path.abspath(__file__))
 
 class Seed():
-    def __init__(self):
-        self.duration = 5e-9    # [s]
-        self.wavelength = 1030e-9   # [m]
-        self.fluence = 100     # [J/m²]
-        self.gauss_order = 2
-        self.seed_type = "gauss"
+    def __init__(self, fluence = 0.01, duration = 5, wavelength = 1030, gauss_order = 1, seed_type = "gauss"):
+        self.duration = duration*1e-9     # [s]
+        self.wavelength = wavelength*1e-9 # [m]
+        self.fluence = fluence*1e4        # [J/m²]
+        self.gauss_order = gauss_order
+        self.seed_type = seed_type
         self.seedres = 200
-        self.stepsize = 2*self.duration / self.seedres
+
+        if seed_type == 'rect':
+            signal_length = 1.5
+        elif seed_type == 'gauss':
+            signal_length = 12/(8-5/gauss_order)
+        elif seed_type == 'lorentz':
+            signal_length = 10
+        
+        self.dt = signal_length*self.duration / (self.seedres-1)
         self.time, self.pulse = self.pulse_gen()
 
     def pulse_gen(self):
         pulse = np.zeros(self.seedres)
-        t = np.linspace(-(self.seedres)/2, (self.seedres)/2, self.seedres)*self.stepsize
-
-        # if self.seedtype == 'rect' or n==0:
-        #     k1 = int((self.seed_sample_length - self.tau_seed) / (2 * stepsize))
-        #     k2 = int((self.seed_sample_length + self.tau_seed) / (2 * stepsize))
-        #     pulse[k1:k2] = self.F_in / h / self.nu_l / c / self.tau_seed
+        t = np.linspace(-(self.seedres)/2, (self.seedres)/2, self.seedres)*self.dt
 
         if self.seed_type == 'gauss':
-            pulse = np.exp( -(t / self.duration * 2) ** (2*self.gauss_order))
-            pulse = self.fluence / h / c * self.wavelength / c / np.sum(pulse) / self.stepsize * pulse
+            pulse = np.exp( -np.log(2)*(t / self.duration * 2) ** (2*self.gauss_order))
+            pulse *= 1/integ(pulse, self.dt)[-1]
+
+        elif self.seed_type == 'lorentz':
+            pulse = 1 / (1 + (t / self.duration * 2)**2)
+            pulse *= 1/integ(pulse, self.dt)[-1]
+        
+        elif self.seed_type == 'rect':
+            pulse = np.ones(self.seedres) / self.duration
+            pulse = np.where(t < -0.5*self.duration, 0, pulse)
+            pulse = np.where(t >  0.5*self.duration, 0, pulse)
+
+        pulse *= self.fluence / h / c * self.wavelength / c
 
         return t, pulse
     
     def __repr__(self):
-        txt = f"Seed pulse:\nduration= {self.duration*1e9} ns\nwavelength = {self.wavelength*1e9} nm \nfluence = {self.fluence*1e4} J/cm²"
-        return txt
+        return(
+        f"Seed CW pulse:\n"
+        f"- duration = {self.duration*1e9}ns\n"
+        f"- wavelength = {self.wavelength*1e9}nm \n"
+        f"- fluence = {self.fluence*1e-4}J/cm²\n"
+        f"- pulse type = '{self.seed_type}'\n\n"
+        )
+
+def plot_seed_pulse(seed, save=False):
+    plt.figure()
+    plt.plot(seed.time*1e9, seed.pulse, label=f"$F$ = {integ(seed.pulse, seed.dt)[-1]* c * h *c / seed.wavelength*1e-4:.2f} J/cm²")
+    plt.xlabel("time in ns")
+    plt.ylabel("photon density $\\Phi$ in 1/m³")
+    plt.title("Seed pulse")
+    plt.legend()
+    if save:
+        plt.tight_layout()
+        plt.savefig(os.path.join(Folder, "material_database","plots", f"Seed_Temporal_{seed.wavelength*1e9}nm_{seed.duration*1e9:.1f}ns.pdf"))
 
 if __name__ == "__main__":
-    p1 = Seed()
-    print(p1)
-    plt.figure()
-    # plt.plot(p1.time, p1.pulse)
-    plt.show()
+    seed = Seed(seed_type = 'gauss', gauss_order=1)
+    print(seed)
+    
+    plot_seed_pulse(seed)

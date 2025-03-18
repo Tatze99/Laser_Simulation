@@ -1,0 +1,3 @@
+[submodule "LaserSim_Scripts"]
+	path = LaserSim_Scripts
+	url = https://github.com/Tatze99/LaserSim_Scripts.git

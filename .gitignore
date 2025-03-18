@@ -3,6 +3,7 @@ __pycache__/
 FreeCAD/
 *.py[cod]
 *$py.class
+*.pdf 
 
 # C extensions
 *.so
