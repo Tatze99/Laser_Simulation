@@ -6,13 +6,14 @@ set_plot_params()
 Folder = os.path.dirname(os.path.abspath(__file__))
 
 class Seed_CPA():
-    def __init__(self, bandwidth = 30, wavelength = 1030, fluence = 1e-6, seed_type = "gauss", gauss_order = 1):
+    def __init__(self, bandwidth = 30, wavelength = 1030, fluence = 1e-6, seed_type = "gauss", gauss_order = 1, custom_file = None):
         self.bandwidth = bandwidth*1e-9     # [m]
         self.wavelength = wavelength*1e-9   # [m]
         self.fluence = fluence*1e4          # [J/m²]
         self.gauss_order = gauss_order
         self.seed_type = seed_type
         self.seedres = 250
+        self.custom_file = custom_file
         
         self.spectral_fluence = self.pulse_gen()
 
@@ -31,6 +32,18 @@ class Seed_CPA():
             pulse = np.ones(self.seedres) / self.bandwidth
             pulse = np.where(self.lambdas < self.wavelength-0.5*self.bandwidth, 0, pulse)
             pulse = np.where(self.lambdas > self.wavelength+0.5*self.bandwidth, 0, pulse)
+        
+        elif self.seed_type == 'custom':
+            self.dlambda = 2*self.bandwidth / (self.seedres-1)
+            self.lambdas = np.linspace(self.wavelength-self.bandwidth,self.wavelength+self.bandwidth, self.seedres)
+            try:
+                pulse = np.loadtxt(self.custom_file)
+                factor = 1e-9 if np.max(pulse[:,0]) > 1 else 1
+                pulse = np.interp(self.lambdas, pulse[:,0]*factor, pulse[:,1])
+                pulse -= np.min(abs(pulse))
+                pulse *= 1/integ(pulse, self.dlambda)[-1]
+            except:
+                print("Custom file not found")
 
         pulse *= self.fluence
         return pulse
@@ -60,6 +73,6 @@ def plot_seed_pulse(seed, save=False):
 
 if __name__ == "__main__":
     seed = Seed_CPA(seed_type = "gauss", gauss_order = 1)
-
+ 
     print(seed)
     plot_seed_pulse(seed, save=True)

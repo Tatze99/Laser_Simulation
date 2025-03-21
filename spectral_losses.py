@@ -13,7 +13,7 @@ class Spectral_Losses():
     def __init__(self, material= "YbCaF2", calc_formula = True):
         File = os.path.join(Folder, "material_database", "reflectivity_curves", material)
         self.TSF_name = material
-        self.load_basedata(os.path.join(File, material + "_Metadata.json"))
+        self.load_basedata(os.path.join(File, "*_Metadata.json"))
         self.fnames = glob(os.path.join(File, "*"+ self.file_type))
         self.arrays = np.array([np.loadtxt(f)[:,1] for f in self.fnames])*self.reflectivity_unit
         self.lambdas = np.loadtxt(self.fnames[0])[:,0]*self.spectral_unit
@@ -36,7 +36,8 @@ class Spectral_Losses():
         return index 
     
     # load the basic data from a json file
-    def load_basedata(self, filename):
+    def load_basedata(self, file):
+        filename = glob(file)[0]
         with open(filename, "r") as file:
             self.dict = json.load(file)
             self.name = self.dict["name"]

@@ -254,6 +254,7 @@ def plot_inversion1D(amplifier, save=False):
     plt.xlabel("depth $z$ in mm")
     plt.ylabel("inversion $\\beta$")
     plt.title('$\\beta(z)$ at the end of pumping')
+    plt.ylim(bottom=0)
     plt.legend()
 
     if save:
@@ -311,7 +312,7 @@ def test(amplifier):
 
 
 if __name__ == "__main__":
-    crystal  = Crystal(material="YbCaF2", temperature=100)
+    crystal  = Crystal(material="YbCaF2", temperature=300)
     plot_beta_eq(crystal,lambda_max=980e-9)
     crystal.smooth_cross_sections(0.9, 10, lambda_max=990e-9)
     pump     = Pump(intensity=39, wavelength=940, duration=crystal.tau_f*1e3)
@@ -322,13 +323,13 @@ if __name__ == "__main__":
     seed_CPA = Seed_CPA(fluence=2.7e-6, wavelength=1030, bandwidth=60, seed_type="rect")
     CPA_amplifier = Amplifier(crystal=crystal, pump=pump, seed=seed_CPA, passes=100, losses=1e-1, spectral_losses=None, max_fluence = 1)
 
-    # print(crystal,pump,seed_CPA,seed,sep='===========================\n')
+    print(crystal,pump,seed_CPA,seed,sep='===========================\n')
 
-    test(CW_amplifier)
+    # test(CW_amplifier)
     
-    # CPA_amplifier.inversion()
-    # plot_inversion1D(CW_amplifier)
-    # plot_inversion2D(CW_amplifier)
-    # plot_fluence(CW_amplifier)
-    # plot_spectral_fluence(CPA_amplifier)
+    CPA_amplifier.inversion()
+    plot_inversion1D(CW_amplifier)
+    plot_inversion2D(CW_amplifier)
+    plot_fluence(CW_amplifier)
+    plot_spectral_fluence(CPA_amplifier)
 
