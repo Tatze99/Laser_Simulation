@@ -7,15 +7,16 @@ from spectral_losses import Spectral_Losses
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.matlib as npm
-from utilities import z_integ, t_integ, integ, numres, h, c, set_plot_params
+from utilities import z_integ, t_integ, integ, numres, h, c, set_plot_params, plot_function
 import os
 
 set_plot_params()
 Folder = os.path.dirname(os.path.abspath(__file__))
+Folder = os.path.abspath(os.path.join(Folder, os.pardir))
 
 class Amplifier():
 
-    def __init__(self, crystal=Crystal(), pump=Pump(), seed=Seed(), passes = 6, losses = 2e-2, print_iteration = False, spectral_losses = None, max_fluence=10):
+    def __init__(self, crystal=Crystal(), pump=Pump(), seed=Seed(), passes = 50, losses = 2e-2, print_iteration = False, spectral_losses = None, max_fluence=10):
         self.pump = pump
         self.seed = seed
         self.crystal = crystal
@@ -112,15 +113,16 @@ class Amplifier():
         pulse_out[0,:] = self.seed.pulse
         beta_out[0,:] = np.abs(beta_0)
         sigma_tot = self.crystal.sigma_a(self.seed.wavelength) + self.crystal.sigma_e(self.seed.wavelength)
+        break_index = self.passes
 
+        # equilibrium inversion and absorption coefficient at the seed wavelength
+        beta_eq = self.crystal.beta_eq(self.seed.wavelength)
+        alpha   = self.crystal.alpha(self.seed.wavelength)
+        
         for k in range(self.passes):
 		# calculate single components
             if k > 1:
                 beta_out[k, :] = np.flipud(beta_out[k, :])
-
-            # equilibrium inversion and absorption coefficient at the seed wavelength
-            beta_eq = self.crystal.beta_eq(self.seed.wavelength)
-            alpha   = self.crystal.alpha(self.seed.wavelength)
 
             # Gain G(z), spatial array of the integrated small signal gain
             Gain = np.exp(-alpha * integ(1-beta_out[k,:]/beta_eq, self.crystal.dz))
@@ -137,18 +139,15 @@ class Amplifier():
             if k % 2:
                 beta_out[k+1,:] = np.flipud(beta_out[k+1,:])
 
-        self.pulse_out = pulse_out
-        self.temporal_fluence_out = pulse_out * c * h *c / self.seed.wavelength 
+            if integ(pulse_out[k+1,:], self.seed.dt)[-1]* c * h *c / self.seed.wavelength > self.max_fluence:
+                break_index = k+1
+                break
+
+        self.pulse_out = pulse_out[:break_index+1,:]
+        self.temporal_fluence_out = self.pulse_out * c * h *c / self.seed.wavelength 
         self.fluence_out = z_integ(self.temporal_fluence_out, self.seed.dt)[:,-1]
+        self.max_gain = np.max(self.fluence_out[1::] / self.fluence_out[0:-1])
 
-        max_fluence = np.max(self.fluence_out)
-        pump_fluence = self.pump.duration * self.pump.intensity
-        max_gain = np.max(self.fluence_out[1::] / self.fluence_out[0:-1])
-
-        print("Maximal laser fluence in J/cm²:", max_fluence/1e4)
-        print("Total pump fluence in J/cm²:", pump_fluence/1e4)
-        print("Maximal gain:", max_gain)
-        
         return self.fluence_out, self.temporal_fluence_out
 
     # =============================================================================
@@ -156,6 +155,55 @@ class Amplifier():
     # =============================================================================
 
     def extraction_CPA(self):
+        """
+        Calculate the energy extraction for a CPA pulse. 
+        Returns the spectral fluence at the end of each pass.
+        """
+        if np.any(self.crystal.inversion_end):
+            beta_0 = self.crystal.inversion_end           
+        else:
+            beta_0 = self.inversion()
+
+        if self.spectral_losses is None:
+            self.spectral_losses = np.zeros(len(self.seed.lambdas)) 
+        
+        beta_out = np.zeros( (self.passes+1, len(beta_0)) )
+        beta_out[0,:] = np.abs(beta_0)
+        spectral_fluence_out = np.zeros( (self.passes+1, len(self.seed.spectral_fluence)))
+        spectral_fluence_out[0] = self.seed.spectral_fluence
+
+        beta_eq = self.crystal.beta_eq(self.seed.lambdas)
+        sigma_a = self.crystal.sigma_a(self.seed.lambdas)
+        sigma_e = self.crystal.sigma_e(self.seed.lambdas)
+        Fsat = self.crystal.F_sat(self.seed.lambdas)
+
+        for k in range(self.passes):
+		# calculate single components
+            if k > 1:
+                beta_out[k, :] = np.flipud(beta_out[k, :])
+
+            # Compute the wavelength dependent saturation
+            Saturation = np.exp(integ(spectral_fluence_out[k,:], self.seed.dlambda)[-1]/Fsat)
+
+            # Compute the small signal gain by integrating along z
+            Gain = np.exp(self.crystal.doping_concentration*z_integ(np.outer(sigma_e,beta_out[k,:])-np.outer(sigma_a,(1-beta_out[k,:])),self.crystal.dz))[:,-1]
+
+            # Calculate the spectral fluence using Frantz Nodvik
+            spectral_fluence_out[k+1, :] = spectral_fluence_out[k, :] * Fsat/(integ(spectral_fluence_out[k,:], self.seed.dlambda)[-1]) * np.log(1+Gain*(Saturation-1))
+
+            if k % 2:
+                spectral_fluence_out[k+1, :] *= (1-self.losses-self.spectral_losses)
+            beta_out[k+1,:] = np.mean(beta_eq) + (beta_out[k,:]-np.mean(beta_eq))/(1+np.mean(Gain)*(np.mean(Saturation)-1))
+            
+            if integ(spectral_fluence_out[k+1,:], self.seed.dlambda)[-1] > self.max_fluence:
+                return spectral_fluence_out[~np.all(spectral_fluence_out == 0, axis=1)]
+        return spectral_fluence_out
+
+    # =============================================================================
+    # Calculate energy extraction for a CPA pulse
+    # =============================================================================
+
+    def extraction_CPA_old(self):
         """
         Calculate the energy extraction for a CPA pulse. 
         Returns the spectral fluence at the end of each pass.
@@ -182,8 +230,9 @@ class Amplifier():
                 beta_out[k, :] = np.flipud(beta_out[k, :])
 
             for n, lambd in enumerate(self.seed.lambdas):
-
-                Saturation = np.exp(spectral_fluence_out[k,n]*self.seed.dlambda/Fsat[n])
+                # Saturation = np.exp(spectral_fluence_out[k,n]*self.seed.dlambda/Fsat[n])
+                Saturation = np.exp((self.crystal.sigma_a(lambd)+self.crystal.sigma_e(lambd)) * c * (spectral_fluence_out[k,n] /(h*c**2)*lambd) * self.seed.dlambda)
+                if n == int(len(self.seed.lambdas)/2): print(spectral_fluence_out[k,n]*len(self.seed.lambdas)*self.seed.dlambda*1e-4, Fsat[n]*1e-4, Saturation, lambd)
                 Gain = np.exp(self.crystal.doping_concentration*integ(self.crystal.sigma_e(lambd)*beta_out[k,:]-(1-beta_out[k,:])*self.crystal.sigma_a(lambd),self.crystal.dz))
 
                 spectral_fluence_out[k+1, n] = Fsat[n] * np.log(1+Gain[-1]*(Saturation-1))/self.seed.dlambda
@@ -195,7 +244,6 @@ class Amplifier():
             if integ(spectral_fluence_out[k+1,:], self.seed.dlambda)[-1] > self.max_fluence:
                 return spectral_fluence_out[~np.all(spectral_fluence_out == 0, axis=1)]
         return spectral_fluence_out
-
 
     def storage_efficiency(self, pump_intensities):
         """
@@ -213,53 +261,73 @@ class Amplifier():
         efficiency = np.where(efficiency < 0, 0, efficiency)
 
         return efficiency.T
-
+    
+    def __repr__(self):
+        return (f"{self.crystal}{self.pump}{self.seed}"
+                f"Amplifier:\n"
+                f"- medium passes = {self.passes}\n"
+                f"- losses = {self.losses*1e2}% \n"
+                f"- maximum allowed fluence = {self.max_fluence*1e-4}J/cm²\n"
+        )
 # =============================================================================
 # Display of results
 # =============================================================================
 
-def plot_fluence(amplifier):
+def plot_temporal_fluence(amplifier, save=False, save_path=None):
+    """ 
+    Plot the temporal fluence for the last ten passes
     """
-    Plot the fluence at the end of each pass and the temporal fluence at the end of each pass.
-    """
-    fluence_out, pulse_out = amplifier.extraction()
-    plt.figure()
-    plt.plot(fluence_out*1e-4, "-o")
-    plt.xlabel("Pass number")
-    plt.ylabel("output fluence in J/cm²")
-    plt.title('output fluence vs pass number')
-
-    # plot the temporal fluence at the end of the last ten passes
+    _, pulse_out = amplifier.extraction()
     passes = len(pulse_out[:,0])-1
-    plt.figure()
+
+    x = amplifier.seed.time*1e9
+    y_array = []
+    legend = []
     for i in range(max(len(pulse_out[:,0])-10,0), len(pulse_out[:,0])):
-        total_fluence = integ(pulse_out[i,:], amplifier.seed.dt)[-1]*1e-4
-        plt.plot(amplifier.seed.time*1e9, pulse_out[i,:]*1e-9*1e-4, label=f"$F =$ {total_fluence:.3f} J/cm²")
+        y_array.append(pulse_out[i,:]*1e-9*1e-4)
+        legend.append(f"$F =${integ(pulse_out[i,:], amplifier.seed.dt)[-1]*1e-4:.3f}J/cm²")
 
-    plt.xlabel("time $t$ in s")
-    plt.ylabel("temporal fluence in J/cm²/ns")
-    plt.title(f"{crystal.name} with {int(passes/2)} RT, F$_0$ = {seed.fluence*1e-4:.2e} J/cm²")
-    plt.legend(bbox_to_anchor=(1.01, 1), loc='upper left')
+    xlabel="time $t$ in s"
+    ylabel="temporal fluence in J/cm²/ns"
+    title = f"{amplifier.crystal.name} with {int(passes/2)} RT, F$_0$ = {amplifier.seed.fluence*1e-4:.2e} J/cm²"
+    path = save_path or os.path.join(Folder, "material_database", "plots", f"Temporal_seed_{amplifier.seed.fluence*1e-4}Jcm2_{amplifier.crystal.material}_{amplifier.crystal.temperature}_temporal-fluence.pdf")
+    kwargs = dict(marker="o")
+
+    plot_function(x,y_array, xlabel, ylabel, title, legend, save, path, outer_legend=True)
 
 
-def plot_inversion1D(amplifier, save=False):
+def plot_total_fluence_per_pass(amplifier, save=False, save_path=None):
+    """ 
+    Plot the total fluence at the end of each pass
+    """
+    fluence_out, _ = amplifier.extraction()
+    x = np.arange(0,len(fluence_out),1)
+    xlabel = "Pass number"
+    ylabel = "output fluence in J/cm²"
+    legend = f"F$_{{max}}$ = {np.max(fluence_out)*1e-4:.3g}J/cm²"
+    title  = f"{amplifier.crystal.material}, Output fluence vs. pass number"
+    path = save_path or os.path.join(Folder, "material_database", "plots", f"Temporal_seed_{amplifier.seed.fluence*1e-4}Jcm2_{amplifier.crystal.material}_{amplifier.crystal.temperature}K_total-fluence.pdf")
+    kwargs = dict(marker="o")
+
+    plot_function(x,fluence_out*1e-4, xlabel, ylabel, title, legend, save, path, kwargs=kwargs)
+
+
+def plot_inversion1D(amplifier, save=False, save_path=None, ylim=(0,np.inf)):
     """
     Plot the inversion in the crystal after the pumping process
     """
     amplifier.inversion()
     crystal, pump = amplifier.crystal, amplifier.pump
+    x = crystal.z_axis*1e3
+    y = crystal.inversion_end 
+    xlabel = "depth $z$ in mm"
+    ylabel = "inversion $\\beta$"
+    legend = f"$\\beta$ mean = {np.mean(crystal.inversion_end):.4f}"
+    title = "$\\beta(z)$ at the end of pumping"
+    path = save_path or os.path.join(Folder, "material_database", "plots", f"{crystal.material}_{crystal.temperature}K_{pump.intensity*1e-7}kWcm2_inversion1D.pdf")
 
-    plt.figure()
-    plt.plot(crystal.z_axis*1e3, crystal.inversion_end, label=f"$\\beta$ mean = {np.mean(crystal.inversion_end):.4f}")
-    plt.xlabel("depth $z$ in mm")
-    plt.ylabel("inversion $\\beta$")
-    plt.title('$\\beta(z)$ at the end of pumping')
-    plt.ylim(bottom=0)
-    plt.legend()
+    plot_function(x, y, xlabel, ylabel, title, legend, save, path, ylim=ylim)
 
-    if save:
-        plt.tight_layout()
-        plt.savefig(os.path.join(Folder, "material_database","plots", f"{crystal.material}_{crystal.temperature}K_{pump.intensity*1e-7}_inversion1D.pdf"))
 
 def plot_inversion2D(amplifier, cmap="magma", save=False):
     """
@@ -281,55 +349,49 @@ def plot_inversion2D(amplifier, cmap="magma", save=False):
         plt.tight_layout()
         plt.savefig(os.path.join(Folder, "material_database","plots", f"{crystal.material}_{crystal.temperature}K_{pump.intensity*1e-7}_inversion2D.pdf"))
 
-def plot_spectral_fluence(amplifier, lam_min = 1010, lam_max = 1050, save=False):
-    """
+
+def plot_spectral_fluence(amplifier, save=False, save_path=None, xlim=(1010,1050)):
+    """ 
     Plot the spectral fluence at the end of the ten last roundtrips. Note, that a roundtrip corresponds to two passes through the material.
     """
     spectral_fluence = amplifier.extraction_CPA()
     crystal, pump, seed = amplifier.crystal, amplifier.pump, amplifier.seed
 
     passes = len(spectral_fluence[:,0])-1
-    plt.figure()
+
+    x = seed.lambdas*1e9
+    y_array = []
+    legend = []
     for i in range(max(passes-20,0), passes+1, 2):
-        total_fluence = integ(spectral_fluence[i,:], seed.dlambda)[-1]*1e-4
-        plt.plot(seed.lambdas*1e9, spectral_fluence[i,:]*1e-9*1e-4, label=f"$F =$ {total_fluence:.3f} J/cm²")
+        y_array.append(spectral_fluence[i,:]*1e-9*1e-4)
+        legend.append(f"$F =${integ(spectral_fluence[i,:], seed.dlambda)[-1]*1e-4:.3f}J/cm²")
 
-    plt.xlabel("wavlength $\\lambda$ in nm")
-    plt.ylabel("spectral fluence in J/cm²/nm")
-    plt.xlim(lam_min, lam_max)
-    plt.title(f"{crystal.name} with {int(passes/2)} RT, F$_0$ = {seed.fluence*1e-4:.2e} J/cm²")
-    plt.legend(bbox_to_anchor=(1.01, 1), loc='upper left')
+    xlabel="wavelength $\\lambda$ in nm"
+    ylabel="spectral fluence in J/cm²/nm"
+    title = f"{crystal.name} with {int(passes/2)} RT, F$_0$ = {seed.fluence*1e-4:.2e} J/cm²"
+    path = save_path or os.path.join(Folder, "material_database", "plots", f"Spectral_seed_{amplifier.seed.fluence*1e-4}Jcm2_{amplifier.crystal.material}_{amplifier.crystal.temperature}_spectral-fluence.pdf")
 
-    if save:
-        plt.tight_layout()
-        plt.savefig(os.path.join(Folder, "material_database","plots", f"{crystal.material}_{crystal.temperature}K_{pump.intensity*1e-7}kW/cm2_{seed.fluence*1e-4}J/cm2_spectral_fluence.pdf"))
-    
-def test(amplifier):
-    pump_intensites = np.linspace(0,50e7,20)
-    efficiency = amplifier.storage_efficiency(pump_intensites)
-    plt.figure()
-    plt.plot(pump_intensites*1e-7, efficiency, 'o-')
+    plot_function(x,y_array, xlabel, ylabel, title, legend, save, path, outer_legend=True, xlim=xlim)
 
 
 if __name__ == "__main__":
-    crystal  = Crystal(material="YbCaF2", temperature=300)
-    plot_beta_eq(crystal,lambda_max=980e-9)
+    crystal  = Crystal(material="YbCaF2", temperature=300, smooth_sigmas=False)
+
     crystal.smooth_cross_sections(0.9, 10, lambda_max=990e-9)
-    pump     = Pump(intensity=39, wavelength=940, duration=crystal.tau_f*1e3)
+    pump = Pump()
 
-    seed = Seed(fluence=0.01, duration=5, wavelength=1030, gauss_order=1, seed_type="gauss")
-    CW_amplifier = Amplifier(crystal=crystal, pump=pump, seed=seed, passes=50, losses=1e-1)
+    seed = Seed()
+    CW_amplifier = Amplifier(crystal=crystal)
     
-    seed_CPA = Seed_CPA(fluence=2.7e-6, wavelength=1030, bandwidth=60, seed_type="rect")
-    CPA_amplifier = Amplifier(crystal=crystal, pump=pump, seed=seed_CPA, passes=100, losses=1e-1, spectral_losses=None, max_fluence = 1)
+    seed_CPA = Seed_CPA()
+    CPA_amplifier = Amplifier(crystal=crystal, seed=seed_CPA)
 
-    print(crystal,pump,seed_CPA,seed,sep='===========================\n')
-
-    # test(CW_amplifier)
+    print(CW_amplifier)
     
     CPA_amplifier.inversion()
     plot_inversion1D(CW_amplifier)
     plot_inversion2D(CW_amplifier)
-    plot_fluence(CW_amplifier)
+    plot_total_fluence_per_pass(CW_amplifier)
+    plot_temporal_fluence(CW_amplifier)
     plot_spectral_fluence(CPA_amplifier)
 

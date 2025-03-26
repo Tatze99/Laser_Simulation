@@ -105,3 +105,57 @@ def moving_average(x, window_size):
     smoothed_array = np.concatenate((first_value, smoothed_array, last_value))
 
     return smoothed_array
+
+def plot_function(x, y, xlabel, ylabel, title=None, legends=None, save=False, save_path=None, xlim = (-np.inf, np.inf), ylim = (-np.inf, np.inf), outer_legend = False, kwargs=None):
+    """
+    General function for plotting and saving figures.
+    
+    :param x: X-axis values
+    :param y_list: List of Y-axis arrays (for multiple plots)
+    :param xlabel: X-axis label
+    :param ylabel: Y-axis label
+    :param title: Plot title
+    :param legends: List of legend labels (one per curve)
+    :param save: Whether to save the plot
+    :param save_path: Path to save the plot (if save=True)
+    """
+    plt.figure()
+    if not kwargs:
+        kwargs = dict(
+            linestyle = "-",
+            marker = None
+            )
+    
+    # Plot multiple curves if needed
+    if isinstance(y, list):
+        if isinstance(x, list):
+            for i, (x_elem,y_elem) in enumerate(zip(x,y)):
+                plt.plot(x_elem,y_elem, label=legends[i] if legends else None, **kwargs)
+        else:
+            for i, y_elem in enumerate(y):
+                plt.plot(x, y_elem, label=legends[i] if legends else None, **kwargs)
+    else:
+        plt.plot(x, y, label=legends if legends else None, **kwargs)
+
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    
+
+    bottom, top = plt.ylim()
+    plt.ylim(max(bottom, ylim[0]), min(top, ylim[1]))
+    left, right = plt.xlim()
+    plt.xlim(max(left, xlim[0]), min(right, xlim[1]))
+    
+    if title:
+        plt.title(title)
+
+    if legends:
+        if outer_legend:
+            plt.legend(bbox_to_anchor=(1.01, 1), loc='upper left')
+        else:
+            plt.legend()
+
+    if save:
+        if save_path:
+            plt.tight_layout()
+            plt.savefig(save_path)

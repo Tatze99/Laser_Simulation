@@ -1,12 +1,13 @@
-from utilities import numres, h, c, integ, set_plot_params
+from utilities import numres, h, c, integ, set_plot_params, plot_function
 import numpy as np
 import matplotlib.pyplot as plt
 import os
 set_plot_params()
 Folder = os.path.dirname(os.path.abspath(__file__))
+Folder = os.path.abspath(os.path.join(Folder, os.pardir))
 
 class Seed_CPA():
-    def __init__(self, bandwidth = 30, wavelength = 1030, fluence = 1e-6, seed_type = "gauss", gauss_order = 1, custom_file = None):
+    def __init__(self, wavelength = 1030, bandwidth = 30, fluence = 1e-4, seed_type = "gauss", gauss_order = 1, custom_file = None):
         self.bandwidth = bandwidth*1e-9     # [m]
         self.wavelength = wavelength*1e-9   # [m]
         self.fluence = fluence*1e4          # [J/m²]
@@ -58,21 +59,20 @@ class Seed_CPA():
         f"- pulse type = '{self.seed_type}'\n\n"
         )
 
-def plot_seed_pulse(seed, save=False):
-    """
-    Plot the seed pulse spectrum.
-    """
-    plt.figure()
-    plt.plot(seed.lambdas*1e9, seed.spectral_fluence*1e-4*1e-9, label=f"F = {integ(seed.spectral_fluence, seed.dlambda)[-1]/1e4:.1e} J/cm²")
-    plt.legend()
-    plt.xlabel("wavlength in nm")
-    plt.ylabel("spectral fluence in J/cm²/nm")
-    if save:
-        plt.tight_layout()
-        plt.savefig(os.path.join(Folder, "material_database","plots", f"Seed_Spectrum_{seed.wavelength*1e9}nm_{seed.bandwidth*1e9:.1f}nm.pdf"))
+def plot_seed_pulse(crystal, save=False, save_path=None, xlim=(1000,1060), ylim=(0,np.inf)):
+    """Plot the saturation intensity of a crystal."""
+    x = seed.lambdas*1e9
+    y = seed.spectral_fluence*1e-4*1e-9
+    xlabel = "wavelength in nm"
+    ylabel = "spectral fluence in J/cm²/nm"
+    legend= f"F = {integ(seed.spectral_fluence, seed.dlambda)[-1]/1e4:.1e} J/cm²"
+    title = "Spectral seed pulse"
+    path = save_path or os.path.join(Folder, "material_database","plots", f"Seed_Spectrum_{seed.wavelength*1e9}nm_{seed.bandwidth*1e9:.1f}nm.pdf")
+
+    plot_function(x, y, xlabel, ylabel, title, legend, save, path, xlim, ylim)
 
 if __name__ == "__main__":
     seed = Seed_CPA(seed_type = "gauss", gauss_order = 1)
  
     print(seed)
-    plot_seed_pulse(seed, save=True)
+    plot_seed_pulse(seed, save=False)

@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 plt.rcParams["figure.figsize"] = (10,5)
 
 Folder = os.path.dirname(os.path.abspath(__file__))
-
+Folder = os.path.abspath(os.path.join(Folder, os.pardir))
 
 class Spectral_Losses():
     def __init__(self, material= "YbCaF2", calc_formula = True):

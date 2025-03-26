@@ -1,12 +1,13 @@
-from utilities import numres, h, c, integ, set_plot_params
+from utilities import numres, h, c, integ, set_plot_params, plot_function
 import numpy as np
 import matplotlib.pyplot as plt
 import os
 set_plot_params()
 Folder = os.path.dirname(os.path.abspath(__file__))
+Folder = os.path.abspath(os.path.join(Folder, os.pardir))
 
 class Seed():
-    def __init__(self, fluence = 0.01, duration = 5, wavelength = 1030, gauss_order = 1, seed_type = "gauss"):
+    def __init__(self, fluence = 1e-4, duration = 5, wavelength = 1030, gauss_order = 1, seed_type = "gauss"):
         self.duration = duration*1e-9     # [s]
         self.wavelength = wavelength*1e-9 # [m]
         self.fluence = fluence*1e4        # [J/m²]
@@ -54,16 +55,17 @@ class Seed():
         f"- pulse type = '{self.seed_type}'\n\n"
         )
 
-def plot_seed_pulse(seed, save=False):
-    plt.figure()
-    plt.plot(seed.time*1e9, seed.pulse, label=f"$F$ = {integ(seed.pulse, seed.dt)[-1]* c * h *c / seed.wavelength*1e-4:.2f} J/cm²")
-    plt.xlabel("time in ns")
-    plt.ylabel("photon density $\\Phi$ in 1/m³")
-    plt.title("Seed pulse")
-    plt.legend()
-    if save:
-        plt.tight_layout()
-        plt.savefig(os.path.join(Folder, "material_database","plots", f"Seed_Temporal_{seed.wavelength*1e9}nm_{seed.duration*1e9:.1f}ns.pdf"))
+def plot_seed_pulse(seed, save=False, save_path=None, xlim=(-np.inf,np.inf), ylim=(-np.inf,np.inf)):
+    """Plot the saturation intensity of a crystal."""
+    x = seed.time*1e9
+    y = seed.pulse
+    xlabel = "time in ns"
+    ylabel = "photon density $\\Phi$ in 1/m³"
+    legend = f"F = {integ(seed.pulse, seed.dt)[-1]* c * h *c / seed.wavelength*1e-4:.2f} J/cm²"
+    title= "Temporal seed pulse"
+    path = save_path or os.path.join(Folder, "material_database","plots", f"Seed_Temporal_{seed.wavelength*1e9}nm_{seed.duration*1e9:.1f}ns.pdf")
+
+    plot_function(x, y, xlabel, ylabel, title, legend, save, path, xlim, ylim)
 
 if __name__ == "__main__":
     seed = Seed(seed_type = 'gauss', gauss_order=1)
