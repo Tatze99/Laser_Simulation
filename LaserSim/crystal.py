@@ -3,7 +3,6 @@ import json
 import numpy as np
 import os
 import glob
-import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from scipy.interpolate import CubicSpline
 set_plot_params()
@@ -15,8 +14,8 @@ def logistic_function(x, a,b):
     return 1/(1+np.exp(-a*(x-b)))
 
 class Crystal():
-    def __init__(self, material="YbCaF2", temperature="300", lambda_a = 940, lambda_e = 1030, length=None, N_dop=None, smooth_sigmas = True):
-        self.inversion = np.zeros(numres)
+    def __init__(self, material="YbCaF2", temperature="300", lambda_a = 940, lambda_e = 1030, length=None, N_dop=None, smooth_sigmas = True, resolution=numres):
+        self.inversion = np.zeros(resolution)
         self.temperature = temperature
         self.use_spline_interpolation = True
         self.material = material
@@ -34,8 +33,8 @@ class Crystal():
         if N_dop is not None: self.doping_concentration = N_dop
         if smooth_sigmas: self.smooth_cross_sections(lambda_max = 1010e-9)
 
-        self.z_axis = np.linspace(0, self.length, numres)
-        self.dz = self.length / (numres-1)
+        self.z_axis = np.linspace(0, self.length, resolution)
+        self.dz = self.length / (resolution-1)
         self.inversion_end = None
 
     def load_basedata(self, filename):
@@ -73,7 +72,6 @@ class Crystal():
                 self.table_sigma_e = np.flipud(self.table_sigma_e)
         else:
             raise FileNotFoundError(f"No file found for file pattern: {Folder} -> material_database -> {self.name} @ {self.temperature}K")
-
 
     def smooth_cross_sections(self, FF_filter=0, mov_average=4, useMcCumber = True, lambda_max=None):
         """
@@ -139,7 +137,11 @@ class Crystal():
         max_index = np.argmin(np.abs(lambd-lambda_max)) if lambda_max else len(lambd)
         beta_eq = self.beta_eq(lambd)
         print(lambda_max, self.lambda_ZPL, min_index, max_index)
-        params, _ = curve_fit(logistic_function, lambd[:max_index], beta_eq[:max_index], p0=[1,self.lambda_ZPL])
+        try:
+            params, _ = curve_fit(logistic_function, lambd[:max_index], beta_eq[:max_index], p0=[1,self.lambda_ZPL])
+        except:
+            print("Could not fit logistic function to equilibrium inversion to calculate McCumber for absorption using no lambda_max instead")
+            params, _ = curve_fit(logistic_function, lambd, beta_eq, p0=[1,self.lambda_ZPL])
         interpolated_sigma_e = np.interp(lambd*1e9, self.table_sigma_e[:,0], self.table_sigma_e[:,1])
         self.table_sigma_a[min_index:,1] = interpolated_sigma_e[min_index:] * logistic_function(lambd[min_index:], *params)/(1-logistic_function(lambd[min_index:], *params))
         self.load_spline_interpolation()
@@ -162,7 +164,9 @@ class Crystal():
 # =============================================================================
 
 def plot_cross_sections(crystal, save=False, save_path=None):
-    """Plot absorption and emission cross sections."""
+    """
+    Plot absorption and emission cross sections.
+    """
     x = [crystal.table_sigma_a[:, 0], crystal.table_sigma_e[:, 0]]
     y = [crystal.table_sigma_a[:, 1], crystal.table_sigma_e[:, 1]]
     xlabel = "wavelength in nm"
@@ -175,7 +179,9 @@ def plot_cross_sections(crystal, save=False, save_path=None):
 
 
 def plot_small_signal_gain(crystal, beta, xlim=(1000,1060), ylim=(1.1, np.inf), save=False, save_path=None):
-    """Plot small signal gain for a given beta."""
+    """
+    Plot small signal gain for a given beta.
+    """
     lambd = np.linspace(xlim[0] * 1e-9, xlim[1] * 1e-9, 100)
     
     if not isinstance(beta, (list, tuple, np.ndarray)):
@@ -194,7 +200,9 @@ def plot_small_signal_gain(crystal, beta, xlim=(1000,1060), ylim=(1.1, np.inf), 
 
 
 def plot_beta_eq(crystal, lambda_max=None, save=False, save_path=None):
-    """Plot equilibrium inversion beta_eq with a logistic fit."""
+    """
+    Plot equilibrium inversion beta_eq with a logistic fit.
+    """
     lambd = crystal.table_sigma_a[:, 0] * 1e-9
     beta_eq = crystal.beta_eq(lambd)
     index_max = np.argmin(np.abs(lambd - lambda_max)) if lambda_max else len(lambd)
@@ -212,7 +220,9 @@ def plot_beta_eq(crystal, lambda_max=None, save=False, save_path=None):
 
 
 def plot_Isat(crystal, save=False, save_path=None, xlim=(900,1000), ylim=(0,200)):
-    """Plot the saturation intensity of a crystal."""
+    """
+    Plot the saturation intensity of a crystal.
+    """
     lambd = crystal.table_sigma_a[:, 0] * 1e-9
     Isat = crystal.I_sat(lambd) * 1e-7
     xlabel = "wavelength in nm"
@@ -223,7 +233,9 @@ def plot_Isat(crystal, save=False, save_path=None, xlim=(900,1000), ylim=(0,200)
     plot_function(lambd * 1e9, Isat, xlabel, ylabel, title, save=save, save_path=path, xlim=xlim, ylim=ylim)
 
 def plot_Fsat(crystal, save=False, save_path=None, xlim=(1010,1050), ylim=(0,200)):
-    """Plot the saturation fluence of a crystal."""
+    """
+    Plot the saturation fluence of a crystal.
+    """
     lambd = crystal.table_sigma_a[:, 0] * 1e-9
     Isat = crystal.F_sat(lambd) * 1e-4
     xlabel = "wavelength in nm"
@@ -235,7 +247,7 @@ def plot_Fsat(crystal, save=False, save_path=None, xlim=(1010,1050), ylim=(0,200
     
 #=============================================================================
 # main script, if this file is executed
-# =============================================================================
+# ============================================================================
 
 if __name__ == "__main__":
     crystal = Crystal(material="YbCaF2", temperature=300, smooth_sigmas=True)

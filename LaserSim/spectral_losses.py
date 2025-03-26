@@ -128,7 +128,6 @@ def test_reflectivity_approximation(losses, save=False):
         plt.plot(losses.lambdas*1e9, losses.arrays[i],label=name, color=colors[i])
         plt.plot(losses.lambdas*1e9, losses.calc_reflectivity(losses.angles[i], angle_unit="deg"), "--", label=name, color=colors[i])
 
-    # plt.ylim(0,)
     plt.xlim(1000,1080)
     plt.ylim(0,1e-1)
     plt.xlabel("wavelength in nm")

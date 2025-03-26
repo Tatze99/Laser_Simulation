@@ -4,13 +4,14 @@ import numpy as np
 class Pump():
     def __init__(self, intensity=30, # [kW/cm²]
                        duration=2, # [ms] 
-                       wavelength=940 # [nm] 
+                       wavelength=940, # [nm] 
+                       resolution=numres
                 ):
         self.intensity = intensity*1e7   # [W/m²]
         self.duration = duration*1e-3    # [s]
         self.wavelength = wavelength*1e-9 # [m]
-        self.dt = self.duration / numres
-        self.t_axis = np.linspace(0, self.duration, numres)
+        self.dt = self.duration / resolution
+        self.t_axis = np.linspace(0, self.duration, resolution)
         self.fluence = self.intensity * self.duration
 
     def __repr__(self):

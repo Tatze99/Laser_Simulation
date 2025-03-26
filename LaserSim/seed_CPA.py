@@ -1,4 +1,4 @@
-from utilities import numres, h, c, integ, set_plot_params, plot_function
+from utilities import h, c, integ, set_plot_params, plot_function
 import numpy as np
 import matplotlib.pyplot as plt
 import os
@@ -7,13 +7,13 @@ Folder = os.path.dirname(os.path.abspath(__file__))
 Folder = os.path.abspath(os.path.join(Folder, os.pardir))
 
 class Seed_CPA():
-    def __init__(self, wavelength = 1030, bandwidth = 30, fluence = 1e-4, seed_type = "gauss", gauss_order = 1, custom_file = None):
+    def __init__(self, wavelength = 1030, bandwidth = 30, fluence = 1e-4, seed_type = "gauss", gauss_order = 1, custom_file = None, resolution = 250):
         self.bandwidth = bandwidth*1e-9     # [m]
         self.wavelength = wavelength*1e-9   # [m]
         self.fluence = fluence*1e4          # [J/m²]
         self.gauss_order = gauss_order
         self.seed_type = seed_type
-        self.seedres = 250
+        self.seedres = resolution
         self.custom_file = custom_file
         
         self.spectral_fluence = self.pulse_gen()
@@ -53,19 +53,19 @@ class Seed_CPA():
     def __repr__(self):
         return(
         f"Seed CPA pulse:\n"
-        f"- bandwidth = {self.bandwidth*1e9:.2f}nm (FWHM)\n"
-        f"- wavelength = {self.wavelength*1e9:.2f}nm \n"
-        f"- fluence = {self.fluence*1e-4}J/cm²\n"
+        f"- bandwidth = {self.bandwidth*1e9:.2f} nm (FWHM)\n"
+        f"- wavelength = {self.wavelength*1e9:.2f} nm \n"
+        f"- fluence = {self.fluence*1e-4} J/cm²\n"
         f"- pulse type = '{self.seed_type}'\n\n"
         )
 
-def plot_seed_pulse(crystal, save=False, save_path=None, xlim=(1000,1060), ylim=(0,np.inf)):
+def plot_seed_pulse(seed, save=False, save_path=None, xlim=(1000,1060), ylim=(0,np.inf)):
     """Plot the saturation intensity of a crystal."""
     x = seed.lambdas*1e9
     y = seed.spectral_fluence*1e-4*1e-9
     xlabel = "wavelength in nm"
     ylabel = "spectral fluence in J/cm²/nm"
-    legend= f"F = {integ(seed.spectral_fluence, seed.dlambda)[-1]/1e4:.1e} J/cm²"
+    legend= f"F = {integ(seed.spectral_fluence, seed.dlambda)[-1]/1e4:.3g} J/cm²"
     title = "Spectral seed pulse"
     path = save_path or os.path.join(Folder, "material_database","plots", f"Seed_Spectrum_{seed.wavelength*1e9}nm_{seed.bandwidth*1e9:.1f}nm.pdf")
 
