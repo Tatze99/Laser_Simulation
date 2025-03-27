@@ -1,4 +1,4 @@
-from utilities import numres, h, c, integ
+from LaserSim.utilities import numres, h, c, integ
 import numpy as np
 import os
 from glob import glob
@@ -10,8 +10,8 @@ Folder = os.path.dirname(os.path.abspath(__file__))
 Folder = os.path.abspath(os.path.join(Folder, os.pardir))
 
 class Spectral_Losses():
-    def __init__(self, material= "YbCaF2", calc_formula = True):
-        File = os.path.join(Folder, "material_database", "reflectivity_curves", material)
+    def __init__(self, material= "YbCaF2", calc_formula = True, custom_File = None):
+        File = os.path.join(Folder, "material_database", "reflectivity_curves", material) if custom_File is None else custom_File
         self.TSF_name = material
         self.load_basedata(os.path.join(File, "*_Metadata.json"))
         self.fnames = glob(os.path.join(File, "*"+ self.file_type))

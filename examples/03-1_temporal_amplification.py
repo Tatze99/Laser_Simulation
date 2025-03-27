@@ -1,11 +1,3 @@
-import os
-import sys
-
-# append the parent and LaserSim Folder to path to call the functions in LaserSim
-sys.path.append(os.path.abspath("../"))
-sys.path.append(os.path.abspath("../LaserSim"))
-Folder = os.path.dirname(os.path.abspath(__file__))
-
 # Import the pump, crystal, seed and amplifier
 from LaserSim.pump import Pump
 from LaserSim.crystal import Crystal

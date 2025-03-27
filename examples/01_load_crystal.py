@@ -1,11 +1,3 @@
-import os
-import sys
-
-# append the parent and LaserSim Folder to path to call the functions in LaserSim
-sys.path.append(os.path.abspath("../"))
-sys.path.append(os.path.abspath("../LaserSim"))
-Folder = os.path.dirname(os.path.abspath(__file__))
-
 # Import the Crystal
 from LaserSim.crystal import Crystal, plot_small_signal_gain, plot_cross_sections, plot_Fsat
 

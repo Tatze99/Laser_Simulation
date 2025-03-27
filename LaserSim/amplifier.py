@@ -1,13 +1,13 @@
-from crystal import Crystal, plot_beta_eq
-from pump import Pump
-from seed import Seed
-from seed_CPA import Seed_CPA
-from spectral_losses import Spectral_Losses
+from LaserSim.crystal import Crystal, plot_beta_eq
+from LaserSim.pump import Pump
+from LaserSim.seed import Seed
+from LaserSim.seed_CPA import Seed_CPA
+from LaserSim.spectral_losses import Spectral_Losses
+from LaserSim.utilities import z_integ, t_integ, integ, numres, h, c, set_plot_params, plot_function
 
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.matlib as npm
-from utilities import z_integ, t_integ, integ, numres, h, c, set_plot_params, plot_function
 import os
 
 set_plot_params()

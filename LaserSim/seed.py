@@ -1,4 +1,4 @@
-from utilities import h, c, integ, set_plot_params, plot_function
+from LaserSim.utilities import h, c, integ, set_plot_params, plot_function
 import numpy as np
 import matplotlib.pyplot as plt
 import os

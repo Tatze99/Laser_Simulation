@@ -1,4 +1,4 @@
-from utilities import numres, h, c, moving_average, fourier_filter, set_plot_params, plot_function
+from LaserSim.utilities import numres, h, c, moving_average, fourier_filter, set_plot_params, plot_function
 import json
 import numpy as np
 import os
@@ -196,6 +196,7 @@ def plot_small_signal_gain(crystal, beta, xlim=(1000,1060), ylim=(1.1, np.inf), 
     path = save_path or os.path.join(Folder, "material_database", "plots", 
             f"{crystal.material}_{crystal.temperature}K_small_signal_gain.pdf")
 
+    print(path)
     plot_function(lambd * 1e9, y_list, xlabel, ylabel, title, legends, save, path, xlim=xlim, ylim=ylim)
 
 

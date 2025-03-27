@@ -1,4 +1,4 @@
-from utilities import numres
+from LaserSim.utilities import numres
 import numpy as np
 
 class Pump():
