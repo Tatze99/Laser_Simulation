@@ -39,6 +39,7 @@ Laser_Simulation/
 │   ├── Ybxxx/                          # Contains data about a specific material
 │── requirements.txt                    # Contains the required packages to install with pip
 │── setup.py                            # file to pack "LaserSim" into a package
+|── tutorial.ipynb                      # Jupyter Notebook with a tutorial how to get started
 │── README.md
 ```
 
@@ -51,21 +52,26 @@ Laser_Simulation/
 git clone https://github.com/tatze99/LaserSimulation.git    # or use the Github Desktop application
 ```
 - open this folder in a python capable IDE, e.g. VisualStudioCode
-- Optional: open a Terminal in this folder, create and activate a virtual environment:
+- Optional: open a Terminal in this folder, create a virtual environment:
 ```
 python -m venv ./venv
+```
+- This will install a virtual environment in the "venv" folder
+- Activate the virtual environment by running activate.bat
+```
 ./venv/Scripts/activate      # on Windows
 source ./venv/bin/activate   # on Linux
 ```
-- This will install a virtual environment in the "venv" folder
 - install the required packages:
 ```
 python -m pip install -r ./requirements.txt
 ```
 - Finally, we need to add the root folder to the system path
 ```
-set PYTHONPATH=%CD%
+set PYTHONPATH=%CD%         # on Windows
+export PYTHONPATH=$(pwd)    # on Linux
 ```
+- Now you can run the example files or the tutorial.ipynb file to test if everything works
 
 ### How to uninstall LaserSim:
 - open a Terminal in the project's root folder

@@ -1,16 +1,16 @@
-from LaserSim.utilities import numres, h, c, integ
+from LaserSim.utilities import set_plot_params
 import numpy as np
 import os
 from glob import glob
 import json
 import matplotlib.pyplot as plt
-plt.rcParams["figure.figsize"] = (10,5)
+set_plot_params()
 
 Folder = os.path.dirname(os.path.abspath(__file__))
 Folder = os.path.abspath(os.path.join(Folder, os.pardir))
 
 class Spectral_Losses():
-    def __init__(self, material= "YbCaF2", calc_formula = True, custom_File = None):
+    def __init__(self, material= "YbFP15", calc_formula = True, custom_File = None):
         File = os.path.join(Folder, "material_database", "reflectivity_curves", material) if custom_File is None else custom_File
         self.TSF_name = material
         self.load_basedata(os.path.join(File, "*_Metadata.json"))
@@ -113,12 +113,21 @@ class Spectral_Losses():
         return self.calc_total_reflectivity(np.array(reflectivity_array))
 
     def __repr__(self):
-        txt = f"name: {self.name}\nangles = {self.angles}\nfile_type = {self.file_type}\nreflectivity_unit = {self.reflectivity_unit}\nspectral_unit = {self.spectral_unit}\nn2 = {self.n2}\nprop_constant = {self.prop_constant}\nslope = {self.slope}\n"
-        return txt
+        return(f"Spectral reflectivity mirrors:\n"
+                f"- name: {self.name}\n"
+                f"- angles = {self.angles}\n"
+                f"- file type = {self.file_type}\n"
+                f"- reflectivity_unit = {self.reflectivity_unit}\n"
+                f"- spectral_unit = {self.spectral_unit}\n"
+                f"- n2 = {self.n2}\n"
+                f"- prop_constant = {self.prop_constant}\n"
+                f"- slope = {self.slope}\n"
+        )
 
 def test_reflectivity_approximation(losses, save=False):
     """
-    Test the reflectivity approximation by comparing the calculated reflectivity with the original reflectivity curves"""
+    Test the reflectivity approximation by comparing the calculated reflectivity with the original reflectivity curves
+    """
     plt.figure()
     plt.tick_params(direction="in",right=True,top=True)
     colors = plt.cm.tab10.colors
@@ -140,7 +149,7 @@ def test_reflectivity_approximation(losses, save=False):
         plt.savefig(os.path.join(Folder, "material_database","plots", f"{losses.TSF_name}_reflectivity_approximation.pdf"))
 
 if __name__ == "__main__":
-    losses = Spectral_Losses(material="YbCaF2_Garbsen")
+    losses = Spectral_Losses()
 
     print(losses)
-    test_reflectivity_approximation(losses, save=True)
+    test_reflectivity_approximation(losses, save=False)

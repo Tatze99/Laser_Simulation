@@ -375,16 +375,10 @@ def plot_spectral_fluence(amplifier, save=False, save_path=None, xlim=(1010,1050
 
 
 if __name__ == "__main__":
-    crystal  = Crystal(material="YbCaF2", temperature=300, smooth_sigmas=False)
+    crystal  = Crystal(material="YbCaF2", temperature=300, smooth_sigmas=True)
 
-    crystal.smooth_cross_sections(0.9, 10, lambda_max=990e-9)
-    pump = Pump()
-
-    seed = Seed()
-    CW_amplifier = Amplifier(crystal=crystal)
-    
-    seed_CPA = Seed_CPA()
-    CPA_amplifier = Amplifier(crystal=crystal, seed=seed_CPA)
+    CW_amplifier = Amplifier(crystal=crystal,)
+    CPA_amplifier = Amplifier(crystal=crystal, seed=Seed_CPA())
 
     print(CW_amplifier)
     

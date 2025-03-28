@@ -68,7 +68,7 @@ def plot_seed_pulse(seed, save=False, save_path=None, xlim=(-np.inf,np.inf), yli
     plot_function(x, y, xlabel, ylabel, title, legend, save, path, xlim, ylim)
 
 if __name__ == "__main__":
-    seed = Seed(seed_type = 'gauss', gauss_order=1)
-    print(seed)
+    seed = Seed()
     
+    print(seed)
     plot_seed_pulse(seed)

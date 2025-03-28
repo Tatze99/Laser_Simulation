@@ -133,7 +133,7 @@ class Crystal():
         Use the McCumber relation to approximate the absorption cross section at wavelengths longer than self.lambda_ZPL
         """
         lambd = self.table_sigma_a[:,0]*1e-9
-        min_index = np.argmin(np.abs(lambd-self.lambda_ZPL))
+        min_index = np.argmin(np.abs(lambd-self.lambda_ZPL-20e-9))
         max_index = np.argmin(np.abs(lambd-lambda_max)) if lambda_max else len(lambd)
         beta_eq = self.beta_eq(lambd)
         print(lambda_max, self.lambda_ZPL, min_index, max_index)
@@ -251,7 +251,7 @@ def plot_Fsat(crystal, save=False, save_path=None, xlim=(1010,1050), ylim=(0,200
 # ============================================================================
 
 if __name__ == "__main__":
-    crystal = Crystal(material="YbCaF2", temperature=300, smooth_sigmas=True)
+    crystal = Crystal(material="YbLiAS15", temperature=300, smooth_sigmas=True)
 
     print(crystal)
     plot_cross_sections(crystal, save=False)

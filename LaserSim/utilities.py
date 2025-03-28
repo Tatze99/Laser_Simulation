@@ -15,6 +15,8 @@ def set_plot_params():
     plt.rcParams['grid.linewidth'] = 0.5  # Adjust the value to make it thinner
     plt.rcParams["xtick.direction"] = "in"
     plt.rcParams["ytick.direction"] = "in"
+    plt.rcParams["xtick.top"] = True
+    plt.rcParams["ytick.right"] = True
 
 # integration routines: integ(x) = integral(0, x, y dx')
 # convention integ: 1D
@@ -151,11 +153,10 @@ def plot_function(x, y, xlabel, ylabel, title=None, legends=None, save=False, sa
 
     if legends:
         if outer_legend:
-            plt.legend(bbox_to_anchor=(1.01, 1), loc='upper left')
+            plt.legend(bbox_to_anchor=(1.01, 1.02), loc='upper left')
         else:
             plt.legend()
 
-    if save:
-        if save_path:
-            plt.tight_layout()
-            plt.savefig(save_path)
+    if save and save_path:
+        plt.tight_layout()
+        plt.savefig(save_path)

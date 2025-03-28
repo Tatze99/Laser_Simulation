@@ -72,7 +72,7 @@ def plot_seed_pulse(seed, save=False, save_path=None, xlim=(1000,1060), ylim=(0,
     plot_function(x, y, xlabel, ylabel, title, legend, save, path, xlim, ylim)
 
 if __name__ == "__main__":
-    seed = Seed_CPA(seed_type = "gauss", gauss_order = 1)
+    seed = Seed_CPA()
  
     print(seed)
     plot_seed_pulse(seed, save=False)
