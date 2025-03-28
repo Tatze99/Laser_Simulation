@@ -83,10 +83,13 @@ export PYTHONPATH=$(pwd)    # on Linux
 ### How to setup your own script
 
 - create a subfolder in the main directory
-- Create a new python file and load the needed functions in the following way
+- Create a new python file and load the needed classes and functions in the following way
 ```
-from LaserSim.seed import Seed
+from LaserSim.crystal import Crystal 
 from LaserSim.pump import Pump
+from LaserSim.seed import Seed 
+from LaserSim.seed_CPA import Seed_CPA 
+from LaserSim.amplifier import Amplifier 
 ```
 
 
