@@ -1,4 +1,4 @@
-from LaserSim.utilities import h, c, integ, set_plot_params, plot_function
+from LaserSim.utilities import h, c, integ, set_plot_params, plot_function, create_save_path
 import numpy as np
 import matplotlib.pyplot as plt
 import os
@@ -14,6 +14,7 @@ class Seed():
         self.gauss_order = gauss_order
         self.seed_type = seed_type
         self.seedres = resolution
+        self.CPA = False # boolean to indicate that this is not a CPA seed pulse
 
         if seed_type == 'rect':
             signal_length = 1.5
@@ -63,7 +64,8 @@ def plot_seed_pulse(seed, save=False, save_path=None, xlim=(-np.inf,np.inf), yli
     ylabel = "photon density $\\Phi$ in 1/m³"
     legend = f"F = {integ(seed.pulse, seed.dt)[-1]* c * h *c / seed.wavelength*1e-4:.3g} J/cm²"
     title= "Temporal seed pulse"
-    path = save_path or os.path.join(Folder, "material_database","plots", f"Seed_Temporal_{seed.wavelength*1e9}nm_{seed.duration*1e9:.1f}ns.pdf")
+    fname = f"Seed_Temporal_{seed.wavelength*1e9}nm_{seed.duration*1e9:.1f}ns.pdf"
+    path = create_save_path(save_path, fname)
 
     plot_function(x, y, xlabel, ylabel, title, legend, save, path, xlim, ylim)
 

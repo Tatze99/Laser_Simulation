@@ -1,4 +1,4 @@
-from LaserSim.utilities import numres, h, c, moving_average, fourier_filter, set_plot_params, plot_function
+from LaserSim.utilities import numres, h, c, moving_average, fourier_filter, set_plot_params, plot_function, create_save_path
 import json
 import numpy as np
 import os
@@ -136,7 +136,6 @@ class Crystal():
         min_index = np.argmin(np.abs(lambd-self.lambda_ZPL-20e-9))
         max_index = np.argmin(np.abs(lambd-lambda_max)) if lambda_max else len(lambd)
         beta_eq = self.beta_eq(lambd)
-        print(lambda_max, self.lambda_ZPL, min_index, max_index)
         try:
             params, _ = curve_fit(logistic_function, lambd[:max_index], beta_eq[:max_index], p0=[1,self.lambda_ZPL])
         except:
@@ -173,12 +172,13 @@ def plot_cross_sections(crystal, save=False, save_path=None):
     ylabel = "cross section in cm²"
     legends = ["absorption $\\sigma_a$", "emission $\\sigma_e$"]
     title = f"{crystal.name} at {crystal.temperature}K"
-    path = save_path or os.path.join(Folder, "material_database", "plots", f"{crystal.material}_{crystal.temperature}K_cross_sections.pdf")
+    fname = f"{crystal.material}_{crystal.temperature}K_cross_sections.pdf"
+    path = create_save_path(save_path, fname)
     
     plot_function(x, y, xlabel, ylabel, title, legends, save, path)
 
 
-def plot_small_signal_gain(crystal, beta, xlim=(1000,1060), ylim=(1.1, np.inf), save=False, save_path=None):
+def plot_small_signal_gain(crystal, beta, round_trips=1, normalize=False, xlim=(1000,1060), ylim=(1.1, np.inf), save=False, save_path=None):
     """
     Plot small signal gain for a given beta.
     """
@@ -187,16 +187,23 @@ def plot_small_signal_gain(crystal, beta, xlim=(1000,1060), ylim=(1.1, np.inf), 
     if not isinstance(beta, (list, tuple, np.ndarray)):
         beta = [beta]
         
-    y_list = [crystal.small_signal_gain(lambd, b)**2 * (1 - 0.078) for b in beta]
     xlabel = "wavelength in nm"
     ylabel = "Gain G"
     title = f"small signal gain, {crystal.name} at {crystal.temperature}K"
+    y_list = [crystal.small_signal_gain(lambd, b)**(2*round_trips) for b in beta]
+    if normalize:
+        y_list = [y/np.max(y) for y in y_list]
+        ylim = (0,1.1)
+        ylabel = "normalized Gain G"
+
+    if round_trips != 1:
+        title += f", for {round_trips} round trips"
+
     legends = [f"$\\beta$ = {b:.2f}" for b in beta]
 
-    path = save_path or os.path.join(Folder, "material_database", "plots", 
-            f"{crystal.material}_{crystal.temperature}K_small_signal_gain.pdf")
+    fname = f"{crystal.material}_{crystal.temperature}K_small-signal-gain_beta_{beta[0]:.2f}.pdf"
+    path = create_save_path(save_path, fname)
 
-    print(path)
     plot_function(lambd * 1e9, y_list, xlabel, ylabel, title, legends, save, path, xlim=xlim, ylim=ylim)
 
 
@@ -214,8 +221,9 @@ def plot_beta_eq(crystal, lambda_max=None, save=False, save_path=None):
     ylabel = "equilibrium inversion $\\beta_{eq}$"
     title = f"equilibrium inversion, {crystal.name} at {crystal.temperature}K"
     legends = ["Beta Eq", "Fit"]
-    path = save_path or os.path.join(Folder, "material_database", "plots",
-            f"{crystal.material}_{crystal.temperature}K_equilibrium_inversion.pdf")
+
+    fname = f"{crystal.material}_{crystal.temperature}K_equilibrium_inversion.pdf"
+    path = create_save_path(save_path, fname)
 
     plot_function(lambd * 1e9, y_list, xlabel, ylabel, title, legends, save, path, ylim=(-.1,1.1))
 
@@ -229,7 +237,8 @@ def plot_Isat(crystal, save=False, save_path=None, xlim=(900,1000), ylim=(0,200)
     xlabel = "wavelength in nm"
     ylabel = "$I_{sat}$ in kW/cm²"
     title = f"saturation intensity, {crystal.name} at {crystal.temperature}K"
-    path = save_path or os.path.join(Folder, "material_database", "plots",f"{crystal.material}_{crystal.temperature}K_Isat.pdf")
+    fname = f"{crystal.material}_{crystal.temperature}K_Isat.pdf"
+    path = create_save_path(save_path, fname)
 
     plot_function(lambd * 1e9, Isat, xlabel, ylabel, title, save=save, save_path=path, xlim=xlim, ylim=ylim)
 
@@ -242,7 +251,8 @@ def plot_Fsat(crystal, save=False, save_path=None, xlim=(1010,1050), ylim=(0,200
     xlabel = "wavelength in nm"
     ylabel = "$F_{sat}$ in J/cm²"
     title = f"saturation fluence, {crystal.name} at {crystal.temperature}K"
-    path = save_path or os.path.join(Folder, "material_database", "plots",f"{crystal.material}_{crystal.temperature}K_Isat.pdf")
+    fname = f"{crystal.material}_{crystal.temperature}K_Fsat.pdf"
+    path = create_save_path(save_path, fname)
 
     plot_function(lambd * 1e9, Isat, xlabel, ylabel, title, save=save, save_path=path, xlim=xlim, ylim=ylim)
     
@@ -251,12 +261,12 @@ def plot_Fsat(crystal, save=False, save_path=None, xlim=(1010,1050), ylim=(0,200
 # ============================================================================
 
 if __name__ == "__main__":
-    crystal = Crystal(material="YbLiAS15", temperature=300, smooth_sigmas=True)
+    crystal = Crystal(material="YbCaF2_Toepfer", temperature=300, smooth_sigmas=True)
 
     print(crystal)
     plot_cross_sections(crystal, save=False)
     plot_beta_eq(crystal, save=False)
     plot_Isat(crystal, save=False)
 
-    plot_small_signal_gain(crystal, [0.2,0.22,0.24,0.26,0.28,0.3,0.32], save=False)
+    plot_small_signal_gain(crystal, [0.16,0.18,0.2,0.22,0.24,0.26,0.28], round_trips=1, normalize=False, save=False)
 

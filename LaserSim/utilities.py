@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt 
-
+import os
 
 # define speed of light and planck's constant
 c = 3e8 # [m/s]
@@ -8,6 +8,8 @@ h = 6.626e-34 # [Js]
 
 # numerical resolution
 numres = 300
+LaserSimFolder = os.path.dirname(os.path.abspath(__file__))
+LaserSimFolder = os.path.abspath(os.path.join(LaserSimFolder, os.pardir))
 
 def set_plot_params():
     plt.rcParams["figure.figsize"] = (8,4)
@@ -158,5 +160,14 @@ def plot_function(x, y, xlabel, ylabel, title=None, legends=None, save=False, sa
             plt.legend()
 
     if save and save_path:
+        print(save_path)
         plt.tight_layout()
         plt.savefig(save_path)
+    
+def create_save_path(save_path, fname):
+    try: 
+        path = os.path.join(save_path, fname)
+    except:
+        path = os.path.join(LaserSimFolder, "material_database", "plots", fname)
+
+    return path
