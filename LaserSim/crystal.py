@@ -7,14 +7,15 @@ from scipy.optimize import curve_fit
 from scipy.interpolate import CubicSpline
 set_plot_params()
 
+kB = 1.380649e-23  # Boltzmann constant in J/K
 Folder = os.path.dirname(os.path.abspath(__file__))
 Folder = os.path.abspath(os.path.join(Folder, os.pardir))
 
-def logistic_function(x, a,b):
-    return 1/(1+np.exp(-a*(x-b)))
+def logistic_function(x, a,b,d):
+    return 1/(1+a*np.exp((1/d-1/x)/b*h*c/kB))
 
 class Crystal():
-    def __init__(self, material="YbCaF2", temperature="300", lambda_a = 940, lambda_e = 1030, length=None, N_dop=None, smooth_sigmas = True, resolution=numres):
+    def __init__(self, material="YbCaF2", temperature=300, lambda_a = 940, lambda_e = 1030, length=None, N_dop=None, smooth_sigmas = True, resolution=numres):
         self.inversion = np.zeros(resolution)
         self.temperature = temperature
         self.use_spline_interpolation = True
@@ -137,10 +138,10 @@ class Crystal():
         max_index = np.argmin(np.abs(lambd-lambda_max)) if lambda_max else len(lambd)
         beta_eq = self.beta_eq(lambd)
         try:
-            params, _ = curve_fit(logistic_function, lambd[:max_index], beta_eq[:max_index], p0=[1,self.lambda_ZPL])
+            params = fit_beta_eq(self, lambd[min_index:max_index], beta_eq[min_index:max_index], lambda_max=lambda_max)
         except:
             print("Could not fit logistic function to equilibrium inversion to calculate McCumber for absorption using no lambda_max instead")
-            params, _ = curve_fit(logistic_function, lambd, beta_eq, p0=[1,self.lambda_ZPL])
+            params = fit_beta_eq(self, lambd[min_index:max_index], beta_eq[min_index:max_index], lambda_max=None)
         interpolated_sigma_e = np.interp(lambd*1e9, self.table_sigma_e[:,0], self.table_sigma_e[:,1])
         self.table_sigma_a[min_index:,1] = interpolated_sigma_e[min_index:] * logistic_function(lambd[min_index:], *params)/(1-logistic_function(lambd[min_index:], *params))
         self.load_spline_interpolation()
@@ -161,6 +162,18 @@ class Crystal():
 # =============================================================================
 # Display of results
 # =============================================================================
+def fit_beta_eq(crystal, lambd, beta_eq, lambda_max=None):
+    """
+    Fit the equilibrium inversion with a logistic function.
+    """
+    print(type(crystal.temperature), type(crystal.lambda_ZPL))
+    index_max = np.argmin(np.abs(lambd - lambda_max)) if lambda_max else len(lambd)
+    params, _ = curve_fit(logistic_function, lambd[:index_max], beta_eq[:index_max], 
+                          p0=[1,crystal.temperature, crystal.lambda_ZPL], 
+                          bounds=([0,crystal.temperature-5,crystal.lambda_ZPL-2e-9],
+                                  [np.inf,crystal.temperature+5,crystal.lambda_ZPL+2e-9]))
+    
+    return params
 
 def plot_cross_sections(crystal, save=False, save_path=None):
     """
@@ -213,14 +226,13 @@ def plot_beta_eq(crystal, lambda_max=None, save=False, save_path=None):
     """
     lambd = crystal.table_sigma_a[:, 0] * 1e-9
     beta_eq = crystal.beta_eq(lambd)
-    index_max = np.argmin(np.abs(lambd - lambda_max)) if lambda_max else len(lambd)
-    params, _ = curve_fit(logistic_function, lambd[:index_max], beta_eq[:index_max], p0=[1, crystal.lambda_ZPL])
+    params = fit_beta_eq(crystal, lambd, beta_eq, lambda_max=lambda_max)
     
     y_list = [beta_eq, logistic_function(lambd, *params)]
     xlabel = "wavelength in nm"
     ylabel = "equilibrium inversion $\\beta_{eq}$"
     title = f"equilibrium inversion, {crystal.name} at {crystal.temperature}K"
-    legends = ["Beta Eq", "Fit"]
+    legends = ["Beta Eq", f"Fit, Zl/Zu = {params[0]:.2f}, T = {params[1]:.1f}K, ZPL = {params[2]*1e9:.1f}nm"]
 
     fname = f"{crystal.material}_{crystal.temperature}K_equilibrium_inversion.pdf"
     path = create_save_path(save_path, fname)
