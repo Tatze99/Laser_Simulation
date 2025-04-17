@@ -15,13 +15,14 @@ def logistic_function(x, a,b,d):
     return 1/(1+a*np.exp((1/d-1/x)/b*h*c/kB))
 
 class Crystal():
-    def __init__(self, material="YbCaF2", temperature=300, lambda_a = 940, lambda_e = 1030, length=None, N_dop=None, smooth_sigmas = True, resolution=numres):
+    def __init__(self, material="YbCaF2", temperature=300, lambda_a = 940, lambda_e = 1030, length=None, N_dop=None, smooth_sigmas = True, resolution=numres, point_density_reduction=1):
         self.inversion = np.zeros(resolution)
         self.temperature = temperature
         self.use_spline_interpolation = True
         self.material = material
         self.lambda_a = lambda_a  # absorption wavelength in nm (used for displaying cross sections with print)
         self.lambda_e = lambda_e  # emission wavelength in nm (used for displaying cross sections with print)    
+        self.point_density_reduction = point_density_reduction  # reduce the number of points in the cross section data by this (integer) factor
 
         basedata_path = os.path.join(Folder,"material_database", material, "basedata.json")
         
@@ -65,8 +66,8 @@ class Crystal():
         sigma_e_path = glob.glob(os.path.join(Folder, "material_database", material, f"*{self.temperature}Kf.*"))
 
         if sigma_a_path and sigma_e_path:
-            self.table_sigma_a = np.nan_to_num(np.loadtxt(sigma_a_path[0]))
-            self.table_sigma_e = np.nan_to_num(np.loadtxt(sigma_e_path[0]))
+            self.table_sigma_a = np.nan_to_num(np.loadtxt(sigma_a_path[0]))[::self.point_density_reduction,:]
+            self.table_sigma_e = np.nan_to_num(np.loadtxt(sigma_e_path[0]))[::self.point_density_reduction,:]
             if self.table_sigma_a[1,0] < self.table_sigma_a[0,0]:
                 self.table_sigma_a = np.flipud(self.table_sigma_a)
             if self.table_sigma_e[1,0] < self.table_sigma_e[0,0]: 
@@ -252,7 +253,7 @@ def plot_Isat(crystal, save=False, save_path=None, xlim=(900,1000), ylim=(0,200)
     fname = f"{crystal.material}_{crystal.temperature}K_Isat.pdf"
     path = create_save_path(save_path, fname)
 
-    plot_function(lambd * 1e9, Isat, xlabel, ylabel, title, save=save, save_path=path, xlim=xlim, ylim=ylim)
+    plot_function(lambd * 1e9, Isat, xlabel, ylabel, title, save=save, save_path=path, xlim=xlim, ylim=ylim, kwargs = dict(marker="o"))
 
 def plot_Fsat(crystal, save=False, save_path=None, xlim=(1010,1050), ylim=(0,200)):
     """

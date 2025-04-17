@@ -193,7 +193,6 @@ class Amplifier():
             # Calculate the spectral fluence using Frantz Nodvik
             spectral_fluence_out[k+1, :] = spectral_fluence_out[k, :] * Fsat/(integ(spectral_fluence_out[k,:], self.seed.dlambda)[-1]) * np.log(1+Gain*(Saturation-1))
 
-            print(f"Saturation: {Saturation[150]}, Gain: {Gain[150]}, Fluence: {integ(spectral_fluence_out[k+1,:], self.seed.dlambda)[-1]}")
             if k % 2:
                 spectral_fluence_out[k+1, :] *= (1-self.losses-self.spectral_losses)
             beta_out[k+1,:] = np.mean(beta_eq) + (beta_out[k,:]-np.mean(beta_eq))/(1+np.mean(Gain)*(np.mean(Saturation)-1))
@@ -435,6 +434,35 @@ def plot_inversion_before_after(amplifier, save=False, save_path=None):
 
     plot_function(x, [y_before, y_after], xlabel, ylabel, title, legend, save, path)
 
+def plot_inversion_vs_pump_intensity(amplifier, save=False, save_path=None):
+    """
+    Plot the inversion as a function of pump intensity
+    """
+    pump = amplifier.pump
+    crystal = amplifier.crystal
+    original_intensity = pump.intensity
+    pump_intensities = np.linspace(0, 2, 20) * pump.intensity
+    inversions = np.zeros_like(pump_intensities)
+
+    for i, intensity in enumerate(pump_intensities):
+        pump.intensity = intensity
+        amplifier.inversion()
+        inversions[i] = np.mean(crystal.inversion_end)
+
+    x = pump_intensities*1e-7
+    y = inversions
+    xlabel = "pump intensity in kW/cm²"
+    ylabel = "average inversion $\\beta$"
+    title = "$\\beta(z)$ as a function of pump intensity"
+    legend = None
+    fname = f"{crystal.material}_{crystal.temperature}K_{2*pump.intensity*1e-7}kWcm2_inversion_vs_pump_intensity.pdf"
+    path = create_save_path(save_path, fname)
+    kwargs = dict(marker="o")
+
+    pump.intensity = original_intensity
+
+    plot_function(x, y, xlabel, ylabel, title, legend, save, path, kwargs=kwargs)
+
 if __name__ == "__main__":
     crystal  = Crystal(material="YbCaF2", temperature=300, smooth_sigmas=True)
 
@@ -449,4 +477,6 @@ if __name__ == "__main__":
     plot_total_fluence_per_pass(CW_amplifier)
     plot_temporal_fluence(CW_amplifier)
     plot_spectral_fluence(CPA_amplifier)
+    plot_inversion_vs_pump_intensity(CW_amplifier)
+
 
