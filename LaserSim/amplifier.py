@@ -92,6 +92,7 @@ class Amplifier():
         self.pump.pumprate = pumprate
         self.crystal.inversion_end = beta_end
         self.crystal.stored_fluence = stored_fluence
+        self.beta_0 = np.mean(self.crystal.inversion_end)
 
         return beta_end
 
