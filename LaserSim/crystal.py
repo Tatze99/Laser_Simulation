@@ -192,7 +192,7 @@ def plot_cross_sections(crystal, save=False, save_path=None):
     plot_function(x, y, xlabel, ylabel, title, legends, save, path)
 
 
-def plot_small_signal_gain(crystal, beta, round_trips=1, normalize=False, xlim=(1000,1060), ylim=(1.1, np.inf), save=False, save_path=None):
+def plot_small_signal_gain(crystal, beta, round_trips=1, normalize=False, xlim=(1000,1060), ylim=(1.1, np.inf), save=False, save_data=False, save_path=None):
     """
     Plot small signal gain for a given beta.
     """
@@ -214,11 +214,13 @@ def plot_small_signal_gain(crystal, beta, round_trips=1, normalize=False, xlim=(
         title += f", for {round_trips} round trips"
 
     legends = [f"$\\beta$ = {b:.2f}" for b in beta]
+    beta_name = "_".join(str(round(b,2)) for b in beta)
+    RT_name = f"_{round_trips}RT" if round_trips != 1 else ""
 
-    fname = f"{crystal.material}_{crystal.temperature}K_small-signal-gain_beta_{beta[0]:.2f}.pdf"
+    fname = f"{crystal.material}_{crystal.temperature}K_small-signal-gain_beta_{beta_name}{RT_name}.pdf"
     path = create_save_path(save_path, fname)
 
-    plot_function(lambd * 1e9, y_list, xlabel, ylabel, title, legends, save, path, xlim=xlim, ylim=ylim)
+    plot_function(lambd * 1e9, y_list, xlabel, ylabel, title, legends, save, path, xlim=xlim, ylim=ylim, save_data=save_data)
 
 
 def plot_beta_eq(crystal, lambda_max=None, save=False, save_path=None):

@@ -124,18 +124,21 @@ class Spectral_Losses():
                 f"- slope = {self.slope}\n"
         )
 
-def test_reflectivity_approximation(losses, save=False):
+def test_reflectivity_approximation(losses, save=False, save_data=False):
     """
     Test the reflectivity approximation by comparing the calculated reflectivity with the original reflectivity curves
     """
     plt.figure()
     plt.tick_params(direction="in",right=True,top=True)
     colors = plt.cm.tab10.colors
+    arrays = [losses.lambdas*1e9]
 
     for i,fname in enumerate(losses.fnames):
         name = fname[-5-len(str(losses.angles[i])):-4]
         plt.plot(losses.lambdas*1e9, losses.arrays[i],label=name, color=colors[i])
         plt.plot(losses.lambdas*1e9, losses.calc_reflectivity(losses.angles[i], angle_unit="deg"), "--", label=name, color=colors[i])
+        arrays.append(losses.arrays[i])
+        arrays.append(losses.calc_reflectivity(losses.angles[i], angle_unit="deg"))
 
     plt.xlim(1000,1080)
     plt.ylim(0,1e-1)
@@ -147,9 +150,12 @@ def test_reflectivity_approximation(losses, save=False):
     if save:
         plt.tight_layout()
         plt.savefig(os.path.join(Folder, "material_database","plots", f"{losses.TSF_name}_reflectivity_approximation.pdf"))
+    
+    if save_data:
+        np.savetxt(os.path.join(Folder, "material_database","plots", f"{losses.TSF_name}_reflectivity_approximation.txt"), np.vstack(arrays).T,  delimiter="\t", fmt="%.5e")
 
 if __name__ == "__main__":
-    losses = Spectral_Losses()
+    losses = Spectral_Losses(material="YbCaF2_Garbsen")
 
     print(losses)
-    test_reflectivity_approximation(losses, save=False)
+    test_reflectivity_approximation(losses, save=False, save_data=True)
