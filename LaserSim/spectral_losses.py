@@ -100,7 +100,7 @@ class Spectral_Losses():
             return reflectivity_array[n]
         return reflectivity_array[n] + (1-reflectivity_array[n])*self.calc_total_reflectivity(reflectivity_array, n+1)
     
-    def reflectivity_by_angles(self, angle_array, angle_unit="grad"):
+    def reflectivity_by_angles(self, angle_array, angle_unit="grad", save_data=False):
         """
         Calculate the total reflectivity for a given array of angles in radians or degrees
         """
@@ -110,6 +110,11 @@ class Spectral_Losses():
         
         for angle in angle_array:
             reflectivity_array.append(self.calc_reflectivity(angle, angle_unit=angle_unit))
+
+        if save_data:
+            angle_name = "_".join(str(round(i,2)) for i in angle_array)
+            total_array = [self.lambdas*1e9,reflectivity_array,self.calc_total_reflectivity(np.array(reflectivity_array))]
+            np.savetxt(os.path.join(Folder,"material_database", "plots", f"{self.name}_{angle_name}_total_reflectivity.txt"), np.vstack(total_array).T, fmt="%.5e")
         return self.calc_total_reflectivity(np.array(reflectivity_array))
 
     def __repr__(self):
