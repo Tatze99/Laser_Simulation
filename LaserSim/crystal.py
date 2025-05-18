@@ -176,7 +176,7 @@ def fit_beta_eq(crystal, lambd, beta_eq, lambda_max=None):
     
     return params
 
-def plot_cross_sections(crystal, save=False, save_path=None):
+def plot_cross_sections(crystal, save=False, save_path=None, save_data=False):
     """
     Plot absorption and emission cross sections.
     """
@@ -189,7 +189,7 @@ def plot_cross_sections(crystal, save=False, save_path=None):
     fname = f"{crystal.material}_{crystal.temperature}K_cross_sections.pdf"
     path = create_save_path(save_path, fname)
     
-    plot_function(x, y, xlabel, ylabel, title, legends, save, path)
+    plot_function(x, y, xlabel, ylabel, title, legends, save, path, save_data=save_data)
 
 
 def plot_small_signal_gain(crystal, beta, round_trips=1, normalize=False, xlim=(1000,1060), ylim=(1.1, np.inf), save=False, save_data=False, save_path=None):
