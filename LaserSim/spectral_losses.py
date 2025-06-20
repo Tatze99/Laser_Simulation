@@ -30,7 +30,7 @@ class Spectral_Losses():
     def calc_max_index(self, array):
         index = np.argmin(array)
         for j in range(2, len(array)-2):
-            if array[j] >= array[j-1] and array[j] >= array[j+1]:
+            if array[j] > array[j-1] and array[j] > array[j+1]:
                 if array[j] > array[index]:
                     index =  j
         return index 
@@ -160,7 +160,7 @@ def test_reflectivity_approximation(losses, save=False, save_data=False):
         np.savetxt(os.path.join(Folder, "material_database","plots", f"{losses.TSF_name}_reflectivity_approximation.txt"), np.vstack(arrays).T,  delimiter="\t", fmt="%.5e")
 
 if __name__ == "__main__":
-    losses = Spectral_Losses(material="YbCaF2_Garbsen")
+    losses = Spectral_Losses(material="YbFP15")
 
     print(losses)
-    test_reflectivity_approximation(losses, save=False, save_data=True)
+    test_reflectivity_approximation(losses, save=False, save_data=False)
