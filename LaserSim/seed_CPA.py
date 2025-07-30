@@ -1,4 +1,4 @@
-from LaserSim.utilities import h, c, integ, set_plot_params, plot_function, create_save_path
+from LaserSim.utilities import h, c, integ, set_plot_params, plot_function, create_save_path, generate_pulse
 import numpy as np
 import matplotlib.pyplot as plt
 import os
@@ -18,6 +18,16 @@ class Seed_CPA():
         self.chirp = chirp
         self.CPA = True # boolean to indicate that this is a CPA seed pulse
         
+        if seed_type == 'rect': self.signal_length = 1
+        elif seed_type == 'gauss': self.signal_length = 2
+        elif seed_type == 'lorentz': self.signal_length = 4
+
+        if self.chirp == "positive": chirp_factor = 1
+        elif self.chirp == "negative": chirp_factor = -1
+        else: chirp_factor = 1
+
+        # self.lambdas, self.spectral_fluence, self.dlambda = generate_pulse(self, self.bandwidth, center=self.wavelength, chirp_factor=chirp_factor)
+
         self.spectral_fluence = self.pulse_gen()
 
     def pulse_gen(self):
@@ -68,7 +78,7 @@ class Seed_CPA():
         )
 
 def plot_seed_pulse(seed, save=False, save_path=None, xlim=(1000,1060), ylim=(0,np.inf)):
-    """Plot the saturation intensity of a crystal."""
+    """Plot the seed CPA pulse."""
     x = seed.lambdas*1e9
     y = seed.spectral_fluence*1e-4*1e-9
     xlabel = "wavelength in nm"

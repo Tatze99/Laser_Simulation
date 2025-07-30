@@ -1,4 +1,4 @@
-from LaserSim.utilities import h, c, integ, set_plot_params, plot_function, create_save_path
+from LaserSim.utilities import h, c, integ, set_plot_params, plot_function, create_save_path, generate_pulse
 import numpy as np
 import matplotlib.pyplot as plt
 import os
@@ -16,15 +16,15 @@ class Seed():
         self.seedres = resolution
         self.CPA = False # boolean to indicate that this is not a CPA seed pulse
 
-        if seed_type == 'rect':
-            signal_length = 1.5
-        elif seed_type == 'gauss':
-            signal_length = 12/(8-5/gauss_order)
-        elif seed_type == 'lorentz':
-            signal_length = 10
+        if seed_type == 'rect': self.signal_length = 1.5
+        elif seed_type == 'gauss': self.signal_length = 12/(8-5/gauss_order)
+        elif seed_type == 'lorentz': self.signal_length = 10
         
-        self.dt = signal_length*self.duration / (self.seedres-1)
-        self.time, self.pulse = self.pulse_gen()
+        # self.dt = self.signal_length*self.duration / (self.seedres-1)
+        self.time, self.pulse, self.dt = generate_pulse(self, self.duration)
+        self.pulse *= 1/ h / c * self.wavelength / c
+
+        # self.time, self.pulse = self.pulse_gen()
 
     def pulse_gen(self):
         pulse = np.zeros(self.seedres)

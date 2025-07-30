@@ -174,3 +174,26 @@ def create_save_path(save_path, fname):
         path = os.path.join(LaserSimFolder, "material_database", "plots", fname)
 
     return path
+
+def generate_pulse(pulse, width, center=0, chirp_factor=1):
+    """
+    Generates a pulse with a given shape
+    """
+    dx = pulse.signal_length*width / (pulse.seedres-1)
+    y = np.zeros(pulse.seedres)
+    x = np.linspace(center-pulse.signal_length*width*chirp_factor/2, center+pulse.signal_length*width*chirp_factor/2, pulse.seedres)
+
+    if pulse.seed_type == 'gauss':
+        y = np.exp( -np.log(2)*((x-center) / width * 2) ** (2*pulse.gauss_order))
+        y *= 1/integ(y, dx)[-1]
+
+    elif pulse.seed_type == 'lorentz':
+        y = 1 / (1 + ((x-center) / width * 2)**2)
+        y *= 1/integ(y, dx)[-1]
+
+    elif pulse.seed_type == 'rect':
+        y = np.ones(pulse.seedres) / width
+        y = np.where((x-center) < -0.5*width, 0, y)
+        y = np.where((x-center) >  0.5*width, 0, y)
+
+    return x, y * pulse.fluence, dx

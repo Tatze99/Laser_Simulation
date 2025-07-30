@@ -27,11 +27,20 @@ class Amplifier():
         self.max_fluence = max_fluence*1e4  # [J/m²]
         self.fast_CPA_computing = fast_CPA_computing  # if True, the CPA calculation is faster, but doesn't include spectral edge steepening, i.e. reduction of the inversion is calculated once at the end of the pass (using a mean saturation and Gain value) and not after every wavelength has passed. This is only ,valid when saturation is low.
 
+    def averaged_beta_eq(self):
+        return integ(self.crystal.beta_eq(self.pump.lambdas)*self.pump.pulse, self.pump.dlambda)[-1] / integ(self.pump.pulse, self.pump.dlambda)[-1]
+    
     def inversion(self, pump_intensity = None):
 
         if pump_intensity is None:
             pump_intensity = self.pump.intensity
-        beta_eq = self.crystal.beta_eq(self.pump.wavelength)
+
+        if self.pump.bandwidth > 0:
+            beta_eq = self.averaged_beta_eq()
+        else:
+            beta_eq = self.crystal.beta_eq(self.pump.wavelength)
+
+        self.pump_inversion = beta_eq
         tau_f = self.crystal.tau_f
         sigma_a = self.crystal.sigma_a(self.pump.wavelength)
         alpha = self.crystal.doping_concentration * sigma_a
@@ -296,6 +305,7 @@ class Amplifier():
                 f"- medium passes = {self.passes}\n"
                 f"- losses = {self.losses*1e2}% \n"
                 f"- maximum allowed fluence = {self.max_fluence*1e-4}J/cm²\n"
+                f"- pump inversion = {self.pump_inversion:.5f}\n"
         )
 # =============================================================================
 # Display of results
@@ -467,9 +477,10 @@ def plot_inversion_vs_pump_intensity(amplifier, save=False, save_path=None):
 if __name__ == "__main__":
     crystal  = Crystal(material="YbCaF2", temperature=300, smooth_sigmas=True)
 
-    CW_amplifier = Amplifier(crystal=crystal)
+    CW_amplifier = Amplifier(crystal=crystal, seed=Seed())
     CPA_amplifier = Amplifier(crystal=crystal, seed=Seed_CPA())
 
+    CW_amplifier.inversion()
     print(CW_amplifier)
     
     CPA_amplifier.inversion()
