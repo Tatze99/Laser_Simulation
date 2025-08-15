@@ -175,13 +175,16 @@ def create_save_path(save_path, fname):
 
     return path
 
-def generate_pulse(pulse, width, center=0, chirp_factor=1):
+def generate_pulse(pulse, width, center=0.0, chirp_factor=1, x_min=None, x_max=None):
     """
     Generates a pulse with a given shape
     """
-    dx = pulse.signal_length*width / (pulse.seedres-1)
+    x_min = center-pulse.signal_length*width*chirp_factor/2 if not x_min else x_min*1e-9
+    x_max = center+pulse.signal_length*width*chirp_factor/2 if not x_max else x_max*1e-9
+
+    dx = abs(x_max-x_min) / (pulse.seedres-1)
     y = np.zeros(pulse.seedres)
-    x = np.linspace(center-pulse.signal_length*width*chirp_factor/2, center+pulse.signal_length*width*chirp_factor/2, pulse.seedres)
+    x = np.linspace(x_min, x_max, pulse.seedres)
 
     if pulse.seed_type == 'gauss':
         y = np.exp( -np.log(2)*((x-center) / width * 2) ** (2*pulse.gauss_order))
@@ -191,9 +194,24 @@ def generate_pulse(pulse, width, center=0, chirp_factor=1):
         y = 1 / (1 + ((x-center) / width * 2)**2)
         y *= 1/integ(y, dx)[-1]
 
-    elif pulse.seed_type == 'rect':
+    else: # pulse.seed_type == 'rect' 
         y = np.ones(pulse.seedres) / width
         y = np.where((x-center) < -0.5*width, 0, y)
         y = np.where((x-center) >  0.5*width, 0, y)
+
+    return x, y * pulse.fluence, dx
+
+def generate_pulse_from_file(pulse, file_path, x_unit=1e0, delimiter="\t", x_min=None, x_max=None):
+    """
+    Generates a pulse from a file.
+    """
+    data = np.loadtxt(file_path, delimiter=delimiter)
+    x_min = x_min if x_min is not None else min(data[:, 0])
+    x_max = x_max if x_max is not None else max(data[:, 0])
+
+    x = np.linspace(x_min, x_max, pulse.seedres)/ x_unit
+    dx = x[1] - x[0]
+    y = np.interp(x, data[:, 0]/ x_unit, data[:, 1])
+    y *= 1/integ(y, dx)[-1]
 
     return x, y * pulse.fluence, dx

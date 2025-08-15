@@ -1,4 +1,4 @@
-from LaserSim.utilities import h, c, integ, set_plot_params, plot_function, create_save_path, generate_pulse
+from LaserSim.utilities import h, c, integ, set_plot_params, plot_function, create_save_path, generate_pulse, generate_pulse_from_file
 import numpy as np
 import matplotlib.pyplot as plt
 import os
@@ -7,7 +7,7 @@ Folder = os.path.dirname(os.path.abspath(__file__))
 Folder = os.path.abspath(os.path.join(Folder, os.pardir))
 
 class Seed():
-    def __init__(self, fluence = 1e-4, duration = 5, wavelength = 1030, gauss_order = 1, seed_type = "gauss", resolution = 200):
+    def __init__(self, fluence = 1e-4, duration = 5, wavelength = 1030, gauss_order = 1, seed_type = "gauss", resolution = 200, t_min=None, t_max=None, custom_file = None, custom_file_delimiter="\t", custom_file_xunit=1e0, ):
         self.duration = duration*1e-9     # [s]
         self.wavelength = wavelength*1e-9 # [m]
         self.fluence = fluence*1e4        # [J/m²]
@@ -19,12 +19,16 @@ class Seed():
         if seed_type == 'rect': self.signal_length = 1.5
         elif seed_type == 'gauss': self.signal_length = 12/(8-5/gauss_order)
         elif seed_type == 'lorentz': self.signal_length = 10
-        
-        # self.dt = self.signal_length*self.duration / (self.seedres-1)
-        self.time, self.pulse, self.dt = generate_pulse(self, self.duration)
-        self.pulse *= 1/ h / c * self.wavelength / c
+        else:
+            self.signal_length = 10
+            print(f"Warning: seed_type '{seed_type}' not recognized, using default 'rect'")
 
-        # self.time, self.pulse = self.pulse_gen()
+        if custom_file:
+            self.time, self.pulse, self.dt = generate_pulse_from_file(self, custom_file, delimiter=custom_file_delimiter, x_unit=custom_file_xunit, x_min=t_min, x_max=t_max)
+        else:
+            self.time, self.pulse, self.dt = generate_pulse(self, self.duration, x_min=t_min, x_max=t_max)
+
+        self.pulse *= 1/ h / c * self.wavelength / c
 
     def pulse_gen(self):
         pulse = np.zeros(self.seedres)

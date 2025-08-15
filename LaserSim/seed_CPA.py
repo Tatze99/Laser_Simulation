@@ -1,4 +1,4 @@
-from LaserSim.utilities import h, c, integ, set_plot_params, plot_function, create_save_path, generate_pulse
+from LaserSim.utilities import h, c, integ, set_plot_params, plot_function, create_save_path, generate_pulse, generate_pulse_from_file
 import numpy as np
 import matplotlib.pyplot as plt
 import os
@@ -7,67 +7,33 @@ Folder = os.path.dirname(os.path.abspath(__file__))
 Folder = os.path.abspath(os.path.join(Folder, os.pardir))
 
 class Seed_CPA():
-    def __init__(self, wavelength = 1030, bandwidth = 30, fluence = 1e-4, seed_type = "gauss", gauss_order = 1, custom_file = None, resolution = 250, chirp="positive"):
+    def __init__(self, wavelength = 1030, bandwidth = 30, fluence = 1e-4, seed_type = "gauss", gauss_order = 1, custom_file = None, custom_file_delimiter="\t", custom_file_xunit=1e0, resolution = 250, lambda_min=None, lambda_max=None, chirp="positive"):
         self.bandwidth = bandwidth*1e-9     # [m]
         self.wavelength = wavelength*1e-9   # [m]
         self.fluence = fluence*1e4          # [J/m²]
         self.gauss_order = gauss_order
         self.seed_type = seed_type
         self.seedres = resolution
-        self.custom_file = custom_file
         self.chirp = chirp
         self.CPA = True # boolean to indicate that this is a CPA seed pulse
         
         if seed_type == 'rect': self.signal_length = 1
         elif seed_type == 'gauss': self.signal_length = 2
         elif seed_type == 'lorentz': self.signal_length = 4
+        else:
+            self.signal_length = 1
+            print(f"Warning: seed_type '{seed_type}' not recognized, using default 'rect'")
 
         if self.chirp == "positive": chirp_factor = 1
         elif self.chirp == "negative": chirp_factor = -1
         else: chirp_factor = 1
 
-        # self.lambdas, self.spectral_fluence, self.dlambda = generate_pulse(self, self.bandwidth, center=self.wavelength, chirp_factor=chirp_factor)
-
-        self.spectral_fluence = self.pulse_gen()
-
-    def pulse_gen(self):
-        if self.chirp == "positive":
-            chirp_factor = 1
-        elif self.chirp == "negative":
-            chirp_factor = -1
+        if custom_file:
+            self.lambdas, self.spectral_fluence, self.dlambda = generate_pulse_from_file(self, custom_file, delimiter=custom_file_delimiter, x_unit=custom_file_xunit, x_min=lambda_min, x_max=lambda_max)
         else:
-            chirp_factor = 1
-        pulse = np.zeros(self.seedres)
+            self.lambdas, self.spectral_fluence, self.dlambda = generate_pulse(self, self.bandwidth, center=self.wavelength, chirp_factor=chirp_factor, x_min=lambda_min, x_max=lambda_max)
 
-        if self.seed_type == 'gauss':
-            self.dlambda = 2*self.bandwidth / (self.seedres-1)
-            self.lambdas = np.linspace(self.wavelength-self.bandwidth*chirp_factor,self.wavelength+self.bandwidth*chirp_factor, self.seedres)
-            pulse = np.exp( -np.log(2)*((self.lambdas-self.wavelength) / self.bandwidth * 2) ** (2*self.gauss_order))
-            pulse *= 1/integ(pulse, self.dlambda)[-1]
-        
-        elif self.seed_type == 'rect':
-            self.dlambda = self.bandwidth / (self.seedres-1)
-            self.lambdas = np.linspace(self.wavelength-self.bandwidth/2*chirp_factor,self.wavelength+self.bandwidth/2*chirp_factor, self.seedres)
-            pulse = np.ones(self.seedres) / self.bandwidth
-            pulse = np.where(self.lambdas < self.wavelength-0.5*self.bandwidth, 0, pulse)
-            pulse = np.where(self.lambdas > self.wavelength+0.5*self.bandwidth, 0, pulse)
-        
-        elif self.seed_type == 'custom':
-            self.dlambda = 2*self.bandwidth / (self.seedres-1)
-            self.lambdas = np.linspace(self.wavelength-self.bandwidth*chirp_factor,self.wavelength+self.bandwidth*chirp_factor, self.seedres)
-            try:
-                pulse = np.loadtxt(self.custom_file)
-                factor = 1e-9 if np.max(pulse[:,0]) > 1 else 1
-                pulse = np.interp(self.lambdas, pulse[:,0]*factor, pulse[:,1])
-                pulse -= np.min(abs(pulse))
-                pulse *= 1/integ(pulse, self.dlambda)[-1]
-            except:
-                print("Custom file not found")
 
-        pulse *= self.fluence
-        return pulse
-    
-    
     def __repr__(self):
         return(
         f"Seed CPA pulse:\n"
@@ -77,7 +43,7 @@ class Seed_CPA():
         f"- pulse type = '{self.seed_type}'\n\n"
         )
 
-def plot_seed_pulse(seed, save=False, save_path=None, xlim=(1000,1060), ylim=(0,np.inf)):
+def plot_seed_pulse(seed, save=False, save_path=None, xlim=(-np.inf, np.inf), ylim=(0,np.inf)):
     """Plot the seed CPA pulse."""
     x = seed.lambdas*1e9
     y = seed.spectral_fluence*1e-4*1e-9
@@ -92,6 +58,6 @@ def plot_seed_pulse(seed, save=False, save_path=None, xlim=(1000,1060), ylim=(0,
 
 if __name__ == "__main__":
     seed = Seed_CPA()
- 
+
     print(seed)
     plot_seed_pulse(seed, save=False)
