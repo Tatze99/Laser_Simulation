@@ -1,0 +1,9 @@
+*.pyc
+
+.venv/
+venv/
+output/**
+auto-py-to-exe.json
+
+!ui_images/**
+CTkRangeSlider/__pycache__/
