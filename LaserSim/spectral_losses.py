@@ -129,7 +129,7 @@ class Spectral_Losses():
                 f"- slope = {self.slope}\n"
         )
 
-def test_reflectivity_approximation(losses, save=False, save_data=False):
+def test_reflectivity_approximation(losses, save=False, save_data=False, save_path=os.path.join(Folder, "material_database", "plots")):
     """
     Test the reflectivity approximation by comparing the calculated reflectivity with the original reflectivity curves
     """
@@ -154,10 +154,10 @@ def test_reflectivity_approximation(losses, save=False, save_data=False):
 
     if save:
         plt.tight_layout()
-        plt.savefig(os.path.join(Folder, "material_database","plots", f"{losses.TSF_name}_reflectivity_approximation.pdf"))
+        plt.savefig(os.path.join(save_path, f"{losses.TSF_name}_reflectivity_approximation.pdf"))
     
     if save_data:
-        np.savetxt(os.path.join(Folder, "material_database","plots", f"{losses.TSF_name}_reflectivity_approximation.txt"), np.vstack(arrays).T,  delimiter="\t", fmt="%.5e")
+        np.savetxt(os.path.join(save_path, f"{losses.TSF_name}_reflectivity_approximation.txt"), np.vstack(arrays).T,  delimiter="\t", fmt="%.5e")
 
 if __name__ == "__main__":
     losses = Spectral_Losses(material="YbFP15")
