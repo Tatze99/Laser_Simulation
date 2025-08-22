@@ -110,7 +110,7 @@ def moving_average(x, window_size):
 
     return smoothed_array
 
-def plot_function(x, y, xlabel, ylabel, title=None, legends=None, save=False, save_path=None, xlim = (-np.inf, np.inf), ylim = (-np.inf, np.inf), outer_legend = False, save_data=False, kwargs=None):
+def plot_function(x, y, xlabel, ylabel, title=None, legends=None, save=False, save_path=None, xlim = (-np.inf, np.inf), ylim = (-np.inf, np.inf), outer_legend = False, save_data=False, kwargs=None, axis=None):
     """
     General function for plotting and saving figures.
     
@@ -123,7 +123,11 @@ def plot_function(x, y, xlabel, ylabel, title=None, legends=None, save=False, sa
     :param save: Whether to save the plot
     :param save_path: Path to save the plot (if save=True)
     """
-    plt.figure()
+    if axis is None:
+        fig, ax = plt.subplots()
+    else:
+        ax = axis
+
     if not kwargs:
         kwargs = dict(
             linestyle = "-",
@@ -134,30 +138,29 @@ def plot_function(x, y, xlabel, ylabel, title=None, legends=None, save=False, sa
     if isinstance(y, list):
         if isinstance(x, list):
             for i, (x_elem,y_elem) in enumerate(zip(x,y)):
-                plt.plot(x_elem,y_elem, label=legends[i] if legends else None, **kwargs)
+                ax.plot(x_elem,y_elem, label=legends[i] if legends else None, **kwargs)
         else:
             for i, y_elem in enumerate(y):
-                plt.plot(x, y_elem, label=legends[i] if legends else None, **kwargs)
+                ax.plot(x, y_elem, label=legends[i] if legends else None, **kwargs)
     else:
-        plt.plot(x, y, label=legends if legends else None, **kwargs)
+        ax.plot(x, y, label=legends if legends else None, **kwargs)
 
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
 
-    bottom, top = plt.ylim()
-    plt.ylim(max(bottom, ylim[0]), min(top, ylim[1]))
-    left, right = plt.xlim()
-    plt.xlim(max(left, xlim[0]), min(right, xlim[1]))
-    
+    bottom, top = ax.get_ylim()
+    ax.set_ylim(max(bottom, ylim[0]), min(top, ylim[1]))
+    left, right = ax.get_xlim()
+    ax.set_xlim(max(left, xlim[0]), min(right, xlim[1]))
+
     if title:
-        plt.title(title)
+        ax.set_title(title)
 
     if legends:
         if outer_legend:
-            plt.legend(bbox_to_anchor=(1.01, 1.02), loc='upper left')
+            ax.legend(bbox_to_anchor=(1.01, 1.02), loc='upper left')
         else:
-            plt.legend()
+            ax.legend()
 
     if save and save_path:
         print(save_path)
