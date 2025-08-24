@@ -1,4 +1,5 @@
 import os
+import re
 from CTkRangeSlider import *
 import customtkinter
 import numpy as np
@@ -22,6 +23,9 @@ from LaserSim.spectral_losses import test_reflectivity_approximation
 
 version_number = "25/08"
 Standard_path = os.path.dirname(os.path.abspath(__file__))
+LaserSim_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+print(LaserSim_path)
 
 plt.style.use('default')
 matplotlib.rc('font', family='serif')
@@ -39,13 +43,12 @@ class App(customtkinter.CTk):
         self.initialize_variables()
         self.initialize_ui_images()
         self.initialize_ui()
-        self.initialize_plot_has_been_called = False
         # self.folder_path.insert(0, Standard_path)
         self.toplevel_window = {'Plot Settings': None,
                                 'Legend Settings': None}
-        # hide the multiplot button
-        self.addplot_button.grid_remove() 
-        self.reset_button.grid_remove()
+
+        self.setup_plot_area()
+        self.update_material(self.material_list.get())
         
     def initialize_ui_images(self):
         self.img_settings = customtkinter.CTkImage(dark_image=Image.open(os.path.join(Standard_path,"ui_images","options.png")), size=(15, 15))
@@ -56,73 +59,26 @@ class App(customtkinter.CTk):
         self.img_previous = customtkinter.CTkImage(dark_image=Image.open(os.path.join(Standard_path,"ui_images","previous_arrow.png")), size=(15, 15))
 
     def initialize_variables(self):
-        self.ax1 = None
-        self.ax2 = None
-        self.plot_counter = 1
+        folder = os.path.join(LaserSim_path, "material_database")
+        self.materials = [f for f in os.listdir(folder) if os.path.isdir(os.path.join(folder, f)) and not f.startswith('plots') and not f.startswith('reflectivity_curves')]
+        self.material_plot_functions = {'cross sections': plot_cross_sections, 
+                                        'small signal gain': plot_small_signal_gain,
+                                        'equilibrium inversion': plot_beta_eq, 
+                                        'saturation intensity': plot_Isat, 
+                                        'saturation fluence': plot_Fsat
+                                        }
+
+        self.ax = None
         self.plot_index = 0
         self.color = "#212121" # toolbar
         self.text_color = "white"
-        self.reset_plots = True
-        self.legend_type = {'loc': 'best'}
-        self.legend_name = slice(None, None)
-        self.canvas_ratio = None #None - choose ratio automatically
-        self.canvas_width = 17 #cm
-        self.canvas_height= 10
-        self.label_settings = "smart"
-        self.ticks_settings = "smart"
-        self.multiplot_row = 9
-        self.legend_font_size = 10
-        self.initialize_plot_has_been_called = False
 
         # line plot settings
-        self.linestyle='-'
-        self.markers=''
-        self.cmap="tab10"
-        self.linewidth=1
-        self.alpha = 1
         self.moving_average = 1
-        self.use_grid_lines = customtkinter.BooleanVar(value=False)
-        self.use_minor_ticks = customtkinter.BooleanVar(value=False)
-        self.grid_ticks = 'major'
-        self.grid_axis = 'both'
-        self.cmap_length = 10
-        self.single_color = 'tab:blue'
-        self.sub_plot_counter = 1
-        self.sub_plot_value = 1
-        self.first_ax2 = True
-        self.draw_FWHM_line = customtkinter.BooleanVar(value=False)
-        self.normalize_function = 'Maximum'
-        self.normalize_value = 1
         
-        # image plot settings
-        self.cmap_imshow="magma"
-        self.interpolation = None
-        self.enhance_value = 1 
-        self.pixel_size = 7.4e-3 # mm
-        self.label_dist = 1
-        self.aspect = "equal"
-        self.plot_type = "errorbar"
-        self.clim = (0,1)
-
-        # fit settings
-        self.use_fit = 0
-        self.params = [1,1,1,1]
-        self.fitted_params = [0,0,0,0]
-
         # Boolean variables
-        self.image_plot = True
-        self.image_plot_prev = True
         self.save_plain_image = customtkinter.BooleanVar(value=False)
-        self.display_fit_params_in_plot = customtkinter.BooleanVar(value=True)
-        self.use_scalebar = customtkinter.BooleanVar(value=False)
-        self.use_colorbar = customtkinter.BooleanVar(value=False)
-        self.convert_pixels = customtkinter.BooleanVar(value=False)
-        self.convert_rgb_to_gray = customtkinter.BooleanVar(value=False)
-        self.update_labels_multiplot = customtkinter.BooleanVar(value=True)
-        self.show_title_entry = customtkinter.BooleanVar(value=True)
-        self.rows = 1
-        self.cols = 1
-        self.mouse_clicked_on_canvas = False
+
 
     # user interface, gets called when the program starts 
     def initialize_ui(self):
@@ -144,14 +100,16 @@ class App(customtkinter.CTk):
         #buttons
         frame = self.sidebar_frame
         
-        self.plot_button    = App.create_button(frame, text="Cross sections", command=self.test_plot, column=0, row=5, pady=(15,5), image=self.img_reset)
-        self.reset_button   = App.create_button(frame, text="Reset",       command=None, column=0, row=5, width=90, padx = (10,120), pady=(15,5)) 
-        self.addplot_button = App.create_button(frame, text="Multiplot",   command=None, column=0, row=5, width=90, padx = (120,10), pady=(15,5)) 
-        self.load_button    = App.create_button(frame, text="Load Folder", command=None,  column=0, row=1, image=self.img_folder)
-        self.save_button    = App.create_button(frame, text="Save Figure/data", command=None,     column=0, row=3,  image=self.img_save)
-        self.set_button     = App.create_button(frame, text="Plot settings",command=None, column=0, row=4, image=self.img_settings)
+        self.plot_button    = App.create_button(frame, text="Plot material", command=self.test_plot, column=0, row=5, pady=(15,5), image=self.img_reset)
+        self.material_list  = App.create_Menu(frame, values=self.materials, column=0, row=1, command=self.update_material, width=120, padx = (10,120-30))
+        self.temperature_list  = App.create_Menu(frame, values=["300"], column=0, row=1, command=None, width=60, padx = (120+30,10))
+        self.material_list  = App.create_Menu(frame, values=self.materials, column=0, row=1, command=self.update_material, width=120, padx = (10,120-30))
+        self.material_plot_list  = App.create_Menu(frame, values=list(self.material_plot_functions.keys()), column=0, row=2, command=None)
+        
         self.prev_button    = App.create_button(frame,                      command=None, column=0, row=6, width=90, padx = (10,120), image=self.img_previous)
         self.next_button    = App.create_button(frame,                      command=None, column=0, row=6, width=90, padx = (120,10), image=self.img_next)
+        self.set_button     = App.create_button(frame, text="Plot settings",command=None, column=0, row=16, image=self.img_settings)
+        self.save_button    = App.create_button(frame, text="Save Figure/data", command=None,     column=0, row=17,  image=self.img_save)
         
         #switches
         self.multiplot_button = App.create_switch(frame, text="Multiplot",  command=None,   column=0, row=7, padx=20, pady=(10,5))
@@ -269,22 +227,41 @@ class App(customtkinter.CTk):
         return textbox
     
 
-    def test_plot(self):
-        print("Test plot called")
-        self.fig = plt.figure(constrained_layout=True, dpi=150) 
+    def setup_plot_area(self):
+        """Call this ONCE when initializing the GUI"""
+        self.fig = plt.figure(constrained_layout=True, dpi=150)
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.tabview.tab("Show Plots"))
         self.canvas_widget = self.canvas.get_tk_widget()
         self.toolbar = self.create_toolbar()
         self.canvas_widget.pack(fill="both", expand=True)
-        
-        self.fig.clear()
+        self.ax = self.fig.add_subplot(1, 1, 1)  # create axis once
+        self.canvas.draw()
+        print("Plot area set up")
+
+    def test_plot(self):
+        self.ax.clear()
+        print(self.material_list.get())
+        crystal = Crystal(material=self.material_list.get(), temperature=int(self.temperature_list.get()))
+
+        plot_function = self.material_plot_functions[self.material_plot_list.get()]
+        plot_function(crystal, axis=self.ax)
         self.canvas.draw()
 
-        ax = self.fig.add_subplot(1, 1, 1)
+    def update_material(self, material):
+        material_path = os.path.join(LaserSim_path, "material_database", material)
+        file_name = [f for f in os.listdir(material_path)]
+        temperatures = []
+        for s in file_name:
+            matches = re.findall(r"\d+", s)
+            if matches:
+                temperatures.append(matches[-1])  # take the last match
 
-        crystal = Crystal()
-        plot_cross_sections(crystal, axis=ax)
-
+        # Step 3: Remove duplicates (convert to set, then back to list if needed)
+        temperatures = list(sorted(set(temperatures)))
+        print(temperatures)
+        self.temperature_list.configure(values=temperatures)
+        if self.temperature_list.get() not in temperatures:
+            self.temperature_list.set(temperatures[0])
 
     def create_toolbar(self) -> customtkinter.CTkFrame:
         # toolbar_frame = customtkinter.CTkFrame(master=self.tabview.tab("Show Plots"))
