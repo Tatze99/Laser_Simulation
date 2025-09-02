@@ -60,7 +60,7 @@ class Seed():
         f"- pulse type = '{self.seed_type}'\n\n"
         )
 
-def plot_seed_pulse(seed, save=False, save_path=None, xlim=(-np.inf,np.inf), ylim=(-np.inf,np.inf)):
+def plot_seed_pulse(seed, save=False, save_path=None, xlim=(-np.inf,np.inf), ylim=(-np.inf,np.inf), axis=None):
     """Plot the saturation intensity of a crystal."""
     x = seed.time*1e9
     y = seed.pulse
@@ -71,7 +71,7 @@ def plot_seed_pulse(seed, save=False, save_path=None, xlim=(-np.inf,np.inf), yli
     fname = f"Seed_Temporal_{seed.wavelength*1e9}nm_{seed.duration*1e9:.1f}ns.pdf"
     path = create_save_path(save_path, fname)
 
-    plot_function(x, y, xlabel, ylabel, title, legend, save, path, xlim, ylim)
+    plot_function(x, y, xlabel, ylabel, title, legend, axis, save, path, xlim, ylim)
 
 if __name__ == "__main__":
     seed = Seed()

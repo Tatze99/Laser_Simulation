@@ -110,7 +110,7 @@ def moving_average(x, window_size):
 
     return smoothed_array
 
-def plot_function(x, y, xlabel, ylabel, title=None, legends=None, save=False, save_path=None, xlim = (-np.inf, np.inf), ylim = (-np.inf, np.inf), outer_legend = False, save_data=False, kwargs=None, axis=None):
+def plot_function(x, y, xlabel, ylabel, title=None, legends=None, axis=None, save=False, save_path=None, xlim = (-np.inf, np.inf), ylim = (-np.inf, np.inf), outer_legend = False, save_data=False, kwargs=None):
     """
     General function for plotting and saving figures.
     
@@ -125,6 +125,9 @@ def plot_function(x, y, xlabel, ylabel, title=None, legends=None, save=False, sa
     """
     if axis is None:
         fig, ax = plt.subplots()
+    elif isinstance(axis, list):
+        ax = axis[0]
+        fig = axis[1]
     else:
         ax = axis
 

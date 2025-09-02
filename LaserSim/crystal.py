@@ -176,7 +176,7 @@ def fit_beta_eq(crystal, lambd, beta_eq, lambda_max=None):
     
     return params
 
-def plot_cross_sections(crystal, save=False, save_path=None, save_data=False, axis=None):
+def plot_cross_sections(crystal, axis=None, save=False, save_path=None, save_data=False):
     """
     Plot absorption and emission cross sections.
     """
@@ -189,7 +189,7 @@ def plot_cross_sections(crystal, save=False, save_path=None, save_data=False, ax
     fname = f"{crystal.material}_{crystal.temperature}K_cross_sections.pdf"
     path = create_save_path(save_path, fname)
     
-    plot_function(x, y, xlabel, ylabel, title, legends, save, path, save_data=save_data, axis=axis)
+    plot_function(x, y, xlabel, ylabel, title, legends, axis, save, path, save_data=save_data)
 
 
 def plot_small_signal_gain(crystal, beta, round_trips=1, normalize=False, xlim=(1000,1060), ylim=(1.1, np.inf), save=False, save_data=False, save_path=None, axis=None):
@@ -220,7 +220,7 @@ def plot_small_signal_gain(crystal, beta, round_trips=1, normalize=False, xlim=(
     fname = f"{crystal.material}_{crystal.temperature}K_small-signal-gain_beta_{beta_name}{RT_name}.pdf"
     path = create_save_path(save_path, fname)
 
-    plot_function(lambd * 1e9, y_list, xlabel, ylabel, title, legends, save, path, xlim=xlim, ylim=ylim, save_data=save_data, axis=axis)
+    plot_function(lambd * 1e9, y_list, xlabel, ylabel, title, legends, axis, save, path, xlim=xlim, ylim=ylim, save_data=save_data)
 
 
 def plot_beta_eq(crystal, lambda_max=None, save=False, save_path=None, axis=None):
@@ -240,10 +240,10 @@ def plot_beta_eq(crystal, lambda_max=None, save=False, save_path=None, axis=None
     fname = f"{crystal.material}_{crystal.temperature}K_equilibrium_inversion.pdf"
     path = create_save_path(save_path, fname)
 
-    plot_function(lambd * 1e9, y_list, xlabel, ylabel, title, legends, save, path, ylim=(-.1,1.1), axis=axis)
+    plot_function(lambd * 1e9, y_list, xlabel, ylabel, title, legends, axis, save, path, ylim=(-.1,1.1))
 
 
-def plot_Isat(crystal, save=False, save_path=None, xlim=(900,1000), ylim=(0,200), axis=None):
+def plot_Isat(crystal, save=False, save_path=None, xlim=(900,1000), ylim=(0,200), legends=None, axis=None):
     """
     Plot the saturation intensity of a crystal.
     """
@@ -255,9 +255,9 @@ def plot_Isat(crystal, save=False, save_path=None, xlim=(900,1000), ylim=(0,200)
     fname = f"{crystal.material}_{crystal.temperature}K_Isat.pdf"
     path = create_save_path(save_path, fname)
 
-    plot_function(lambd * 1e9, Isat, xlabel, ylabel, title, save=save, save_path=path, xlim=xlim, ylim=ylim, kwargs = dict(marker="o"), axis=axis)
+    plot_function(lambd * 1e9, Isat, xlabel, ylabel, title, legends, axis, save, path, xlim=xlim, ylim=ylim, kwargs = dict(marker="o"))
 
-def plot_Fsat(crystal, save=False, save_path=None, xlim=(1010,1050), ylim=(0,200), axis=None):
+def plot_Fsat(crystal, save=False, save_path=None, xlim=(1010,1050), ylim=(0,200), legends=None, axis=None):
     """
     Plot the saturation fluence of a crystal.
     """
@@ -269,7 +269,7 @@ def plot_Fsat(crystal, save=False, save_path=None, xlim=(1010,1050), ylim=(0,200
     fname = f"{crystal.material}_{crystal.temperature}K_Fsat.pdf"
     path = create_save_path(save_path, fname)
 
-    plot_function(lambd * 1e9, Isat, xlabel, ylabel, title, save=save, save_path=path, xlim=xlim, ylim=ylim, axis=axis)
+    plot_function(lambd * 1e9, Isat, xlabel, ylabel, title, legends, axis, save, path, xlim=xlim, ylim=ylim)
 
 #=============================================================================
 # main script, if this file is executed
