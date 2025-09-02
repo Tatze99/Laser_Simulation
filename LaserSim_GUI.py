@@ -13,15 +13,15 @@ from LaserSim.pump import Pump
 from LaserSim.seed import Seed
 from LaserSim.seed_CPA import Seed_CPA
 from LaserSim.spectral_losses import Spectral_Losses
-from LaserSim.amplifier import Amplifier, plot_inversion1D
+from LaserSim.amplifier import Amplifier, plot_inversion1D, plot_inversion2D, plot_temporal_fluence, plot_total_fluence_per_pass, plot_spectral_fluence, plot_inversion_before_after, plot_inversion_vs_pump_intensity
 from LaserSim.utilities import integ, set_plot_params
-
-set_plot_params()
+from LaserSim.seed import plot_seed_pulse as plot_QSwitch_pulse
+from LaserSim.seed_CPA import plot_seed_pulse as plot_CPA_pulse
 
 from LaserSim.spectral_losses import test_reflectivity_approximation
 
 
-version_number = "25/08"
+version_number = "25/09"
 Standard_path = os.path.dirname(os.path.abspath(__file__))
 LaserSim_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -35,6 +35,7 @@ matplotlib.rc('font', serif='Times New Roman')
 class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()
+        set_plot_params()
         customtkinter.set_appearance_mode("dark")
         customtkinter.set_default_color_theme("dark-blue")
         self.title("Laser Sim."+version_number)
@@ -43,12 +44,13 @@ class App(customtkinter.CTk):
         self.initialize_variables()
         self.initialize_ui_images()
         self.initialize_ui()
-        # self.folder_path.insert(0, Standard_path)
+
         self.toplevel_window = {'Plot Settings': None,
                                 'Legend Settings': None}
 
         self.setup_plot_area()
         self.update_material(self.material_list.get())
+        self.crystal_plot()
         
     def initialize_ui_images(self):
         self.img_settings = customtkinter.CTkImage(dark_image=Image.open(os.path.join(Standard_path,"ui_images","options.png")), size=(15, 15))
@@ -61,11 +63,20 @@ class App(customtkinter.CTk):
     def initialize_variables(self):
         folder = os.path.join(LaserSim_path, "material_database")
         self.materials = [f for f in os.listdir(folder) if os.path.isdir(os.path.join(folder, f)) and not f.startswith('plots') and not f.startswith('reflectivity_curves')]
-        self.material_plot_functions = {'cross sections': plot_cross_sections, 
-                                        'small signal gain': plot_small_signal_gain,
-                                        'equilibrium inversion': plot_beta_eq, 
-                                        'saturation intensity': plot_Isat, 
-                                        'saturation fluence': plot_Fsat
+        self.material_plot_functions = {'Cross sections': plot_cross_sections, 
+                                        'Small signal gain': plot_small_signal_gain,
+                                        'Equilibrium inversion': plot_beta_eq, 
+                                        'Saturation intensity': plot_Isat, 
+                                        'Saturation fluence': plot_Fsat
+                                        }
+        
+        self.amplifier_plot_functions = {'Temporal fluence': plot_temporal_fluence, 
+                                        'Total fluence pass': plot_total_fluence_per_pass,
+                                        'Spectral fluence': plot_spectral_fluence,
+                                        'Inversion 1D': plot_inversion1D, 
+                                        'Inversion 2D': plot_inversion2D,
+                                        'Inversion vs Ip': plot_inversion_vs_pump_intensity, 
+                                        'Inversion before vs after': plot_inversion_before_after
                                         }
 
         self.ax = None
@@ -78,6 +89,7 @@ class App(customtkinter.CTk):
         
         # Boolean variables
         self.save_plain_image = customtkinter.BooleanVar(value=False)
+        self.seed_CPA = customtkinter.BooleanVar(value=False)
 
 
     # user interface, gets called when the program starts 
@@ -100,21 +112,26 @@ class App(customtkinter.CTk):
         #buttons
         frame = self.sidebar_frame
         
-        self.plot_button    = App.create_button(frame, text="Plot material", command=self.test_plot, column=0, row=5, pady=(15,5), image=self.img_reset)
         self.material_list  = App.create_Menu(frame, values=self.materials, column=0, row=1, command=self.update_material, width=120, padx = (10,120-30))
         self.temperature_list  = App.create_Menu(frame, values=["300"], column=0, row=1, command=None, width=60, padx = (120+30,10))
-        self.material_list  = App.create_Menu(frame, values=self.materials, column=0, row=1, command=self.update_material, width=120, padx = (10,120-30))
-        self.material_plot_list  = App.create_Menu(frame, values=list(self.material_plot_functions.keys()), column=0, row=2, command=None)
+
+        self.material_plot_list  = App.create_Menu(frame, values=list(self.material_plot_functions.keys()), column=0, row=2, pady=(15,5), command=None)
+        self.plot_crystal_button    = App.create_button(frame, text="Plot material", command=self.crystal_plot, column=0, row=3, pady=(5,15), image=self.img_reset)
         
-        self.prev_button    = App.create_button(frame,                      command=None, column=0, row=6, width=90, padx = (10,120), image=self.img_previous)
-        self.next_button    = App.create_button(frame,                      command=None, column=0, row=6, width=90, padx = (120,10), image=self.img_next)
+        self.amplifier_plot_list  = App.create_Menu(frame, values=list(self.amplifier_plot_functions.keys()), column=0, row=5, pady=(15,5), command=None)
+        self.plot_amplifier_button = App.create_button(frame, text="Plot amplifier", command=self.amplifier_plot, column=0, row=6, pady=(5,15), image=self.img_reset)
+
+        # self.prev_button    = App.create_button(frame,                      command=None, column=0, row=6, width=90, padx = (10,120), image=self.img_previous)
+        # self.next_button    = App.create_button(frame,                      command=None, column=0, row=6, width=90, padx = (120,10), image=self.img_next)
         self.set_button     = App.create_button(frame, text="Plot settings",command=None, column=0, row=16, image=self.img_settings)
-        self.save_button    = App.create_button(frame, text="Save Figure/data", command=None,     column=0, row=17,  image=self.img_save)
+        self.save_button    = App.create_button(frame, text="Save current figure", command=self.save_figure,     column=0, row=17,  image=self.img_save)
         
         #switches
-        self.multiplot_button = App.create_switch(frame, text="Multiplot",  command=None,   column=0, row=7, padx=20, pady=(10,5))
-        # self.uselabels_button = App.create_switch(frame, text="Use labels", command=None,  column=0, row=8, padx=20)
-        self.uselims_button   = App.create_switch(frame, text="Use limits", command=None,  column=0, row=9, padx=20)
+        # self.multiplot_button = App.create_switch(frame, text="Multiplot",  command=None,   column=0, row=7, padx=20, pady=(10,5))
+        self.pump_button      = App.create_switch(frame, text="Config Pump", command=lambda: self.toggle_sidebar_window(self.pump_button, self.pump_widgets),  column=0, row=8, padx=20)
+        self.seed_button      = App.create_switch(frame, text="Config Seed", command=lambda: self.toggle_sidebar_window(self.seed_button, self.seed_widgets),  column=0, row=9, padx=20)
+        self.amplifier_button = App.create_switch(frame, text="Config Amplifier", command=lambda: self.toggle_sidebar_window(self.amplifier_button, self.amplifier_widgets),  column=0, row=10, padx=20)
+
         # self.fit_button       = App.create_switch(frame, text="Use fit",    command=None, column=0, row=10, padx=20)
         # self.normalize_button = App.create_switch(frame, text="Normalize",  command=None,    column=0, row=11, padx=20)
         # self.lineout_button   = App.create_switch(frame, text="Lineout",  command=None,    column=0, row=12, padx=20)
@@ -129,6 +146,10 @@ class App(customtkinter.CTk):
         self.settings_frame.grid(row=0, column=4, rowspan=999, sticky="nesw")
         self.settings_frame.grid_columnconfigure(0, minsize=60)
         self.columnconfigure(2,weight=1)
+
+        self.load_pump()
+        self.load_seed()
+        self.load_amplifier()
 
 
     def create_label(self, row, column, width=20, text=None, anchor='e', sticky='e', textvariable=None, padx=(5,5), image=None, pady=None, font=None, columnspan=1, fg_color=None, **kwargs):
@@ -227,6 +248,85 @@ class App(customtkinter.CTk):
         return textbox
     
 
+    def load_pump(self):
+        row = 0
+        self.pump_title = App.create_label(self.settings_frame, text="Pump Settings", font=customtkinter.CTkFont(size=16, weight="bold"), row=row, column=0, columnspan=5, padx=20, pady=(20, 5),sticky=None)
+        self.pump_intensity_entry, self.pump_intensity_label = App.create_entry(self.settings_frame,column=1, row=row+1, columnspan=2, width=110, text="intensity [kW/cm²]", init_val=Pump().intensity*1e-7, textwidget=True)
+        self.pump_wavelength_entry, self.pump_wavelength_label = App.create_entry(self.settings_frame,column=1, row=row+2, columnspan=2, width=110, text="wavelength [nm]", init_val=round(Pump().wavelength*1e9, 3), textwidget=True)
+        self.pump_duration_entry, self.pump_duration_label = App.create_entry(self.settings_frame,column=1, row=row+3, columnspan=2, width=110, text="duration [ms]", init_val=Pump().duration*1e3, textwidget=True)
+        # self.plot_pump_button = App.create_button(self.settings_frame, text="Plot Pump Pulse", command=self.seed_plot, row=row+5, column=0, columnspan=5, padx=20, pady=(5, 15))
+
+        self.pump_widgets= ["pump_intensity_entry","pump_intensity_label","pump_wavelength_entry","pump_wavelength_label","pump_title", "pump_duration_entry", "pump_duration_label"]
+        self.toggle_sidebar_window(self.pump_button, self.pump_widgets)
+
+    def load_seed_pulse(self, type):
+        if type == "Q-Switch":
+            seed_pulse = Seed(fluence=float(self.seed_QSwitch_fluence_entry.get()), wavelength=float(self.seed_QSwitch_wavelength_entry.get()), duration=float(self.seed_QSwitch_duration_entry.get()), seed_type=self.seed_QSwitch_pulsetype_entry.get())
+        elif type == "CPA":
+            seed_pulse = Seed_CPA(fluence=float(self.seed_CPA_fluence_entry.get()), wavelength=float(self.seed_CPA_wavelength_entry.get()), bandwidth=float(self.seed_CPA_duration_entry.get()), seed_type=self.seed_CPA_pulsetype_entry.get())
+        
+        return seed_pulse
+
+    def load_seed(self):
+        row = 10
+        self.seed_title = App.create_label(self.settings_frame, text="Seed Settings", font=customtkinter.CTkFont(size=16, weight="bold"), row=row, column=0, columnspan=5, padx=20, pady=(20, 5),sticky=None)
+        self.seed_type_button = App.create_segmented_button(self.settings_frame, values=["Q-Switch","CPA"], command=lambda value: self.toggle_seed_type(value), row=row+1, column=0, columnspan=3, padx=20, pady=(5, 15), width=200)
+
+        self.seed_QSwitch_fluence_entry, self.seed_QSwitch_fluence_label = App.create_entry(self.settings_frame,column=1, row=row+2, columnspan=2, width=110, text="fluence [J/cm²]", init_val=Seed().fluence*1e-4, textwidget=True)
+        self.seed_QSwitch_wavelength_entry, self.seed_QSwitch_wavelength_label = App.create_entry(self.settings_frame,column=1, row=row+3, columnspan=2, width=110, text="wavelength [nm]", init_val=Seed().wavelength*1e9, textwidget=True)
+        self.seed_QSwitch_duration_entry, self.seed_QSwitch_duration_label = App.create_entry(self.settings_frame,column=1, row=row+4, columnspan=2, width=110, text="duration [ns]", init_val=Seed().duration*1e9, textwidget=True)
+        self.seed_QSwitch_pulsetype_entry, self.seed_QSwitch_pulsetype_label = App.create_Menu(self.settings_frame, values=["gauss","lorentz","rect"], column=1, row=row+5, command=None, text="pulse type", width=110, textwidget=True)
+
+        self.seed_CPA_fluence_entry, self.seed_CPA_fluence_label = App.create_entry(self.settings_frame,column=1, row=row+2, columnspan=2, width=110, text="fluence [J/cm²]", init_val=Seed_CPA().fluence*1e-4, textwidget=True)
+        self.seed_CPA_wavelength_entry, self.seed_CPA_wavelength_label = App.create_entry(self.settings_frame,column=1, row=row+3, columnspan=2, width=110, text="wavelength [nm]", init_val=round(Seed_CPA().wavelength*1e9, 3), textwidget=True)
+        self.seed_CPA_duration_entry, self.seed_CPA_duration_label = App.create_entry(self.settings_frame,column=1, row=row+4, columnspan=2, width=110, text="bandwidth [nm]", init_val=round(Seed_CPA().bandwidth*1e9, 3), textwidget=True)
+        self.seed_CPA_pulsetype_entry, self.seed_CPA_pulsetype_label = App.create_Menu(self.settings_frame, values=["gauss","lorentz","rect"], column=1, row=row+5, command=None, text="pulse type", width=110, textwidget=True)
+
+        self.plot_seed_button = App.create_button(self.settings_frame, text="Plot Seed Pulse", command=self.seed_plot, row=row+6, column=0, columnspan=5, padx=20, pady=(5, 15))
+
+        self.seed_widgets= ["seed_QSwitch_fluence_entry","seed_QSwitch_fluence_label","seed_QSwitch_wavelength_entry","seed_QSwitch_wavelength_label","seed_title", "seed_QSwitch_duration_entry", "seed_QSwitch_duration_label", "seed_QSwitch_pulsetype_entry", "seed_QSwitch_pulsetype_label",
+                            "seed_CPA_fluence_entry", "seed_CPA_fluence_label", "seed_CPA_wavelength_entry", "seed_CPA_wavelength_label", "seed_CPA_duration_entry", "seed_CPA_duration_label", "seed_CPA_pulsetype_entry", "seed_CPA_pulsetype_label",
+                            "seed_type_button", "plot_seed_button"]
+        self.toggle_sidebar_window(self.seed_button, self.seed_widgets)
+
+        self.seed_type_button.set("Q-Switch")
+        self.toggle_seed_type("Q-Switch")
+
+    def load_amplifier(self):
+        row=20
+        self.amplifier_title = App.create_label(self.settings_frame, text="Amplifier Settings", font=customtkinter.CTkFont(size=16, weight="bold"), row=row, column=0, columnspan=5, padx=20, pady=(20, 5), sticky=None)
+
+        self.amplifier_passes_entry, self.amplifier_passes_label = App.create_entry(self.settings_frame,column=1, row=row+1, columnspan=2, width=110, text="passes", init_val=Amplifier().passes, textwidget=True)
+        self.amplifier_losses_entry, self.amplifier_losses_label = App.create_entry(self.settings_frame,column=1, row=row+2, columnspan=2, width=110, text="losses [%]", init_val=Amplifier().losses*1e2, textwidget=True)
+        self.amplifier_maxfluence_entry, self.amplifier_maxfluence_label = App.create_entry(self.settings_frame, column=1, row=row+3, columnspan=2, width=110, text="max fluence [J/cm²]", init_val=Amplifier().max_fluence*1e-4, textwidget=True)
+
+        self.amplifier_widgets = ["amplifier_title", "amplifier_passes_entry", "amplifier_passes_label", "amplifier_losses_entry", "amplifier_losses_label", "amplifier_maxfluence_entry", "amplifier_maxfluence_label"]
+
+    def toggle_seed_type(self, value):
+        if not self.seed_button.get():
+            [getattr(self, name).grid_remove() for name in self.seed_widgets]
+        elif value == "Q-Switch":
+            [getattr(self, name).grid_remove() for name in self.seed_widgets if "CPA" in name]
+            [getattr(self, name).grid() for name in self.seed_widgets if "QSwitch" in name]
+        elif value == "CPA":
+            [getattr(self, name).grid_remove() for name in self.seed_widgets if "QSwitch" in name]
+            [getattr(self, name).grid() for name in self.seed_widgets if "CPA" in name]
+
+    def toggle_sidebar_window(self, button, widgets):
+        if button.get():
+            self.settings_frame.grid()
+            [getattr(self, name).grid() for name in widgets]
+        else:
+            [getattr(self, name).grid_remove() for name in widgets]
+            self.close_sidebar_window()
+
+        if button == self.seed_button:
+            self.toggle_seed_type(self.seed_type_button.get())
+
+    def close_sidebar_window(self):
+        if not self.pump_button.get() and not self.seed_button.get() and not self.amplifier_button.get():
+            self.settings_frame.grid_remove()
+
     def setup_plot_area(self):
         """Call this ONCE when initializing the GUI"""
         self.fig = plt.figure(constrained_layout=True, dpi=150)
@@ -238,13 +338,51 @@ class App(customtkinter.CTk):
         self.canvas.draw()
         print("Plot area set up")
 
-    def test_plot(self):
+    def clear_axis(self):
         self.ax.clear()
-        print(self.material_list.get())
+        for other_ax in self.fig.axes[:]:
+            if other_ax is not self.ax:
+                self.fig.delaxes(other_ax)
+
+    def seed_plot(self):
+        self.clear_axis()
+
+        if self.seed_type_button.get() == "Q-Switch":
+            plot_QSwitch_pulse(self.load_seed_pulse("Q-Switch"), axis=self.ax)
+        else:
+            plot_CPA_pulse(self.load_seed_pulse("CPA"), axis=self.ax)
+        
+        self.canvas.draw()
+
+    def amplifier_plot(self):
+        self.clear_axis()
+
+        plot_function = self.amplifier_plot_functions[self.amplifier_plot_list.get()]
+
+        if plot_function == plot_temporal_fluence:
+            seed = self.load_seed_pulse("Q-Switch")
+        elif plot_function == plot_spectral_fluence:
+            seed = self.load_seed_pulse("CPA")
+        elif plot_function == plot_inversion_before_after or plot_function == plot_total_fluence_per_pass:
+            seed = self.load_seed_pulse(self.seed_type_button.get())
+        else:
+            seed = self.load_seed_pulse("Q-Switch")
+
+        pump = Pump(intensity=float(self.pump_intensity_entry.get()), wavelength=float(self.pump_wavelength_entry.get()), duration=float(self.pump_duration_entry.get()))
+        crystal = Crystal(material=self.material_list.get(), temperature=int(self.temperature_list.get()))
+
+        amplifier = Amplifier(crystal=crystal, pump=pump, seed=seed, passes=int(self.amplifier_passes_entry.get()), losses=float(self.amplifier_losses_entry.get())*1e-2, max_fluence=float(self.amplifier_maxfluence_entry.get()))
+        plot_function(amplifier, axis=[self.ax, self.fig])
+
+        self.canvas.draw()
+
+    def crystal_plot(self):
+        self.clear_axis()
+
         crystal = Crystal(material=self.material_list.get(), temperature=int(self.temperature_list.get()))
 
         plot_function = self.material_plot_functions[self.material_plot_list.get()]
-        plot_function(crystal, axis=self.ax)
+        plot_function(crystal, axis=[self.ax, self.fig])
         self.canvas.draw()
 
     def update_material(self, material):
@@ -276,6 +414,11 @@ class App(customtkinter.CTk):
         return toolbar_frame
 
         # Closing the application       
+    
+    # Save the current figure or the data based on the file type
+    def save_figure(self):
+        file_name = customtkinter.filedialog.asksaveasfilename()
+        self.fig.savefig(file_name, bbox_inches='tight')
 
     def on_closing(self):
         self.quit()    # Python 3.12 works
