@@ -32,7 +32,6 @@ class Pump():
         elif self.seed_type == 'lorentz': self.signal_length = 10
 
         self.lambdas, self.pulse, self.dlambda = generate_pulse(self, self.bandwidth, center=self.wavelength)
-        print(self.bandwidth)
         self.pulse *= 1/integ(self.pulse, self.dlambda)[-1]
     
     def __repr__(self):
@@ -59,7 +58,7 @@ def plot_pump_pulse(pump, save=False, save_path=None, xlim=(-np.inf,np.inf), yli
     fname = f"Pump_Spectral_{pump.wavelength*1e9}nm_{pump.bandwidth*1e9:.1f}nm.pdf"
     path = create_save_path(save_path, fname)
 
-    plot_function(x, y, xlabel, ylabel, title, legend, save, path, xlim, ylim)
+    plot_function(x, y, xlabel, ylabel, title, legend, None, save, path, xlim, ylim)
 
 if __name__ == "__main__":
     pump = Pump(bandwidth=10)

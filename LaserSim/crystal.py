@@ -15,7 +15,7 @@ def logistic_function(x, a,b,d):
     return 1/(1+a*np.exp((1/d-1/x)/b*h*c/kB))
 
 class Crystal():
-    def __init__(self, material="YbCaF2", temperature=300, lambda_a = 940, lambda_e = 1030, length=None, N_dop=None, smooth_sigmas = True, resolution=numres, point_density_reduction=1):
+    def __init__(self, material="YbCaF2", temperature=300, lambda_a = 940, lambda_e = 1030, length=None, N_dop=None, tau_f=None, smooth_sigmas = True, resolution=numres, point_density_reduction=1):
         self.inversion = np.zeros(resolution)
         self.temperature = temperature
         self.use_spline_interpolation = True
@@ -31,6 +31,7 @@ class Crystal():
         self.load_spline_interpolation()
 
         # overwrite length or doping concentration if given in the constructor
+        if tau_f is not None: self.tau_f = tau_f
         if length is not None: self.length = length
         if N_dop is not None: self.doping_concentration = N_dop
         if smooth_sigmas: self.smooth_cross_sections(lambda_max = 1010e-9)
@@ -243,7 +244,7 @@ def plot_beta_eq(crystal, lambda_max=None, save=False, save_path=None, axis=None
     plot_function(lambd * 1e9, y_list, xlabel, ylabel, title, legends, axis, save, path, ylim=(-.1,1.1))
 
 
-def plot_Isat(crystal, save=False, save_path=None, xlim=(900,1000), ylim=(0,200), legends=None, axis=None):
+def plot_Isat(crystal, save=False, save_path=None, xlim=(900,1000), ylim=(0,200), lambda0 = None, legends=None, axis=None):
     """
     Plot the saturation intensity of a crystal.
     """
@@ -254,22 +255,36 @@ def plot_Isat(crystal, save=False, save_path=None, xlim=(900,1000), ylim=(0,200)
     title = f"saturation intensity, {crystal.name} at {crystal.temperature}K"
     fname = f"{crystal.material}_{crystal.temperature}K_Isat.pdf"
     path = create_save_path(save_path, fname)
+    lambd *= 1e9
 
-    plot_function(lambd * 1e9, Isat, xlabel, ylabel, title, legends, axis, save, path, xlim=xlim, ylim=ylim, kwargs = dict(marker="o"))
+    if lambda0 is not None:
+        Isat_lambda0 = crystal.I_sat(lambda0*1e-9) * 1e-7
+        lambd = [lambd, lambda0]
+        Isat = [Isat, Isat_lambda0]
+        legends = ["saturation intensity", f"Isat = {Isat_lambda0:.2f}kW/cm² at {lambda0} nm"]
 
-def plot_Fsat(crystal, save=False, save_path=None, xlim=(1010,1050), ylim=(0,200), legends=None, axis=None):
+    plot_function(lambd, Isat, xlabel, ylabel, title, legends, axis, save, path, xlim=xlim, ylim=ylim, kwargs=[dict(),dict(marker='o')])
+
+def plot_Fsat(crystal, save=False, save_path=None, xlim=(1010,1050), ylim=(0,200), lambda0 = None, legends=None, axis=None):
     """
     Plot the saturation fluence of a crystal.
     """
     lambd = crystal.table_sigma_a[:, 0] * 1e-9
-    Isat = crystal.F_sat(lambd) * 1e-4
+    Fsat = crystal.F_sat(lambd) * 1e-4
     xlabel = "wavelength in nm"
     ylabel = "$F_{sat}$ in J/cm²"
     title = f"saturation fluence, {crystal.name} at {crystal.temperature}K"
     fname = f"{crystal.material}_{crystal.temperature}K_Fsat.pdf"
     path = create_save_path(save_path, fname)
+    lambd *= 1e9
 
-    plot_function(lambd * 1e9, Isat, xlabel, ylabel, title, legends, axis, save, path, xlim=xlim, ylim=ylim)
+    if lambda0 is not None:
+        Fsat_lambda0 = crystal.F_sat(lambda0*1e-9) * 1e-4
+        lambd = [lambd, lambda0]
+        Fsat = [Fsat, Fsat_lambda0]
+        legends = ["saturation fluence", f"Fsat = {Fsat_lambda0:.2f}J/cm² at {lambda0} nm"]
+
+    plot_function(lambd, Fsat, xlabel, ylabel, title, legends, axis, save, path, xlim=xlim, ylim=ylim, kwargs=[dict(),dict(marker='o')])
 
 #=============================================================================
 # main script, if this file is executed
@@ -281,7 +296,8 @@ if __name__ == "__main__":
     print(crystal)
     plot_cross_sections(crystal, save=False)
     plot_beta_eq(crystal, save=False)
-    plot_Isat(crystal, save=False)
+    plot_Isat(crystal, save=False, lambda0=940)
+    plot_Fsat(crystal, save=False, lambda0=1030)
 
     plot_small_signal_gain(crystal, [0.16,0.18,0.2,0.22,0.24,0.26,0.28], round_trips=1, normalize=False, save=False)
 

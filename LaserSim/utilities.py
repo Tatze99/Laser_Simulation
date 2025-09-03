@@ -7,7 +7,7 @@ c = 3e8 # [m/s]
 h = 6.626e-34 # [Js]
 
 # numerical resolution
-numres = 300
+numres = 500
 LaserSimFolder = os.path.dirname(os.path.abspath(__file__))
 LaserSimFolder = os.path.abspath(os.path.join(LaserSimFolder, os.pardir))
 
@@ -122,6 +122,7 @@ def plot_function(x, y, xlabel, ylabel, title=None, legends=None, axis=None, sav
     :param legends: List of legend labels (one per curve)
     :param save: Whether to save the plot
     :param save_path: Path to save the plot (if save=True)
+    :param kwargs: Additional keyword arguments for the plot, can either be a dictionary or a list of dictionaries
     """
     if axis is None:
         fig, ax = plt.subplots()
@@ -131,22 +132,22 @@ def plot_function(x, y, xlabel, ylabel, title=None, legends=None, axis=None, sav
     else:
         ax = axis
 
-    if not kwargs:
-        kwargs = dict(
-            linestyle = "-",
-            marker = None
-            )
-    
     # Plot multiple curves if needed
-    if isinstance(y, list):
-        if isinstance(x, list):
-            for i, (x_elem,y_elem) in enumerate(zip(x,y)):
-                ax.plot(x_elem,y_elem, label=legends[i] if legends else None, **kwargs)
-        else:
-            for i, y_elem in enumerate(y):
-                ax.plot(x, y_elem, label=legends[i] if legends else None, **kwargs)
-    else:
-        ax.plot(x, y, label=legends if legends else None, **kwargs)
+    if kwargs is None:
+        kwargs = [dict(linestyle = "-", marker = None)] * len(y if isinstance(y, list) else [y])
+    elif not isinstance(kwargs, list):
+        kwargs = [kwargs] * len(y if isinstance(y, list) else [y])
+
+    # Normalize x and y to lists
+    if not isinstance(y, list):
+        y = [y]
+    if not isinstance(x, list):
+        x = [x] * len(y)
+
+    for i, (x_elem, y_elem) in enumerate(zip(x, y)):
+        kw = kwargs[i]
+        label = legends[i] if legends and isinstance(legends, list) else (legends if i == 0 else None)
+        ax.plot(x_elem, y_elem, label=label, **kw)
 
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)

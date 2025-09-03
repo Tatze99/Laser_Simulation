@@ -57,9 +57,10 @@ class Amplifier():
             return np.exp(z_integ(beta * alpha/beta_eq, dz))
 
         def break_condition(beta_low, beta_high, it):
-            max_it = 20
+            max_it = 30
             abweichung = np.abs(np.max(beta_high-beta_low))
-            fehler = 1/numres
+            fehler = 1/(numres*t_axis[-1]/tau_f)
+
             A = (it > max_it)
             B = (abweichung < fehler)
             if A and self.print_iteration:
@@ -70,11 +71,11 @@ class Amplifier():
             return A or B
 
         # Initialisierung
-        beta_low = np.zeros((numres, numres))
-        beta_high = np.ones((numres, numres)) * beta_eq
+        beta_low = np.zeros((len(t_axis), len(z_axis)))
+        beta_high = np.ones_like(beta_low) * beta_eq
         R0 = pump_intensity * sigma_a / h / (c / self.pump.wavelength)
         lambert_beer = np.exp(-alpha * z_axis)
-        Ra = R0 * npm.repmat(lambert_beer, numres, 1)
+        Ra = R0 * npm.repmat(lambert_beer, len(t_axis), 1)
         iteration = 0
         betas = []
         pumprates = []
@@ -82,7 +83,7 @@ class Amplifier():
         # Iteration
         while not break_condition(beta_low, beta_high, iteration):
             iteration += 1
-            if self.print_iteration: print("Iteration Nummer: " + str(iteration))
+            if self.print_iteration: print("Iteration number: " + str(iteration))
             R_high = Ra * Rb(beta_high)
             R_low = Ra * Rb(beta_low)
             beta_high = beta(R_high)
@@ -92,7 +93,7 @@ class Amplifier():
             pumprates.append((R_low, R_high))
     
         beta_end = (beta_low[-1,:] + beta_high[-1,:]) / 2
-        beta_total = (beta_low + beta_low) / 2
+        beta_total = (beta_low + beta_high) / 2
         pumprate = (R_high + R_low) / 2
 
         stored_fluence = h * c / self.seed.wavelength * self.crystal.doping_concentration * np.sum(beta_total - self.crystal.beta_eq(self.seed.wavelength), 1) * self.crystal.dz
@@ -309,7 +310,9 @@ class Amplifier():
                 f"- medium passes = {self.passes}\n"
                 f"- losses = {self.losses*1e2}% \n"
                 f"- maximum allowed fluence = {self.max_fluence*1e-4}J/cm²\n"
-                f"- pump inversion = {self.pump_inversion:.5f}\n"
+                f"- equilibrium inversion (pump) = {self.pump_inversion:.5f} @ {self.pump.wavelength*1e9:.2f} nm\n"
+                f"- saturation intensity (pump) = {self.crystal.I_sat(self.pump.wavelength)*1e-7:.2f} kW/cm² @ {self.pump.wavelength*1e9:.2f} nm\n"
+                f"- saturation fluence (laser) = {self.crystal.F_sat(self.seed.wavelength)*1e-4:.2f} J/cm² @ {self.seed.wavelength*1e9:.2f} nm\n"
         )
 # =============================================================================
 # Display of results
