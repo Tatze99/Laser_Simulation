@@ -1,0 +1,10 @@
+{
+    "name": "YbCaF2",
+    "length": 1.1e-2,
+    "tau_f": 1.9e-3,
+    "N_dop": 3.3e26,
+    "energy_lower_level": [0, 50, 110, 530],
+    "energy_upper_level": [10205, 10300, 10580],
+    "ZPL": 979.9e-9,
+    "comment": "Spectra and fluorescence lifetime taken from: Koerner et al., Measurement of temperature-dependent absorption and emission spectra of Yb:YAG, Yb:LuAG, and Yb:CaF2 between 20C and 200C and predictions on their influence on laser performance, 2012"
+}

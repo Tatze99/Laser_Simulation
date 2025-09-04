@@ -1,0 +1,10 @@
+{
+    "name": "NdYAG",
+    "length": 1e-2,
+    "tau_f": 0.239e-3,
+    "N_dop": 1.37e26,
+    "energy_lower_level": [0, 565, 612, 785],
+    "energy_upper_level": [10327, 10624, 10930],
+    "ZPL": 914.9e-9,
+    "comment": "Spectra taken from Jörg Körners data base"
+}

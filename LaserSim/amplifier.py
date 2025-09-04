@@ -418,7 +418,7 @@ def plot_inversion2D(amplifier, cmap="magma", save=False, save_path=None, axis=N
         plt.savefig(path)
 
 
-def plot_spectral_fluence(amplifier, axis=None, save=False, save_path=None, xlim=(1010,1050)):
+def plot_spectral_fluence(amplifier, axis=None, save=False, save_path=None, xlim=(-np.inf,np.inf)):
     """ 
     Plot the spectral fluence at the end of the ten last roundtrips. Note, that a roundtrip corresponds to two passes through the material.
     """

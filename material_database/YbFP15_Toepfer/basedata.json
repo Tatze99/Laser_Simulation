@@ -5,5 +5,6 @@
     "N_dop": 6e26,
     "energy_lower_level": [0, 180, 323, 568],
     "energy_upper_level": [10266, 10474, 10773],
-    "ZPL": 974.1e-9
+    "ZPL": 974.1e-9,
+    "comment": "Thomas Töpfer, Diodengepumpte Hochleistungslaser - Lasermaterialien, Pumplaserdioden und Verstärker für den POLARIS-Laser, Dissertation, 2001"
 }

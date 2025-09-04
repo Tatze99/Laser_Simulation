@@ -177,7 +177,7 @@ def fit_beta_eq(crystal, lambd, beta_eq, lambda_max=None):
     
     return params
 
-def plot_cross_sections(crystal, axis=None, save=False, save_path=None, save_data=False):
+def plot_cross_sections(crystal, lambda_p=None, lambda_l=None, axis=None, save=False, save_path=None, save_data=False, kwargs=None):
     """
     Plot absorption and emission cross sections.
     """
@@ -189,8 +189,34 @@ def plot_cross_sections(crystal, axis=None, save=False, save_path=None, save_dat
     title = f"{crystal.name} at {crystal.temperature}K"
     fname = f"{crystal.material}_{crystal.temperature}K_cross_sections.pdf"
     path = create_save_path(save_path, fname)
+
+    # Helper function to append sigma values for one wavelength
+    def append_sigma_points(x, y, legends, lam, color="tab:green"):
+        sigma_a = y[0][np.argmin(abs(lam - x[0]))]
+        sigma_e = y[1][np.argmin(abs(lam - x[1]))]
+
+        x.extend([[lam], [lam]])
+        y.extend([[sigma_a], [sigma_e]])
+        legends.extend([
+            f"$σ_a$({lam}nm) = {sigma_a:.2e}cm²",
+            f"$σ_e$({lam}nm) = {sigma_e:.2e}cm²"
+        ])
+
+        return [
+            dict(marker='o', c=color),
+            dict(marker='o', c=color)
+        ]
+
+    # now use lambda_p and lambda_l separately
+    kwargs = [dict(), dict()]  # base kwargs for your two original curves
+
+    if lambda_p is not None:
+        kwargs.extend(append_sigma_points(x, y, legends, lambda_p, color="tab:green"))
+
+    if lambda_l is not None:
+        kwargs.extend(append_sigma_points(x, y, legends, lambda_l, color="tab:red"))
     
-    plot_function(x, y, xlabel, ylabel, title, legends, axis, save, path, save_data=save_data)
+    plot_function(x, y, xlabel, ylabel, title, legends, axis, save, path, save_data=save_data, kwargs=kwargs)
 
 
 def plot_small_signal_gain(crystal, beta, round_trips=1, normalize=False, xlim=(1000,1060), ylim=(1.1, np.inf), save=False, save_data=False, save_path=None, axis=None):
@@ -244,7 +270,7 @@ def plot_beta_eq(crystal, lambda_max=None, save=False, save_path=None, axis=None
     plot_function(lambd * 1e9, y_list, xlabel, ylabel, title, legends, axis, save, path, ylim=(-.1,1.1))
 
 
-def plot_Isat(crystal, save=False, save_path=None, xlim=(900,1000), ylim=(0,200), lambda0 = None, legends=None, axis=None):
+def plot_Isat(crystal, save=False, save_path=None, xlim=(900,1000), ylim=(0,200), lambda0 = None, legends=None, axis=None, kwargs=None):
     """
     Plot the saturation intensity of a crystal.
     """
@@ -262,10 +288,11 @@ def plot_Isat(crystal, save=False, save_path=None, xlim=(900,1000), ylim=(0,200)
         lambd = [lambd, lambda0]
         Isat = [Isat, Isat_lambda0]
         legends = ["saturation intensity", f"Isat = {Isat_lambda0:.2f}kW/cm² at {lambda0} nm"]
+        kwargs=[dict(),dict(marker='o')]
 
-    plot_function(lambd, Isat, xlabel, ylabel, title, legends, axis, save, path, xlim=xlim, ylim=ylim, kwargs=[dict(),dict(marker='o')])
+    plot_function(lambd, Isat, xlabel, ylabel, title, legends, axis, save, path, xlim=xlim, ylim=ylim, kwargs=kwargs)
 
-def plot_Fsat(crystal, save=False, save_path=None, xlim=(1010,1050), ylim=(0,200), lambda0 = None, legends=None, axis=None):
+def plot_Fsat(crystal, save=False, save_path=None, xlim=(1010,1050), ylim=(0,200), lambda0 = None, legends=None, axis=None, kwargs=None):
     """
     Plot the saturation fluence of a crystal.
     """
@@ -283,8 +310,9 @@ def plot_Fsat(crystal, save=False, save_path=None, xlim=(1010,1050), ylim=(0,200
         lambd = [lambd, lambda0]
         Fsat = [Fsat, Fsat_lambda0]
         legends = ["saturation fluence", f"Fsat = {Fsat_lambda0:.2f}J/cm² at {lambda0} nm"]
+        kwargs=[dict(),dict(marker='o')]
 
-    plot_function(lambd, Fsat, xlabel, ylabel, title, legends, axis, save, path, xlim=xlim, ylim=ylim, kwargs=[dict(),dict(marker='o')])
+    plot_function(lambd, Fsat, xlabel, ylabel, title, legends, axis, save, path, xlim=xlim, ylim=ylim, kwargs=kwargs)
 
 #=============================================================================
 # main script, if this file is executed
@@ -294,7 +322,7 @@ if __name__ == "__main__":
     crystal = Crystal(material="YbCaF2_Toepfer", temperature=300, smooth_sigmas=True)
 
     print(crystal)
-    plot_cross_sections(crystal, save=False)
+    plot_cross_sections(crystal, save=False, lambda_p=940, lambda_l=1030)
     plot_beta_eq(crystal, save=False)
     plot_Isat(crystal, save=False, lambda0=940)
     plot_Fsat(crystal, save=False, lambda0=1030)

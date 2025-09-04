@@ -1,0 +1,10 @@
+{
+    "name": "YbLiMgAS",
+    "length": 1.2e-2,
+    "tau_f": 1.1e-3,
+    "N_dop": 6e26,
+    "energy_lower_level": [0, 233, 372, 595],
+    "energy_upper_level": [10232,10511,10833],
+    "ZPL": 977.3e-9,
+    "comment": "Re-calculated cross sections from the measurements of Mirko Tiegel in 2014, for a length of 12mm instead of 10mm, original folder name: 20140905_Vitron2 6-10^20 Yb"
+}
