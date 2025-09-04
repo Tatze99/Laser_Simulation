@@ -1,5 +1,6 @@
 import os
 import re
+import json
 from CTkRangeSlider import *
 import customtkinter
 import numpy as np
@@ -52,7 +53,18 @@ class App(customtkinter.CTk):
         self.setup_plot_area()
         self.update_material(self.material_list.get())
         self.crystal_plot()
-        
+
+        self.save_attributes = ["material_list", "temperature_list"]
+
+        for i in self.crystal_widgets:
+            self.save_attributes.append(i)
+        for i in self.seed_widgets:
+            self.save_attributes.append(i)
+        for i in self.pump_widgets:
+            self.save_attributes.append(i)
+        for i in self.amplifier_widgets:
+            self.save_attributes.append(i)
+
     def initialize_ui_images(self):
         self.img_settings = customtkinter.CTkImage(dark_image=Image.open(os.path.join(Standard_path,"ui_images","options.png")), size=(15, 15))
         self.img_save = customtkinter.CTkImage(dark_image=Image.open(os.path.join(Standard_path,"ui_images","save_white.png")), size=(15, 15))
@@ -113,19 +125,21 @@ class App(customtkinter.CTk):
         
         frame = self.sidebar_frame
 
-        self.material_list  = App.create_Menu(frame, values=self.materials, column=0, row=1, command=self.update_material, width=135, padx = (10,210-135))
+        self.material_list  = App.create_Menu(frame, values=self.materials, column=0, row=1, command=self.update_material, width=135, padx = (10,210-135), init_val=self.materials[1])
         self.temperature_list  = App.create_Menu(frame, values=["300"], column=0, row=1, command=None, width=60, padx = (210-60,10))
 
         self.material_plot_list  = App.create_Menu(frame, values=list(self.material_plot_functions.keys()), column=0, row=2, pady=(15,5), command=self.toggle_extra_material_arguments)
         self.plot_crystal_button    = App.create_button(frame, text="Plot material", command=self.crystal_plot, column=0, row=4, image=self.img_reset)
+        
+        # extra settings
         self.inversion_entry    = App.create_entry(frame, column=0, row=5, init_val="0.1,0.15,0.2", width=170, padx=(210-170, 10))
         self.inversion_label    = App.create_label(frame, column=0, row=5, text="β", padx=(5, 215-20))
+        self.plot_pump_laser_cross_sections = App.create_switch(frame, text="Show σ(λ_p), σ(λ_l)", command=None,  column=0, row=5, padx=20)
+
 
         self.amplifier_plot_list  = App.create_Menu(frame, values=list(self.amplifier_plot_functions.keys()), column=0, row=7, pady=(25,5), command=None)
         self.plot_amplifier_button = App.create_button(frame, text="Plot amplifier", command=self.amplifier_plot, column=0, row=8, pady=(5,15), image=self.img_reset)
 
-        # self.prev_button    = App.create_button(frame,                      command=None, column=0, row=6, width=90, padx = (10,120), image=self.img_previous)
-        # self.next_button    = App.create_button(frame,                      command=None, column=0, row=6, width=90, padx = (120,10), image=self.img_next)
         self.set_button     = App.create_button(frame, text="Plot settings",command=None, column=0, row=16, image=self.img_settings)
         self.save_button    = App.create_button(frame, text="Save current figure", command=self.save_figure,     column=0, row=17,  image=self.img_save)
         
@@ -136,14 +150,15 @@ class App(customtkinter.CTk):
         self.seed_button      = App.create_switch(frame, text="Config Seed", command=lambda: self.toggle_sidebar_window(self.seed_button, self.seed_widgets),  column=0, row=12, padx=20)
         self.amplifier_button = App.create_switch(frame, text="Config Amplifier", command=lambda: self.toggle_sidebar_window(self.amplifier_button, self.amplifier_widgets),  column=0, row=13, padx=20)
 
-        # self.fit_button       = App.create_switch(frame, text="Use fit",    command=None, column=0, row=10, padx=20)
-        # self.normalize_button = App.create_switch(frame, text="Normalize",  command=None,    column=0, row=11, padx=20)
-        # self.lineout_button   = App.create_switch(frame, text="Lineout",  command=None,    column=0, row=12, padx=20)
-        # self.FFT_button       = App.create_switch(frame, text="FFT",  command=None,    column=0, row=13, padx=20)
-        # self.subfolder_button = App.create_switch(frame, text="include subfolders", command=None, row=16, column=0, padx=20)
+        #Data Table section
+        self.load_button    = App.create_button(self.tabview.tab("Data Table"), text="Set Working directory", command=self.read_file_list,  column=0, row=0, image=self.img_folder)
+        self.folder_path = App.create_entry(self.tabview.tab("Data Table"), row=0, column=2, text="Folder path", columnspan=2, width=600, padx=10, pady=10, sticky="w")
+        self.folder_path.insert(0, Standard_path)
+        self.data_button    = App.create_button(self.tabview.tab("Data Table"), text="save project data", command=lambda: self.save_project(os.path.join(self.folder_path.get(), "project_data.json"), self.get_project_data()),  column=0, row=1, image=self.img_folder)
 
         self.inversion_entry.grid_remove()
         self.inversion_label.grid_remove()
+        self.plot_pump_laser_cross_sections.grid_remove()
 
         self.load_settings_frame()
 
@@ -412,15 +427,20 @@ class App(customtkinter.CTk):
         self.clear_axis()
 
         crystal = self.load_crystal()
+        lambda_p = float(self.pump_wavelength_entry.get())
+        lambda_l = float(self.seed_QSwitch_wavelength_entry.get())
 
         plot_function = self.material_plot_functions[self.material_plot_list.get()]
 
         if plot_function == plot_small_signal_gain:
             plot_function(crystal, beta=ast.literal_eval(self.inversion_entry.get()), axis=[self.ax, self.fig])
         elif plot_function == plot_Isat:
-            plot_function(crystal, lambda0 = float(self.pump_wavelength_entry.get()), axis=[self.ax, self.fig])
+            plot_function(crystal, lambda0 = lambda_p, xlim=(lambda_p-30, lambda_p+30), axis=[self.ax, self.fig])
         elif plot_function == plot_Fsat:
-            plot_function(crystal, lambda0 = float(self.seed_QSwitch_wavelength_entry.get()), axis=[self.ax, self.fig])
+            plot_function(crystal, lambda0 = lambda_l, xlim=(lambda_l-30, lambda_l+30), axis=[self.ax, self.fig])
+        elif plot_function == plot_cross_sections and self.plot_pump_laser_cross_sections.get():
+            print("hello")
+            plot_function(crystal, lambda_p=lambda_p, lambda_l=lambda_l, axis=[self.ax, self.fig])
         else:
             plot_function(crystal, axis=[self.ax, self.fig])
         self.canvas.draw()
@@ -453,6 +473,16 @@ class App(customtkinter.CTk):
             self.inversion_entry.grid_remove()
             self.inversion_label.grid_remove()
 
+        if argument == "Cross sections":
+            self.plot_pump_laser_cross_sections.grid()
+        else:
+            self.plot_pump_laser_cross_sections.grid_remove()
+
+    def read_file_list(self):
+        path = customtkinter.filedialog.askdirectory(initialdir=self.folder_path)
+        if path != "":
+            self.folder_path.reinsert(path)
+
     def create_toolbar(self) -> customtkinter.CTkFrame:
         # toolbar_frame = customtkinter.CTkFrame(master=self.tabview.tab("Show Plots"))
         # toolbar_frame.grid(row=1, column=0, sticky="ew")
@@ -467,10 +497,47 @@ class App(customtkinter.CTk):
 
         # Closing the application       
     
+    def toggle_toolbar(self, value):
+        if value == "Show Plots":
+            self.toolbar.grid()
+        else:
+            self.toolbar.grid_remove()
     # Save the current figure or the data based on the file type
     def save_figure(self):
         file_name = customtkinter.filedialog.asksaveasfilename()
         self.fig.savefig(file_name, bbox_inches='tight')
+
+    def save_project(self, filename, project_data):
+        # Convert to JSON-safe dict
+        def to_json_safe(obj):
+            if isinstance(obj, np.ndarray):
+                return obj.tolist()      # convert numpy arrays to lists
+            if isinstance(obj, (np.int64, np.float64)):
+                return obj.item()        # convert numpy scalars to Python
+            if isinstance(obj, dict):
+                return {k: to_json_safe(v) for k, v in obj.items()}
+            if isinstance(obj, list):
+                return [to_json_safe(v) for v in obj]
+            return obj                   # base case
+
+        safe_data = to_json_safe(project_data)
+
+        with open(filename, "w") as f:
+            json.dump(safe_data, f, indent=2)
+
+    def get_project_data(self):
+        data = {}
+        for name in self.save_attributes:
+            val = getattr(self, name)
+            # unwrap Tkinter variables automatically
+            if isinstance(val, customtkinter.CTkLabel) or isinstance(val, customtkinter.CTkButton) or isinstance(val, customtkinter.CTkSwitch):
+                continue
+            if hasattr(val, "get"):
+                val = val.get()
+            data[name] = val
+        
+        print(data)
+        return data
 
     def on_closing(self):
         self.quit()    # Python 3.12 works
