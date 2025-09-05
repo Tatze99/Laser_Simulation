@@ -1,0 +1,10 @@
+{
+    "name": "YbSrF2",
+    "length": 1e-2,
+    "tau_f": 4.6e-3,
+    "N_dop": 4.065e26,
+    "density": 4.24e3,
+    "refractive_index": 1.4316,
+    "ZPL": 974.5e-9,
+    "comment": "lasermaterials.info from Mathias Siebold"
+}

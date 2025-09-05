@@ -110,7 +110,7 @@ def moving_average(x, window_size):
 
     return smoothed_array
 
-def plot_function(x, y, xlabel, ylabel, title=None, legends=None, axis=None, save=False, save_path=None, xlim = (-np.inf, np.inf), ylim = (-np.inf, np.inf), outer_legend = False, save_data=False, kwargs=None):
+def plot_function(x, y, xlabel, ylabel, title=None, legends=None, axis=None, save=False, save_path=None, save_data=False, xlim = (-np.inf, np.inf), ylim = (-np.inf, np.inf), outer_legend = False, kwargs=None):
     """
     General function for plotting and saving figures.
     
@@ -168,8 +168,8 @@ def plot_function(x, y, xlabel, ylabel, title=None, legends=None, axis=None, sav
 
     if save and save_path:
         print(save_path)
-        plt.tight_layout()
-        plt.savefig(save_path)
+        # plt.tight_layout()
+        plt.savefig(save_path, bbox_inches='tight')
     
     if save_data and save_path:
         np.savetxt(os.path.splitext(save_path)[0]+".txt", np.vstack([x, y]).T, delimiter="\t", fmt="%.5e")

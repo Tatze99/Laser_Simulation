@@ -216,10 +216,10 @@ def plot_cross_sections(crystal, lambda_p=None, lambda_l=None, axis=None, save=F
     if lambda_l is not None:
         kwargs.extend(append_sigma_points(x, y, legends, lambda_l, color="tab:red"))
     
-    plot_function(x, y, xlabel, ylabel, title, legends, axis, save, path, save_data=save_data, kwargs=kwargs)
+    plot_function(x, y, xlabel, ylabel, title, legends, axis, save, path, save_data, kwargs=kwargs)
 
 
-def plot_small_signal_gain(crystal, beta, round_trips=1, normalize=False, xlim=(1000,1060), ylim=(1.1, np.inf), save=False, save_data=False, save_path=None, axis=None):
+def plot_small_signal_gain(crystal, beta, round_trips=1, normalize=False, xlim=(1000,1060), ylim=(1.1, np.inf), save=False, save_path=None, save_data=False, axis=None):
     """
     Plot small signal gain for a given beta.
     """
@@ -247,10 +247,10 @@ def plot_small_signal_gain(crystal, beta, round_trips=1, normalize=False, xlim=(
     fname = f"{crystal.material}_{crystal.temperature}K_small-signal-gain_beta_{beta_name}{RT_name}.pdf"
     path = create_save_path(save_path, fname)
 
-    plot_function(lambd * 1e9, y_list, xlabel, ylabel, title, legends, axis, save, path, xlim=xlim, ylim=ylim, save_data=save_data)
+    plot_function(lambd * 1e9, y_list, xlabel, ylabel, title, legends, axis, save, path, save_data, xlim=xlim, ylim=ylim)
 
 
-def plot_beta_eq(crystal, lambda_max=None, save=False, save_path=None, axis=None):
+def plot_beta_eq(crystal, lambda_max=None, save=False, save_path=None, save_data=False, axis=None):
     """
     Plot equilibrium inversion beta_eq with a logistic fit.
     """
@@ -267,10 +267,10 @@ def plot_beta_eq(crystal, lambda_max=None, save=False, save_path=None, axis=None
     fname = f"{crystal.material}_{crystal.temperature}K_equilibrium_inversion.pdf"
     path = create_save_path(save_path, fname)
 
-    plot_function(lambd * 1e9, y_list, xlabel, ylabel, title, legends, axis, save, path, ylim=(-.1,1.1))
+    plot_function(lambd * 1e9, y_list, xlabel, ylabel, title, legends, axis, save, path, save_data, ylim=(-.1,1.1))
 
 
-def plot_Isat(crystal, save=False, save_path=None, xlim=(900,1000), ylim=(0,200), lambda0 = None, legends=None, axis=None, kwargs=None):
+def plot_Isat(crystal, save=False, save_path=None, save_data=False, xlim=(900,1000), ylim=(0,200), lambda0 = None, legends=None, axis=None, kwargs=None):
     """
     Plot the saturation intensity of a crystal.
     """
@@ -290,9 +290,9 @@ def plot_Isat(crystal, save=False, save_path=None, xlim=(900,1000), ylim=(0,200)
         legends = ["saturation intensity", f"Isat = {Isat_lambda0:.2f}kW/cm² at {lambda0} nm"]
         kwargs=[dict(),dict(marker='o')]
 
-    plot_function(lambd, Isat, xlabel, ylabel, title, legends, axis, save, path, xlim=xlim, ylim=ylim, kwargs=kwargs)
+    plot_function(lambd, Isat, xlabel, ylabel, title, legends, axis, save, path, save_data, xlim=xlim, ylim=ylim, kwargs=kwargs)
 
-def plot_Fsat(crystal, save=False, save_path=None, xlim=(1010,1050), ylim=(0,200), lambda0 = None, legends=None, axis=None, kwargs=None):
+def plot_Fsat(crystal, save=False, save_path=None, save_data=False, xlim=(1010,1050), ylim=(0,200), lambda0 = None, legends=None, axis=None, kwargs=None):
     """
     Plot the saturation fluence of a crystal.
     """
@@ -312,14 +312,14 @@ def plot_Fsat(crystal, save=False, save_path=None, xlim=(1010,1050), ylim=(0,200
         legends = ["saturation fluence", f"Fsat = {Fsat_lambda0:.2f}J/cm² at {lambda0} nm"]
         kwargs=[dict(),dict(marker='o')]
 
-    plot_function(lambd, Fsat, xlabel, ylabel, title, legends, axis, save, path, xlim=xlim, ylim=ylim, kwargs=kwargs)
+    plot_function(lambd, Fsat, xlabel, ylabel, title, legends, axis, save, path, save_data, xlim=xlim, ylim=ylim, kwargs=kwargs)
 
 #=============================================================================
 # main script, if this file is executed
 # ============================================================================
 
 if __name__ == "__main__":
-    crystal = Crystal(material="YbCaF2_Toepfer", temperature=300, smooth_sigmas=True)
+    crystal = Crystal(material="YbCaF2", temperature=300, smooth_sigmas=True)
 
     print(crystal)
     plot_cross_sections(crystal, save=False, lambda_p=940, lambda_l=1030)

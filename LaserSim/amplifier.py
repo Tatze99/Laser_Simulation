@@ -318,7 +318,7 @@ class Amplifier():
 # Display of results
 # =============================================================================
 
-def plot_temporal_fluence(amplifier, axis=None, save=False, save_path=None):
+def plot_temporal_fluence(amplifier, axis=None, save=False, save_path=None, save_data=False):
     """ 
     Plot the temporal fluence for the last ten passes
     """
@@ -341,9 +341,9 @@ def plot_temporal_fluence(amplifier, axis=None, save=False, save_path=None):
 
     kwargs = dict(marker="o")
 
-    plot_function(x,y_array, xlabel, ylabel, title, legend, axis, save, path, outer_legend=True)
+    plot_function(x,y_array, xlabel, ylabel, title, legend, axis, save, path, save_data, outer_legend=True)
 
-def plot_total_fluence_per_pass(amplifier, axis=None, save=False, save_path=None):
+def plot_total_fluence_per_pass(amplifier, axis=None, save=False, save_path=None, save_data=False):
     """ 
     Plot the total fluence at the end of each pass
     """
@@ -363,10 +363,10 @@ def plot_total_fluence_per_pass(amplifier, axis=None, save=False, save_path=None
 
     kwargs = dict(marker="o")
 
-    plot_function(x,fluence_out*1e-4, xlabel, ylabel, title, legend, axis, save, path, kwargs=kwargs)
+    plot_function(x,fluence_out*1e-4, xlabel, ylabel, title, legend, axis, save, path, save_data, kwargs=kwargs)
 
 
-def plot_inversion1D(amplifier, axis=None, save=False, save_path=None, ylim=(0,np.inf)):
+def plot_inversion1D(amplifier, axis=None, save=False, save_path=None, save_data=False, ylim=(0,np.inf)):
     """
     Plot the inversion in the crystal after the pumping process
     """
@@ -381,10 +381,10 @@ def plot_inversion1D(amplifier, axis=None, save=False, save_path=None, ylim=(0,n
     fname = f"{crystal.material}_{crystal.temperature}K_{pump.intensity*1e-7}kWcm2_inversion1D.pdf"
     path = create_save_path(save_path, fname)
 
-    plot_function(x, y, xlabel, ylabel, title, legend, axis, save, path, ylim=ylim)
+    plot_function(x, y, xlabel, ylabel, title, legend, axis, save, path, save_data, ylim=ylim)
 
 
-def plot_inversion2D(amplifier, cmap="magma", save=False, save_path=None, axis=None):
+def plot_inversion2D(amplifier, cmap="magma", save=False, save_path=None, save_data=False, axis=None):
     """
     Plot the inversion in the crystal over time and space
     """
@@ -418,7 +418,7 @@ def plot_inversion2D(amplifier, cmap="magma", save=False, save_path=None, axis=N
         plt.savefig(path)
 
 
-def plot_spectral_fluence(amplifier, axis=None, save=False, save_path=None, xlim=(-np.inf,np.inf)):
+def plot_spectral_fluence(amplifier, axis=None, save=False, save_path=None, save_data=False, xlim=(-np.inf,np.inf)):
     """ 
     Plot the spectral fluence at the end of the ten last roundtrips. Note, that a roundtrip corresponds to two passes through the material.
     """
@@ -440,9 +440,9 @@ def plot_spectral_fluence(amplifier, axis=None, save=False, save_path=None, xlim
     fname = f"Spectral_seed_{amplifier.seed.fluence*1e-4}Jcm2_{amplifier.crystal.material}_{amplifier.crystal.temperature}_spectral-fluence.pdf"
     path = create_save_path(save_path, fname)
 
-    plot_function(x,y_array, xlabel, ylabel, title, legend, axis, save, path, outer_legend=True, xlim=xlim)
+    plot_function(x,y_array, xlabel, ylabel, title, legend, axis, save, path, save_data, outer_legend=True, xlim=xlim)
 
-def plot_inversion_before_after(amplifier, save=False, save_path=None, axis=None):
+def plot_inversion_before_after(amplifier, save=False, save_path=None, save_data=False, axis=None):
     """
     Plot the inversion before and after the amplification process
     """
@@ -461,9 +461,9 @@ def plot_inversion_before_after(amplifier, save=False, save_path=None, axis=None
     fname = f"{amplifier.crystal.material}_{amplifier.crystal.temperature}K_{amplifier.pump.intensity*1e-7}kWcm2_inversion_before_after.pdf"
     path = create_save_path(save_path, fname)
 
-    plot_function(x, [y_before, y_after], xlabel, ylabel, title, legend, axis, save, path)
+    plot_function(x, [y_before, y_after], xlabel, ylabel, title, legend, axis, save, path, save_data)
 
-def plot_inversion_vs_pump_intensity(amplifier, axis=None, save=False, save_path=None):
+def plot_inversion_vs_pump_intensity(amplifier, axis=None, save=False, save_data=False, save_path=None):
     """
     Plot the inversion as a function of pump intensity
     """
@@ -490,7 +490,7 @@ def plot_inversion_vs_pump_intensity(amplifier, axis=None, save=False, save_path
 
     pump.intensity = original_intensity
 
-    plot_function(x, y, xlabel, ylabel, title, legend, axis, save, path, kwargs=kwargs)
+    plot_function(x, y, xlabel, ylabel, title, legend, axis, save, path, save_data, kwargs=kwargs)
 
 if __name__ == "__main__":
     crystal  = Crystal(material="YbCaF2", temperature=300, smooth_sigmas=True)

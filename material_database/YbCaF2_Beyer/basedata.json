@@ -1,0 +1,12 @@
+{
+    "name": "YbCaF2",
+    "length": 1.1e-2,
+    "tau_f": 1.95e-3,
+    "N_dop": 3.3e26,
+    "density": 4.98e3,
+    "refractive_index": 1.429,
+    "energy_lower_level": [0, 50, 110, 530],
+    "energy_upper_level": [10205,10300,10580],
+    "ZPL": 979.9e-9,
+    "comment": "Spectra measured by Martin Beyer, Jena, 2024, use slightly longer lifetime of 1.95ms, the doping concentration was matched to the values reported by Koerner et al. in 2012, 3 at. % instead of 2 at.%"
+}

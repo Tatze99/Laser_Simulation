@@ -3,8 +3,10 @@
     "length": 0.65e-2,
     "tau_f": 1.4e-3,
     "N_dop": 6e26,
+    "density": 3.8e3,
+    "refractive_index": 1.50172,
     "energy_lower_level": [0, 180, 323, 568],
     "energy_upper_level": [10266, 10474, 10773],
     "ZPL": 974.1e-9,
-    "comment": "Thomas Töpfer, Diodengepumpte Hochleistungslaser - Lasermaterialien, Pumplaserdioden und Verstärker für den POLARIS-Laser, Dissertation, 2001"
+    "comment": "Thomas Töpfer, Diodengepumpte Hochleistungslaser - Lasermaterialien, Pumplaserdioden und Verstärker für den POLARIS-Laser, Dissertation, 2001, density and refractive index taken from lasermaterials.info from Mathias Siebold"
 }

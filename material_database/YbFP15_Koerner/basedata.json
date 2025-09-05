@@ -3,7 +3,10 @@
     "length": 0.65e-2,
     "tau_f": 1.4e-3,
     "N_dop": 6e26,
+    "density": 3.8e3,
+    "refractive_index": 1.50172,
     "energy_lower_level": [0, 180, 323, 568],
     "energy_upper_level": [10266, 10474, 10773],
-    "ZPL": 974.1e-9
+    "ZPL": 974.1e-9,
+    "comment": "unpublished data from Koerner et al., Measurement of temperature-dependent absorption and emission spectra of Yb:YAG, Yb:LuAG, and Yb:CaF2 between 20C and 200C and predictions on their influence on laser performance, 2012, density and refractive index taken from lasermaterials.info from Mathias Siebold"
 }
