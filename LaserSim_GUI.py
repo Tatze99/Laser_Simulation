@@ -27,7 +27,6 @@ version_number = "25/09"
 Standard_path = os.path.dirname(os.path.abspath(__file__))
 LaserSim_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-print(LaserSim_path)
 
 plt.style.use('default')
 matplotlib.rc('font', family='serif')
@@ -338,7 +337,15 @@ class App(customtkinter.CTk):
         length = float(self.crystal_thickness.get())*1e-3
         tau_f = float(self.crystal_tau_f.get())*1e-3
         return Crystal(material=material, temperature=temperature, N_dop=N_dop, length=length, tau_f=tau_f)
-        
+
+    def load_pump(self, crystal=None):
+        if crystal: pump_res = round(numres*max(1,np.sqrt((float(self.pump_duration.get())*1e-3/crystal.tau_f))))
+        intensity = float(self.pump_intensity.get())
+        wavelength = float(self.pump_wavelength.get())
+        duration = float(self.pump_duration.get())
+
+        return Pump(intensity=intensity, wavelength=wavelength, duration=duration, resolution=pump_res)
+      
     def load_seed_pulse(self, type):
         if type == "Q-Switch":
             seed_pulse = Seed(fluence=float(self.seed_QSwitch_fluence.get()), wavelength=float(self.seed_QSwitch_wavelength.get()), duration=float(self.seed_QSwitch_duration.get()), seed_type=self.seed_QSwitch_pulsetype.get())
@@ -380,15 +387,11 @@ class App(customtkinter.CTk):
         self.canvas_widget = self.canvas.get_tk_widget()
         self.toolbar = self.create_toolbar()
         self.canvas_widget.pack(fill="both", expand=True)
-        self.ax = self.fig.add_subplot(1, 1, 1)  # create axis once
         self.canvas.draw()
-        print("Plot area set up")
 
     def clear_axis(self):
-        self.ax.clear()
-        for other_ax in self.fig.axes[:]:
-            if other_ax is not self.ax:
-                self.fig.delaxes(other_ax)
+        self.fig.clear()
+        self.ax = self.fig.add_subplot(1, 1, 1)
 
     def seed_plot(self):
         self.clear_axis()
@@ -404,21 +407,18 @@ class App(customtkinter.CTk):
         self.clear_axis()
 
         plot_function = self.amplifier_plot_functions[self.amplifier_plot_list.get()]
+        seed_type = "Q-Switch"
 
         if plot_function == plot_temporal_fluence:
-            seed = self.load_seed_pulse("Q-Switch")
+            seed_type = "Q-Switch"
         elif plot_function == plot_spectral_fluence:
-            seed = self.load_seed_pulse("CPA")
+            seed_type = "CPA"
         elif plot_function == plot_inversion_before_after or plot_function == plot_total_fluence_per_pass:
-            seed = self.load_seed_pulse(self.seed_type_button.get())
-        else:
-            seed = self.load_seed_pulse("Q-Switch")
+            seed_type = self.seed_type_button.get()
 
+        seed = self.load_seed_pulse(seed_type)
         crystal = self.load_crystal()
-
-        pump_res = round(numres*max(1,np.sqrt((float(self.pump_duration.get())*1e-3/crystal.tau_f))))
-
-        pump = Pump(intensity=float(self.pump_intensity.get()), wavelength=float(self.pump_wavelength.get()), duration=float(self.pump_duration.get()), resolution=pump_res)
+        pump = self.load_pump(crystal=crystal)
 
         amplifier = Amplifier(crystal=crystal, pump=pump, seed=seed, passes=int(self.amplifier_passes.get()), losses=float(self.amplifier_losses.get())*1e-2, max_fluence=float(self.amplifier_maxfluence.get()))
         plot_function(amplifier, axis=[self.ax, self.fig], save_data=self.save_data_switch.get(), save_path=self.folder_path.get(), save=self.save_plot_switch.get())
@@ -463,7 +463,6 @@ class App(customtkinter.CTk):
 
         # Step 3: Remove duplicates (convert to set, then back to list if needed)
         temperatures = list(sorted(set(temperatures)))
-        print(temperatures)
         self.temperature_list.configure(values=temperatures)
         if self.temperature_list.get() not in temperatures:
             self.temperature_list.set(temperatures[0])
