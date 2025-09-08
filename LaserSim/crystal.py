@@ -168,7 +168,6 @@ def fit_beta_eq(crystal, lambd, beta_eq, lambda_max=None):
     """
     Fit the equilibrium inversion with a logistic function.
     """
-    print(type(crystal.temperature), type(crystal.lambda_ZPL))
     index_max = np.argmin(np.abs(lambd - lambda_max)) if lambda_max else len(lambd)
     params, _ = curve_fit(logistic_function, lambd[:index_max], beta_eq[:index_max], 
                           p0=[1,crystal.temperature, crystal.lambda_ZPL], 
