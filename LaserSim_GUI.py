@@ -6,7 +6,6 @@ import customtkinter
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
-import matplotlib
 from PIL import Image
 import ast # for literal_eval of a user input
 
@@ -15,8 +14,8 @@ from LaserSim.pump import Pump
 from LaserSim.seed import Seed
 from LaserSim.seed_CPA import Seed_CPA
 from LaserSim.spectral_losses import Spectral_Losses
-from LaserSim.amplifier import Amplifier, plot_inversion1D, plot_inversion2D, plot_temporal_fluence, plot_total_fluence_per_pass, plot_spectral_fluence, plot_inversion_before_after, plot_inversion_vs_pump_intensity
-from LaserSim.utilities import integ, set_plot_params, numres
+from LaserSim.amplifier import Amplifier, plot_inversion1D, plot_inversion_temporal, plot_inversion2D, plot_temporal_fluence, plot_total_fluence_per_pass, plot_spectral_fluence, plot_inversion_before_after, plot_inversion_vs_pump_intensity
+from LaserSim.utilities import set_plot_params, numres
 from LaserSim.seed import plot_seed_pulse as plot_QSwitch_pulse
 from LaserSim.seed_CPA import plot_seed_pulse as plot_CPA_pulse
 
@@ -26,11 +25,6 @@ from LaserSim.spectral_losses import test_reflectivity_approximation
 version_number = "25/09"
 Standard_path = os.path.dirname(os.path.abspath(__file__))
 LaserSim_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-
-plt.style.use('default')
-matplotlib.rc('font', family='serif')
-matplotlib.rc('font', serif='Times New Roman')
 
 
 class App(customtkinter.CTk):
@@ -51,7 +45,10 @@ class App(customtkinter.CTk):
 
         self.setup_plot_area()
         self.update_material(self.material_list.get())
+
         self.crystal_plot()
+        self.canvas_width.bind("<KeyRelease>", lambda val: self.update_canvas_size(self.canvas_ratio_list[self.canvas_ratio.get()]))
+        self.canvas_height.bind("<KeyRelease>", lambda val: self.update_canvas_size(self.canvas_ratio_list[self.canvas_ratio.get()]))
 
         self.save_attributes = ["material_list", "temperature_list", "material_plot_list", "amplifier_plot_list", "folder_path"]
 
@@ -59,14 +56,15 @@ class App(customtkinter.CTk):
         self.save_attributes.extend(self.seed_widgets)
         self.save_attributes.extend(self.pump_widgets)
         self.save_attributes.extend(self.amplifier_widgets)
+        self.save_attributes.extend(self.settings_widgets)
 
     def initialize_ui_images(self):
         self.img_settings = customtkinter.CTkImage(dark_image=Image.open(os.path.join(Standard_path,"ui_images","options.png")), size=(15, 15))
         self.img_save = customtkinter.CTkImage(dark_image=Image.open(os.path.join(Standard_path,"ui_images","save_white.png")), size=(15, 15))
         self.img_folder = customtkinter.CTkImage(dark_image=Image.open(os.path.join(Standard_path,"ui_images","folder.png")), size=(15, 15))
         self.img_reset = customtkinter.CTkImage(dark_image=Image.open(os.path.join(Standard_path,"ui_images","reset.png")), size=(15, 15))
-        self.img_next = customtkinter.CTkImage(dark_image=Image.open(os.path.join(Standard_path,"ui_images","next_arrow.png")), size=(15, 15))
-        self.img_previous = customtkinter.CTkImage(dark_image=Image.open(os.path.join(Standard_path,"ui_images","previous_arrow.png")), size=(15, 15))
+        self.img_crystal = customtkinter.CTkImage(dark_image=Image.open(os.path.join(Standard_path,"ui_images","crystal.png")), size=(15, 15))
+        self.img_laser = customtkinter.CTkImage(dark_image=Image.open(os.path.join(Standard_path,"ui_images","laser.png")), size=(15, 15))
 
     def initialize_variables(self):
         folder = os.path.join(LaserSim_path, "material_database")
@@ -81,7 +79,8 @@ class App(customtkinter.CTk):
         self.amplifier_plot_functions = {'Temporal fluence': plot_temporal_fluence, 
                                         'Total fluence pass': plot_total_fluence_per_pass,
                                         'Spectral fluence': plot_spectral_fluence,
-                                        'Inversion 1D': plot_inversion1D, 
+                                        'spatial inversion': plot_inversion1D, 
+                                        'temporal inversion': plot_inversion_temporal,
                                         'Inversion 2D': plot_inversion2D,
                                         'Inversion vs Ip': plot_inversion_vs_pump_intensity, 
                                         'Inversion before vs after': plot_inversion_before_after
@@ -98,6 +97,7 @@ class App(customtkinter.CTk):
         # Boolean variables
         self.save_plain_image = customtkinter.BooleanVar(value=False)
         self.seed_CPA = customtkinter.BooleanVar(value=False)
+        self.canvas_ratio_list = {'Auto': None, 'Custom': 0,'4:3 ratio': 4/3, '16:9 ratio': 16/9, '3:2 ratio': 3/2, '3:1 ratio': 3,'2:1 ratio': 2, '1:1 ratio': 1, '1:2 ratio': 0.5}
 
     # user interface, gets called when the program starts 
     def initialize_ui(self):
@@ -112,7 +112,7 @@ class App(customtkinter.CTk):
         self.tabview = customtkinter.CTkTabview(self, width=250, command=lambda: self.toggle_toolbar(self.tabview.get()))
         self.tabview.grid(row=3, column=1, padx=(10, 10), pady=(20, 0), columnspan=2, sticky="nsew", rowspan=10)
         self.tabview.add("Show Plots")
-        self.tabview.add("Data Table")
+        self.tabview.add("Settings")
         self.tabview.tab("Show Plots").columnconfigure(0, weight=1)
         self.tabview.tab("Show Plots").rowconfigure(0, weight=1)
 
@@ -124,7 +124,7 @@ class App(customtkinter.CTk):
         self.temperature_list  = App.create_Menu(frame, values=["300"], column=0, row=1, command=None, width=60, padx = (210-60,10))
 
         self.material_plot_list  = App.create_Menu(frame, values=list(self.material_plot_functions.keys()), column=0, row=2, pady=(15,5), command=self.toggle_extra_material_arguments)
-        self.plot_crystal_button    = App.create_button(frame, text="Plot material", command=self.crystal_plot, column=0, row=4, image=self.img_reset)
+        self.plot_crystal_button    = App.create_button(frame, text="Plot material", command=self.crystal_plot, column=0, row=4, image=self.img_crystal)
         
         # extra settings
         self.inversion    = App.create_entry(frame, column=0, row=5, init_val="0.1,0.15,0.2", width=170, padx=(210-170, 10))
@@ -133,33 +133,47 @@ class App(customtkinter.CTk):
 
 
         self.amplifier_plot_list  = App.create_Menu(frame, values=list(self.amplifier_plot_functions.keys()), column=0, row=7, pady=(25,5), command=None)
-        self.plot_amplifier_button = App.create_button(frame, text="Plot amplifier", command=self.amplifier_plot, column=0, row=8, pady=(5,15), image=self.img_reset)
+        self.plot_amplifier_button = App.create_button(frame, text="Plot amplifier", command=self.amplifier_plot, column=0, row=8, pady=(5,15), image=self.img_laser)
 
         # self.set_button     = App.create_button(frame, text="Plot settings",command=None, column=0, row=16, image=self.img_settings)
-        self.save_data_switch = App.create_switch(frame, text="Save data during plot", command=None,  column=0, row=16, padx=20, pady=(10,5))
-        self.save_plot_switch = App.create_switch(frame, text="Save figure during plot", command=None,  column=0, row=17, padx=20)
+        self.save_data = App.create_switch(frame, text="Save data during plot", command=None,  column=0, row=16, padx=20, pady=(10,5))
+        self.save_plot = App.create_switch(frame, text="Save figure during plot", command=None,  column=0, row=17, padx=20)
         self.save_button    = App.create_button(frame, text="Save current figure", command=self.save_figure,     column=0, row=18,  image=self.img_save, pady=(5,15))
         
         #switches
         # self.multiplot_button = App.create_switch(frame, text="Multiplot",  command=None,   column=0, row=7, padx=20, pady=(10,5))
-        self.crystal_button      = App.create_switch(frame, text="Config Crystal", command=lambda: self.toggle_sidebar_window(self.crystal_button, self.crystal_widgets),  column=0, row=10, padx=20)
+        self.crystal_button   = App.create_switch(frame, text="Config Crystal", command=lambda: self.toggle_sidebar_window(self.crystal_button, self.crystal_widgets),  column=0, row=10, padx=20)
         self.pump_button      = App.create_switch(frame, text="Config Pump", command=lambda: self.toggle_sidebar_window(self.pump_button, self.pump_widgets),  column=0, row=11, padx=20)
         self.seed_button      = App.create_switch(frame, text="Config Seed", command=lambda: self.toggle_sidebar_window(self.seed_button, self.seed_widgets),  column=0, row=12, padx=20)
         self.amplifier_button = App.create_switch(frame, text="Config Amplifier", command=lambda: self.toggle_sidebar_window(self.amplifier_button, self.amplifier_widgets),  column=0, row=13, padx=20)
 
-        #Data Table section
-        self.load_button    = App.create_button(self.tabview.tab("Data Table"), text="Set Working directory", command=self.read_file_list,  column=0, row=0, image=self.img_folder, width=230)
-        self.folder_path = App.create_entry(self.tabview.tab("Data Table"), row=0, column=2, text="Folder path", columnspan=2, width=600, padx=10, pady=10, sticky="w")
-        self.json_path = App.create_entry(self.tabview.tab("Data Table"), row=1, column=2, text="project file name", columnspan=2, width=600, padx=10, pady=10, sticky="w")
+        #Settings section
+
+        frame = self.tabview.tab("Settings")
+        self.load_button = App.create_button(frame, text="Set Working directory", command=self.read_file_list,  column=0, row=0, columnspan=2, image=self.img_folder, width=250)
+        self.folder_path = App.create_entry(frame, row=0, column=3, text="Folder path", columnspan=2, width=600, padx=10, pady=10, sticky="w")
+        self.json_path   = App.create_entry(frame, row=1, column=3, text="project file name", columnspan=2, width=600, padx=10, pady=10, sticky="w")
         self.folder_path.insert(0, Standard_path)
         self.json_path.insert(0, "project_data")
-        self.save_data_button    = App.create_button(self.tabview.tab("Data Table"), text="save project", command=lambda: self.save_project(os.path.join(self.folder_path.get(), f"{self.json_path.get()}.json")),  column=0, row=1, image=self.img_save, width=110, padx=(10,10+230-110))
-        self.load_data_button    = App.create_button(self.tabview.tab("Data Table"), text="load project", command=lambda: self.load_project(os.path.join(self.folder_path.get(), f"{self.json_path.get()}.json")),  column=0, row=1, image=self.img_folder, width=110, padx=(10+230-110,10))
-        
+        self.save_data_button    = App.create_button(frame, text="save project", command=lambda: self.save_project(os.path.join(self.folder_path.get(), f"{self.json_path.get()}.json")),  column=0, row=1, image=self.img_save, width=110)
+        self.load_data_button    = App.create_button(frame, text="load project", command=lambda: self.load_project(os.path.join(self.folder_path.get(), f"{self.json_path.get()}.json")),  column=1, row=1, image=self.img_folder, width=110)
+
+        self.plot_settings_title = App.create_label(frame, text="Plot settings", font=customtkinter.CTkFont(size=16, weight="bold"), row=2, column=0, columnspan=2, padx=20, pady=(20, 5),sticky=None)
+        self.show_title = App.create_switch(frame, text="Show title", command=None,  column=0, row=3, padx=20, pady=(10,5), columnspan=2)
+        self.show_grid = App.create_switch(frame, text="Use Grid", command=self.toggle_grid,  column=0, row=4, padx=20, pady=(10,5), columnspan=2)
+
+        self.canvas_size_title = App.create_label(frame, text="Canvas Size", font=customtkinter.CTkFont(size=16, weight="bold"), row=9, column=0, columnspan=2, padx=20, pady=(20, 5),sticky=None)
+        self.canvas_width, self.canvas_width_label        = App.create_entry(frame,column=1, row=11, width=70,text="width in cm", placeholder_text="10 [cm]", sticky='w', init_val=10, textwidget=True)
+        self.canvas_height, self.canvas_height_label      = App.create_entry(frame,column=1, row=12, width=70,text="height in cm", placeholder_text="10 [cm]", sticky='w', init_val=10, textwidget=True)
+        self.canvas_ratio   = App.create_Menu(frame, column=1, row=10, width=110, values=list(self.canvas_ratio_list.keys()), text="Canvas Size", command=lambda x: self.update_canvas_size(self.canvas_ratio_list[x]))
+
+        self.settings_widgets = ["save_data", "save_plot", "crystal_button", "pump_button", "seed_button", "amplifier_button", "show_title", "show_grid", "canvas_width", "canvas_height", "canvas_ratio"]
 
         self.inversion.grid_remove()
         self.inversion_label.grid_remove()
         self.plot_pump_laser_cross_sections.grid_remove()
+        self.show_title.select()
+        self.show_grid.select()
 
         self.load_settings_frame()
 
@@ -375,8 +389,12 @@ class App(customtkinter.CTk):
         if button == self.seed_button:
             self.toggle_seed_type(self.seed_type_button.get())
 
+    def toggle_grid(self):
+        self.ax.grid(self.show_grid.get())
+        plt.rcParams["axes.grid"] = self.show_grid.get()
+
     def close_sidebar_window(self):
-        if not self.pump_button.get() and not self.seed_button.get() and not self.amplifier_button.get():
+        if not self.crystal_button.get() and not self.pump_button.get() and not self.seed_button.get() and not self.amplifier_button.get():
             self.settings_frame.grid_remove()
 
     # Plotting section
@@ -392,14 +410,22 @@ class App(customtkinter.CTk):
     def clear_axis(self):
         self.fig.clear()
         self.ax = self.fig.add_subplot(1, 1, 1)
+        
+        self.kwargs = {"axis": [self.ax, self.fig],
+                       "save_data": self.save_data.get(),
+                       "save_path": self.folder_path.get(),
+                       "save": self.save_plot.get(),
+                       "show_title": self.show_title.get(),
+                    #    "kwargs": {"linestyle": '-', "color": "tab:blue"}
+                    }  # base args for all plots
 
     def seed_plot(self):
         self.clear_axis()
 
         if self.seed_type_button.get() == "Q-Switch":
-            plot_QSwitch_pulse(self.load_seed_pulse("Q-Switch"), axis=self.ax)
+            plot_QSwitch_pulse(self.load_seed_pulse("Q-Switch"), **self.kwargs)
         else:
-            plot_CPA_pulse(self.load_seed_pulse("CPA"), axis=self.ax)
+            plot_CPA_pulse(self.load_seed_pulse("CPA"), **self.kwargs)
         
         self.canvas.draw()
 
@@ -421,7 +447,7 @@ class App(customtkinter.CTk):
         pump = self.load_pump(crystal=crystal)
 
         amplifier = Amplifier(crystal=crystal, pump=pump, seed=seed, passes=int(self.amplifier_passes.get()), losses=float(self.amplifier_losses.get())*1e-2, max_fluence=float(self.amplifier_maxfluence.get()))
-        plot_function(amplifier, axis=[self.ax, self.fig], save_data=self.save_data_switch.get(), save_path=self.folder_path.get(), save=self.save_plot_switch.get())
+        plot_function(amplifier, **self.kwargs)
 
         self.canvas.draw()
 
@@ -434,10 +460,7 @@ class App(customtkinter.CTk):
 
         plot_function = self.material_plot_functions[self.material_plot_list.get()]
 
-        kwargs = {"axis": [self.ax, self.fig],
-                  "save_data": self.save_data_switch.get(),
-                  "save_path": self.folder_path.get(),
-                  "save": self.save_plot_switch.get()}  # base args for all plots
+        kwargs = dict()
 
         if plot_function == plot_small_signal_gain:
             kwargs["beta"] = ast.literal_eval(self.inversion.get())
@@ -449,7 +472,7 @@ class App(customtkinter.CTk):
             kwargs.update({"lambda_p": lambda_p, "lambda_l": lambda_l})
 
         # one single call
-        plot_function(crystal, **kwargs)
+        plot_function(crystal, **self.kwargs, **kwargs)
         self.canvas.draw()
 
     def update_material(self, material):
@@ -522,7 +545,6 @@ class App(customtkinter.CTk):
             if isinstance(val, (
                 customtkinter.CTkLabel,
                 customtkinter.CTkButton,
-                customtkinter.CTkSwitch,
                 customtkinter.CTkSegmentedButton,
                 customtkinter.CTkFrame,
                 customtkinter.CTkTextbox
@@ -563,6 +585,35 @@ class App(customtkinter.CTk):
                     attr.set(val)
                 elif hasattr(attr, "reinsert"):
                     attr.reinsert(val)
+                elif hasattr(attr, "select") and val == 1:
+                    attr.select()
+                elif hasattr(attr, "deselect") and val == 0:
+                    attr.deselect()
+        
+        self.close_sidebar_window()
+
+    def update_canvas_size(self, canvas_ratio):
+        canvas_width = float(self.canvas_width.get())
+        canvas_height = float(self.canvas_height.get())
+        if canvas_width <= 2 or canvas_height <= 2: return
+        self.canvas_widget.pack_forget()
+
+        self.canvas_height.grid() if canvas_ratio == 0 else self.canvas_height.grid_remove()
+        self.canvas_height_label.grid() if canvas_ratio == 0 else self.canvas_height_label.grid_remove()
+
+        if canvas_ratio is not None:
+            width = canvas_width/2.54
+            height = canvas_height/2.54 if canvas_ratio == 0 else canvas_width/(canvas_ratio*2.54)
+            self.fig.set_size_inches(width, height)
+            self.canvas_widget.pack(expand=True, fill=None) 
+            self.canvas_widget.config(width=self.fig.get_size_inches()[0] * self.fig.dpi, height=self.fig.get_size_inches()[1] * self.fig.dpi)
+        else:
+            width = (self.tabview.winfo_width() - 18) / self.fig.dpi
+            height = (self.tabview.winfo_height()) / self.fig.dpi
+            self.fig.set_size_inches(w=width, h=height, forward=True)  # Re-enable dynamic resizing
+            self.canvas_widget.pack(fill="both", expand=True) 
+
+        self.canvas.draw()  # Redraw canvas to apply the automatic size
 
     def on_closing(self):
         self.quit()    # Python 3.12 works

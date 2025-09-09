@@ -20,5 +20,16 @@
   "pump_duration": "2.0",
   "amplifier_passes": "50",
   "amplifier_losses": "2.0",
-  "amplifier_maxfluence": "10.0"
+  "amplifier_maxfluence": "10.0",
+  "save_data": 0,
+  "save_plot": 0,
+  "crystal_button": 0,
+  "pump_button": 0,
+  "seed_button": 0,
+  "amplifier_button": 0,
+  "show_title": 1,
+  "show_grid": 1,
+  "canvas_width": "10",
+  "canvas_height": "10",
+  "canvas_ratio": "Auto"
 }
