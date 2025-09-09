@@ -43,18 +43,18 @@ class Seed_CPA():
         f"- pulse type = '{self.seed_type}'\n\n"
         )
 
-def plot_seed_pulse(seed, save=False, save_path=None, xlim=(-np.inf, np.inf), ylim=(0,np.inf), axis=None):
+def plot_seed_pulse(seed, save=False, save_path=None, save_data=False, xlim=(-np.inf, np.inf), ylim=(0,np.inf), show_title=True, axis=None):
     """Plot the seed CPA pulse."""
     x = seed.lambdas*1e9
     y = seed.spectral_fluence*1e-4*1e-9
     xlabel = "wavelength in nm"
     ylabel = "spectral fluence in J/cm²/nm"
     legend= f"F = {integ(seed.spectral_fluence, seed.dlambda)[-1]/1e4:.3g} J/cm²"
-    title = "Spectral seed pulse"
+    title = "Spectral seed pulse" if show_title else None
     fname = f"Seed_Spectrum_{seed.wavelength*1e9}nm_{seed.bandwidth*1e9:.1f}nm.pdf"
     path = create_save_path(save_path, fname)
 
-    plot_function(x, y, xlabel, ylabel, title, legend, axis, save, path, xlim, ylim)
+    plot_function(x, y, xlabel, ylabel, title, legend, axis, save, path, save_data, xlim, ylim)
 
 if __name__ == "__main__":
     seed = Seed_CPA()

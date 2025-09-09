@@ -1,3 +1,4 @@
+import matplotlib
 import numpy as np
 import matplotlib.pyplot as plt 
 import os
@@ -11,6 +12,14 @@ numres = 500
 LaserSimFolder = os.path.dirname(os.path.abspath(__file__))
 LaserSimFolder = os.path.abspath(os.path.join(LaserSimFolder, os.pardir))
 
+PLOT_DEFAULTS = dict(
+    save=False,
+    save_path=None,
+    save_data=False,
+    show_title=True,
+    axis=None,
+)
+
 def set_plot_params():
     plt.rcParams["figure.figsize"] = (8,4)
     plt.rcParams["axes.grid"] = True
@@ -19,6 +28,13 @@ def set_plot_params():
     plt.rcParams["ytick.direction"] = "in"
     plt.rcParams["xtick.top"] = True
     plt.rcParams["ytick.right"] = True
+
+    plt.rc('font', family='serif')
+    plt.rc('font', serif='Times New Roman')
+    plt.rcParams['mathtext.fontset'] = 'custom'
+    plt.rcParams['mathtext.rm'] = 'Times New Roman'
+    plt.rcParams['mathtext.it'] = 'Times New Roman:italic'
+    plt.rcParams['mathtext.bf'] = 'Times New Roman:bold'
 
 # integration routines: integ(x) = integral(0, x, y dx')
 # convention integ: 1D

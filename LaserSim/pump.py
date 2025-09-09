@@ -43,7 +43,7 @@ class Pump():
         F"- fluence = {self.fluence*1e-4} J/cm²\n\n"
         )
 
-def plot_pump_pulse(pump, save=False, save_path=None, xlim=(-np.inf,np.inf), ylim=(-np.inf,np.inf)):
+def plot_pump_pulse(pump, save=False, save_path=None, save_data=False, xlim=(-np.inf,np.inf), ylim=(-np.inf,np.inf), show_title=True, axis=None):
     """Plot the saturation intensity of a crystal."""
     if pump.bandwidth == 0:
         print("No spectral pump pulse generated, please specify a bandwidth > 0")
@@ -54,11 +54,11 @@ def plot_pump_pulse(pump, save=False, save_path=None, xlim=(-np.inf,np.inf), yli
     xlabel = "wavelength in nm"
     ylabel = "normalized amplitude"
     legend = f"F = {integ(pump.pulse, pump.dlambda)[-1]*pump.fluence*1e-4:.3g} J/cm²"
-    title= "Spectral pump pulse"
+    title= "Spectral pump pulse" if show_title else None
     fname = f"Pump_Spectral_{pump.wavelength*1e9}nm_{pump.bandwidth*1e9:.1f}nm.pdf"
     path = create_save_path(save_path, fname)
 
-    plot_function(x, y, xlabel, ylabel, title, legend, None, save, path, xlim, ylim)
+    plot_function(x, y, xlabel, ylabel, title, legend, axis, save, path, save_data, xlim, ylim)
 
 if __name__ == "__main__":
     pump = Pump(bandwidth=10)
