@@ -14,7 +14,7 @@ from LaserSim.pump import Pump
 from LaserSim.seed import Seed
 from LaserSim.seed_CPA import Seed_CPA
 from LaserSim.spectral_losses import Spectral_Losses
-from LaserSim.amplifier import Amplifier, plot_inversion1D, plot_inversion_temporal, plot_inversion2D, plot_temporal_fluence, plot_total_fluence_per_pass, plot_spectral_fluence, plot_inversion_before_after, plot_inversion_vs_pump_intensity
+from LaserSim.amplifier import Amplifier, plot_inversion1D, plot_inversion_temporal, plot_inversion2D, plot_temporal_fluence, plot_total_fluence_per_pass, plot_spectral_fluence, plot_inversion_before_after, plot_inversion_vs_pump_intensity, plot_storage_efficiency_vs_pump_time, plot_storage_efficiency_2D, plot_storage_efficiency_vs_pump_intensity
 from LaserSim.utilities import set_plot_params, numres
 from LaserSim.seed import plot_seed_pulse as plot_QSwitch_pulse
 from LaserSim.seed_CPA import plot_seed_pulse as plot_CPA_pulse
@@ -79,11 +79,14 @@ class App(customtkinter.CTk):
         self.amplifier_plot_functions = {'Temporal fluence': plot_temporal_fluence, 
                                         'Total fluence pass': plot_total_fluence_per_pass,
                                         'Spectral fluence': plot_spectral_fluence,
-                                        'spatial inversion': plot_inversion1D, 
-                                        'temporal inversion': plot_inversion_temporal,
+                                        'Spatial inversion': plot_inversion1D, 
+                                        'Temporal inversion': plot_inversion_temporal,
                                         'Inversion 2D': plot_inversion2D,
                                         'Inversion vs Ip': plot_inversion_vs_pump_intensity, 
-                                        'Inversion before vs after': plot_inversion_before_after
+                                        'Inversion before vs after': plot_inversion_before_after,
+                                        'Storage efficiency vs t': plot_storage_efficiency_vs_pump_time,
+                                        'Storage efficiency vs Ip': plot_storage_efficiency_vs_pump_intensity,
+                                        'Storage efficiency 2D': plot_storage_efficiency_2D
                                         }
 
         self.ax = None
