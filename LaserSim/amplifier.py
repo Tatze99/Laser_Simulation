@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import numpy.matlib as npm
 import os
+import copy
 
 set_plot_params()
 Folder = os.path.dirname(os.path.abspath(__file__))
@@ -92,7 +93,6 @@ class Amplifier():
             betas.append((beta_low, beta_high))
             pumprates.append((R_low, R_high))
     
-        beta_end = (beta_low[-1,:] + beta_high[-1,:]) / 2
         beta_total = (beta_low + beta_high) / 2
         pumprate = (R_high + R_low) / 2
 
@@ -100,11 +100,11 @@ class Amplifier():
 
         self.crystal.inversion = beta_total
         self.pump.pumprate = pumprate
-        self.crystal.inversion_end = beta_end
+        self.crystal.inversion_end = beta_total[-1,:]
         self.crystal.stored_fluence = stored_fluence
         self.beta_0 = np.mean(self.crystal.inversion_end)
 
-        return beta_end
+        return beta_total[-1,:]
 
     # =============================================================================
     # Calculate energy extraction for a monochromatic, temporal pulse
@@ -286,23 +286,37 @@ class Amplifier():
         self.beta_out = beta_out if break_index % 2 else beta_out[::-1]
 
         return self.spectral_fluence_out
-
-    def storage_efficiency(self, pump_intensities):
+    
+    def storage_efficiency(self, pump_intensity=None, pump_duration=None):
+        original_pump = copy.deepcopy(self.pump)
         """
         Calculate the storage efficiency of the crystal.
         """
+        if pump_intensity is None: pump_intensity = self.pump.intensity
+        if pump_duration is None: pump_duration = self.pump.duration
 
-        inversion_array = np.zeros((len(pump_intensities),len(self.crystal.z_axis)))
+        self.pump.duration = pump_duration
+        self.pump.t_axis = np.linspace(0, pump_duration, numres)
+        self.pump.dt = pump_duration / numres
 
-        for i, pump_intensity in enumerate(pump_intensities):
-            inversion_array[i,:] = self.inversion(pump_intensity=pump_intensity)
+        if not isinstance(pump_intensity, (list, np.ndarray)):
+            pump_intensity = np.array([pump_intensity])
 
-        extractable_fluence = z_integ(inversion_array - self.crystal.beta_eq(self.seed.wavelength), self.crystal.dz)[:,-1] * h * c * self.crystal.doping_concentration / (self.seed.wavelength)
+        extractable_fluence = np.zeros((len(pump_intensity), len(self.pump.t_axis)))
 
-        efficiency = extractable_fluence / (pump_intensities * self.pump.duration)
+        for i, I_p in enumerate(pump_intensity):
+            _ = self.inversion(pump_intensity=I_p)
+            inversion = self.crystal.inversion
+
+            extractable_fluence[i, :] = z_integ(inversion - self.crystal.beta_eq(self.seed.wavelength), self.crystal.dz)[:,-1] * h * c * self.crystal.doping_concentration / (self.seed.wavelength)
+
+        I, T = np.meshgrid(pump_intensity, self.pump.t_axis, indexing="ij")
+        efficiency = extractable_fluence / (I * T)
         efficiency = np.where(efficiency < 0, 0, efficiency)
 
-        return efficiency.T
+        self.pump = original_pump
+
+        return efficiency
     
     def __repr__(self):
         return (f"{self.crystal}{self.pump}{self.seed}"
@@ -365,7 +379,6 @@ def plot_total_fluence_per_pass(amplifier, axis=None, save=False, save_path=None
 
     plot_function(x,fluence_out*1e-4, xlabel, ylabel, title, legend, axis, save, path, save_data, kwargs=kwargs)
 
-
 def plot_inversion1D(amplifier, axis=None, save=False, save_path=None, save_data=False, ylim=(0,np.inf), show_title=True):
     """
     Plot the inversion in the crystal after the pumping process
@@ -400,7 +413,6 @@ def plot_inversion_temporal(amplifier, axis=None, save=False, save_path=None, sa
 
     plot_function(x, y, xlabel, ylabel, title, legend, axis, save, path, save_data, ylim=ylim)
 
-
 def plot_inversion2D(amplifier, cmap="magma", save=False, save_path=None, save_data=False, axis=None):
     """
     Plot the inversion in the crystal over time and space
@@ -433,7 +445,6 @@ def plot_inversion2D(amplifier, cmap="magma", save=False, save_path=None, save_d
     if save:
         plt.tight_layout()
         plt.savefig(path)
-
 
 def plot_spectral_fluence(amplifier, axis=None, save=False, save_path=None, save_data=False, xlim=(-np.inf,np.inf), show_title=True):
     """ 
@@ -509,6 +520,91 @@ def plot_inversion_vs_pump_intensity(amplifier, axis=None, save=False, save_data
 
     plot_function(x, y, xlabel, ylabel, title, legend, axis, save, path, save_data, kwargs=kwargs)
 
+def plot_storage_efficiency_vs_pump_intensity(amplifier, axis=None, save=False, save_data=False, save_path=None, show_title=True):
+    """
+    Plot the storage efficiency as a function of pump intensity
+    """
+    pump = amplifier.pump
+    crystal = amplifier.crystal
+    pump_intensities = np.linspace(0, 2, 40) * pump.intensity
+
+    storage_efficiency = amplifier.storage_efficiency(pump_intensity=pump_intensities)
+
+    x = pump_intensities*1e-7
+    y = storage_efficiency[:, -1]
+    xlabel = "pump intensity in kW/cm²"
+    ylabel = "storage efficiency"
+    title = "storage efficiency as a function of pump intensity" if show_title else None
+    legend = None
+    fname = f"{crystal.material}_{crystal.temperature}K_{2*pump.intensity*1e-7}kWcm2_storage_efficiency_vs_pump_intensity.pdf"
+    path = create_save_path(save_path, fname)
+    kwargs = dict(marker="o")
+
+    plot_function(x, y, xlabel, ylabel, title, legend, axis, save, path, save_data, kwargs=kwargs)
+
+def plot_storage_efficiency_vs_pump_time(amplifier, pump_intensity=[], axis=None, save=False, save_data=False, save_path=None, show_title=True, kwargs=None):
+    """
+    Plot the storage efficiency as a function of pump time
+    pump_intensity: list of pump intensities in W/m²
+    """
+    time_factor = 2
+    pump, crystal = amplifier.pump, amplifier.crystal
+    pump_duration = time_factor*pump.duration
+    if pump_intensity == []:
+        pump_intensity.append(pump.intensity)
+
+    storage_efficiency = amplifier.storage_efficiency(pump_intensity=pump_intensity, pump_duration=pump_duration)
+
+    x = pump.t_axis*1e3
+    y = [storage_efficiency[i,:] for i in range(len(storage_efficiency[:,0]))]
+    xlabel = "pump duration in ms"
+    ylabel = "storage efficiency"
+    title = f"storage efficiency as a function of pump duration" if show_title else None
+    legend = [f"$I_p$ = {intensity*1e-7:.1f} kW/cm²" for intensity in pump_intensity]
+    fname = f"{crystal.material}_{crystal.temperature}K_{2*pump.intensity*1e-7}kWcm2_storage_efficiency_vs_pump_duration.pdf"
+    path = create_save_path(save_path, fname)
+
+    plot_function(x, y, xlabel, ylabel, title, legend, axis, save, path, save_data, kwargs=kwargs)
+
+def plot_storage_efficiency_2D(amplifier, cmap="magma", save=False, save_path=None, save_data=False, show_title=True, axis=None):
+    """
+    Plot the storage efficiency in the crystal over time and pump intensity
+    """
+    resolution_intensities = 41
+    time_factor = 2
+
+    pump, crystal = amplifier.pump, amplifier.crystal
+    pump_intensities = np.linspace(0, 2, resolution_intensities) * pump.intensity
+    pump_duration = time_factor*pump.duration
+
+    storage_efficiency = amplifier.storage_efficiency(pump_intensity=pump_intensities, pump_duration=pump_duration)
+
+    if axis is None:
+        fig, ax = plt.subplots()
+    elif isinstance(axis, list):
+        ax = axis[0]
+        fig = axis[1]
+    else:
+        ax = axis
+
+    extent = [0, pump_duration*1e3, 0, pump_intensities[-1]*1e-7]
+    im = ax.imshow(np.flipud(storage_efficiency), aspect='auto', extent=extent, cmap=cmap)
+
+    cbar = ax.figure.colorbar(im, ax=ax, use_gridspec=False, label="storage efficiency")
+    ax._colorbar = cbar  # store as attribute on the axis
+
+    ax.set_xlabel("pump duration $\\tau_p$ in ms")
+    ax.set_ylabel("pump intensity $I_p$ in kW/cm²")
+    if show_title:
+        ax.set_title(r"storage efficiency vs pump duration and intensity") 
+    ax.grid()
+    fname = f"{crystal.material}_{crystal.temperature}K_{pump.intensity*1e-7}_storage_efficiency2D.pdf"
+    path = create_save_path(save_path, fname)
+
+    if save:
+        plt.tight_layout()
+        plt.savefig(path)
+
 if __name__ == "__main__":
     crystal  = Crystal(material="YbCaF2", temperature=300, smooth_sigmas=True)
 
@@ -520,12 +616,15 @@ if __name__ == "__main__":
     
     CPA_amplifier.inversion()
     plot_inversion1D(CW_amplifier)
-    plot_inversion1D_front(CW_amplifier)
+    plot_inversion_temporal(CW_amplifier)
     plot_inversion2D(CW_amplifier)
     plot_total_fluence_per_pass(CW_amplifier)
     plot_temporal_fluence(CW_amplifier)
     plot_spectral_fluence(CPA_amplifier)
     plot_inversion_vs_pump_intensity(CW_amplifier)
     plot_inversion_before_after(CW_amplifier)
+    plot_storage_efficiency_vs_pump_intensity(CW_amplifier)
+    plot_storage_efficiency_vs_pump_time(CW_amplifier, pump_intensity=[10e7, 20e7, 30e7])
+    plot_storage_efficiency_2D(CW_amplifier)
 
 

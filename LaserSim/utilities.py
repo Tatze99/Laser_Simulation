@@ -2,13 +2,14 @@ import matplotlib
 import numpy as np
 import matplotlib.pyplot as plt 
 import os
+import time
 
 # define speed of light and planck's constant
 c = 3e8 # [m/s]
 h = 6.626e-34 # [Js]
 
 # numerical resolution
-numres = 500
+numres = 300
 LaserSimFolder = os.path.dirname(os.path.abspath(__file__))
 LaserSimFolder = os.path.abspath(os.path.join(LaserSimFolder, os.pardir))
 
@@ -41,35 +42,37 @@ def set_plot_params():
 # f(t, z) -> 2D Matrix N x M with N in time und M in space
 def integ(y, dx):
     """
-    integrates a 1D array y along the its axis using the trapezian rule"""
-    upper_sum = np.cumsum(y[1:])
-    lower_sum = np.cumsum(y[:-1])
-	
-    integral = (upper_sum + lower_sum) / 2 * dx
+    integrates a 1D array along its axis using the trapezian rule
+    """
+    trapezoids = (y[1:] + y[:-1]) / 2
+    integral = np.cumsum(trapezoids) * dx
     return np.insert(integral, 0, 0)
     
-
 def t_integ(mat, dt):
     """
-    integrates the matrix along the t-dimension, along axis 0
+    integrates the 2D matrix along the t-dimension, along axis 0
     """
-    upper_sum = np.cumsum(mat[1:,:], axis=0)
-    lower_sum = np.cumsum(mat[:-1,:], axis=0)
-    lower_sum = np.array(upper_sum)
-
-    integral = (upper_sum + lower_sum) / 2 * dt
-    return np.insert(integral, 0, 0, axis=0)
-
+    # average of adjacent rows
+    trapezoids = (mat[1:,:] + mat[:-1,:]) / 2  
+    
+    # cumulative sum of trapezoid areas
+    integral = np.cumsum(trapezoids, axis=0) * dt  
+    
+    # insert initial zero row
+    return np.vstack([np.zeros((1, mat.shape[1])), integral])
+    
 def z_integ(mat, dz):
     """
-    integrates the matrix along the z-dimension, along axis 1
+    integrates the 2D matrix along the z-dimension, along axis 1
     """
-    upper_sum = np.cumsum(mat[:,1:], axis=1)
-    lower_sum = np.cumsum(mat[:,:-1], axis=1)
-    lower_sum = np.array(upper_sum)
+    # average of adjacent columns
+    trapezoids = (mat[:,1:] + mat[:,:-1]) / 2
 
-    integral = (upper_sum + lower_sum) / 2 * dz
-    return np.insert(integral, 0, 0, axis=1)
+    # cumulative sum of trapezoid areas
+    integral = np.cumsum(trapezoids, axis=1) * dz
+
+    # insert initial zero column
+    return np.hstack([np.zeros((mat.shape[0], 1)), integral])
 
 def fourier_filter(sigma, filter_width):
     """
@@ -238,3 +241,40 @@ def generate_pulse_from_file(pulse, file_path, x_unit=1e0, delimiter="\t", x_min
     y *= 1/integ(y, dx)[-1]
 
     return x, y * pulse.fluence, dx
+
+def integration_test(t_dim = numres, z_dim = numres, x_start=1, x_end=8, function=np.cos, analytical_integral=np.sin):
+    """
+    Test the integration routines
+    """
+
+    analytical_integral = analytical_integral(x_end) - analytical_integral(x_start)
+
+    t = np.linspace(x_start, x_end, t_dim)
+    z = np.linspace(x_start, x_end, z_dim)
+
+    dt = t[1] - t[0]
+    dz = z[1] - z[0]
+
+    # create 2D sine matrix (N x M)
+    matrix = np.zeros((t_dim, z_dim))
+    matrix[:,0] = function(t)
+    matrix[0,:] = function(z)
+
+    time_integral = t_integ(matrix, dt)[-1,0]
+    space_integral = z_integ(matrix, dz)[0,-1]
+
+    time_1D_integral = integ(function(t), dt)[-1]
+    space_1D_integral = integ(function(z), dz)[-1]
+
+    print(f"Integration test for {function.__name__}(x) from {x_start} to {x_end} with the trapezoid rule:")
+    print(f"{time_integral} : time integration")
+    print(f"{time_1D_integral} : time 1D integration")
+    print(f"{space_integral} : space integration")
+    print(f"{space_1D_integral} : space 1D integration")
+    print(f"{analytical_integral} : analytical integration\n")
+    print(f"{np.sum(function(t)[:-1])*dt} : left Riemann sum")
+    print(f"{np.sum(function(t)[1:])*dt} : right Riemann sum\n\n")
+
+if __name__ == "__main__":
+    integration_test()
+    integration_test(function=np.exp, analytical_integral=np.exp)
