@@ -127,16 +127,21 @@ class App(customtkinter.CTk):
         self.temperature_list  = App.create_Menu(frame, values=["300"], column=0, row=1, command=None, width=60, padx = (210-60,10))
 
         self.material_plot_list  = App.create_Menu(frame, values=list(self.material_plot_functions.keys()), column=0, row=2, pady=(15,5), command=self.toggle_extra_material_arguments)
-        self.plot_crystal_button    = App.create_button(frame, text="Plot material", command=self.crystal_plot, column=0, row=4, image=self.img_crystal)
+        self.plot_crystal_button    = App.create_button(frame, text="Plot material", command=self.crystal_plot, column=0, row=4, image=self.img_crystal, sticky="w")
+        
+        self.amplifier_plot_list  = App.create_Menu(frame, values=list(self.amplifier_plot_functions.keys()), column=0, row=7, pady=(25,5), command=self.toggle_extra_amplifier_arguments)
+        self.plot_amplifier_button = App.create_button(frame, text="Plot amplifier", command=self.amplifier_plot, column=0, row=8, pady=(5,15), image=self.img_laser, sticky="w")
+        
         
         # extra settings
         self.inversion    = App.create_entry(frame, column=0, row=5, init_val="0.1,0.15,0.2", width=170, padx=(210-170, 10))
         self.inversion_label    = App.create_label(frame, column=0, row=5, text="β", padx=(5, 215-20))
         self.plot_pump_laser_cross_sections = App.create_switch(frame, text="Show σ(λ_p), σ(λ_l)", command=None,  column=0, row=5, padx=20)
+        self.add_text_2D   = App.create_entry(frame, column=0, row=9, init_val="", width=150, padx=(210-150, 10))
+        self.add_text_2D_label    = App.create_label(frame, column=0, row=9, text="legend", padx=(10, 210-40))
+        self.reset_material_plot = App.create_button(frame, width=50, command=lambda: (self.clear_figure(), self.crystal_plot()), column=0, row=4, image=self.img_reset, sticky="e")
+        self.reset_amplifier_plot = App.create_button(frame, width=50, command=lambda: (self.clear_figure(), self.amplifier_plot()), column=0, row=8, image=self.img_reset, sticky="e", pady=(5,15))
 
-
-        self.amplifier_plot_list  = App.create_Menu(frame, values=list(self.amplifier_plot_functions.keys()), column=0, row=7, pady=(25,5), command=None)
-        self.plot_amplifier_button = App.create_button(frame, text="Plot amplifier", command=self.amplifier_plot, column=0, row=8, pady=(5,15), image=self.img_laser)
 
         # self.set_button     = App.create_button(frame, text="Plot settings",command=None, column=0, row=16, image=self.img_settings)
         self.save_data = App.create_switch(frame, text="Save data during plot", command=None,  column=0, row=16, padx=20, pady=(10,5))
@@ -144,11 +149,11 @@ class App(customtkinter.CTk):
         self.save_button    = App.create_button(frame, text="Save current figure", command=self.save_figure,     column=0, row=18,  image=self.img_save, pady=(5,15))
         
         #switches
-        # self.multiplot_button = App.create_switch(frame, text="Multiplot",  command=None,   column=0, row=7, padx=20, pady=(10,5))
-        self.crystal_button   = App.create_switch(frame, text="Config Crystal", command=lambda: self.toggle_sidebar_window(self.crystal_button, self.crystal_widgets),  column=0, row=10, padx=20)
-        self.pump_button      = App.create_switch(frame, text="Config Pump", command=lambda: self.toggle_sidebar_window(self.pump_button, self.pump_widgets),  column=0, row=11, padx=20)
-        self.seed_button      = App.create_switch(frame, text="Config Seed", command=lambda: self.toggle_sidebar_window(self.seed_button, self.seed_widgets),  column=0, row=12, padx=20)
-        self.amplifier_button = App.create_switch(frame, text="Config Amplifier", command=lambda: self.toggle_sidebar_window(self.amplifier_button, self.amplifier_widgets),  column=0, row=13, padx=20)
+        self.multiplot_button   = App.create_switch(frame, text="Multiplot", command= self.toggle_multiplot_buttons,  column=0, row=10, padx=20, pady=(5,15))
+        self.crystal_button   = App.create_switch(frame, text="Config Crystal", command=lambda: self.toggle_sidebar_window(self.crystal_button, self.crystal_widgets),  column=0, row=11, padx=20)
+        self.pump_button      = App.create_switch(frame, text="Config Pump", command=lambda: self.toggle_sidebar_window(self.pump_button, self.pump_widgets),  column=0, row=12, padx=20)
+        self.seed_button      = App.create_switch(frame, text="Config Seed", command=lambda: self.toggle_sidebar_window(self.seed_button, self.seed_widgets),  column=0, row=13, padx=20)
+        self.amplifier_button = App.create_switch(frame, text="Config Amplifier", command=lambda: self.toggle_sidebar_window(self.amplifier_button, self.amplifier_widgets),  column=0, row=14, padx=20)
 
         #Settings section
 
@@ -175,6 +180,10 @@ class App(customtkinter.CTk):
         self.inversion.grid_remove()
         self.inversion_label.grid_remove()
         self.plot_pump_laser_cross_sections.grid_remove()
+        self.add_text_2D.grid_remove()
+        self.add_text_2D_label.grid_remove()
+        self.reset_material_plot.grid_remove()
+        self.reset_amplifier_plot.grid_remove()
         self.show_title.select()
         self.show_grid.select()
 
@@ -294,7 +303,7 @@ class App(customtkinter.CTk):
         self.crystal_title = App.create_label(self.settings_frame, text="Crystal Settings", font=customtkinter.CTkFont(size=16, weight="bold"), row=row, column=0, columnspan=5, padx=20, pady=(20, 5),sticky=None)
         self.crystal_doping, self.crystal_doping_label = App.create_entry(self.settings_frame,column=1, row=row+1, columnspan=2, width=110, text="doping [cm⁻³]", textwidget=True)
         self.crystal_thickness, self.crystal_thickness_label = App.create_entry(self.settings_frame,column=1, row=row+2, columnspan=2, width=110, text="thickness [mm]", textwidget=True)
-        self.crystal_tau_f, self.crystal_tau_f_label = App.create_entry(self.settings_frame,column=1, row=row+3, columnspan=2, width=110, text="lifetime [ms]", textwidget=True)
+        self.crystal_tau_f, self.crystal_tau_f_label = App.create_entry(self.settings_frame,column=1, row=row+3, columnspan=2, width=110, text="lifetime τ [ms]", textwidget=True)
 
         self.crystal_widgets = ["crystal_title", "crystal_doping", "crystal_thickness", "crystal_tau_f", "crystal_doping_label", "crystal_thickness_label", "crystal_tau_f_label"]
         self.toggle_sidebar_window(self.crystal_button, self.crystal_widgets)
@@ -302,17 +311,22 @@ class App(customtkinter.CTk):
     def load_pump_sidebar(self):
         row = 10
         self.pump_title = App.create_label(self.settings_frame, text="Pump Settings", font=customtkinter.CTkFont(size=16, weight="bold"), row=row, column=0, columnspan=5, padx=20, pady=(20, 5),sticky=None)
-        self.pump_intensity, self.pump_intensity_label = App.create_entry(self.settings_frame,column=1, row=row+1, columnspan=2, width=110, text="intensity [kW/cm²]", init_val=Pump().intensity*1e-7, textwidget=True)
-        self.pump_wavelength, self.pump_wavelength_label = App.create_entry(self.settings_frame,column=1, row=row+2, columnspan=2, width=110, text="wavelength [nm]", init_val=round(Pump().wavelength*1e9, 3), textwidget=True)
-        self.pump_duration, self.pump_duration_label = App.create_entry(self.settings_frame,column=1, row=row+3, columnspan=2, width=110, text="duration [ms]", init_val=Pump().duration*1e3, textwidget=True)
+        self.pump_wavelength, self.pump_wavelength_label = App.create_entry(self.settings_frame,column=1, row=row+1, columnspan=2, width=110, text="wavelength [nm]", init_val=round(Pump().wavelength*1e9, 3), textwidget=True)
+        
+        self.pump_intensity, self.pump_intensity_label = App.create_entry(self.settings_frame,column=1, row=row+2, columnspan=2, width=110-50, text="intensity [kW/cm²]", init_val=Pump().intensity*1e-7, padx=(10,10+50), textwidget=True)
+        self.pump_intensity_button = App.create_button(self.settings_frame,column=1, row=row+2, columnspan=2, width=40, text="Isat", command=lambda: self.pump_intensity.reinsert(round(Crystal(material=self.material).I_sat(float(self.pump_wavelength.get())*1e-9)*1e-7,2)), padx=(80,10))
 
-        self.pump_widgets= ["pump_intensity","pump_intensity_label","pump_wavelength","pump_wavelength_label","pump_title", "pump_duration", "pump_duration_label"]
+        self.pump_duration, self.pump_duration_label = App.create_entry(self.settings_frame,column=1, row=row+3, columnspan=2, width=110-50, text="duration [ms]", init_val=Pump().duration*1e3, padx=(10,10+50), textwidget=True)
+        self.pump_duration_button = App.create_button(self.settings_frame,column=1, row=row+3, columnspan=2, width=40, text="τ", command=lambda: self.pump_duration.reinsert(self.crystal_tau_f.get()), padx=(80,10))
+
+        self.pump_widgets= ["pump_intensity","pump_intensity_label","pump_wavelength","pump_wavelength_label","pump_title", "pump_duration", "pump_duration_label", "pump_intensity_button", "pump_duration_button"]
         self.toggle_sidebar_window(self.pump_button, self.pump_widgets)
 
     def load_seed_sidebar(self):
         row = 20
         self.seed_title = App.create_label(self.settings_frame, text="Seed Settings", font=customtkinter.CTkFont(size=16, weight="bold"), row=row, column=0, columnspan=5, padx=20, pady=(20, 5),sticky=None)
-        self.seed_type_button = App.create_segmented_button(self.settings_frame, values=["Q-Switch","CPA"], command=lambda value: self.toggle_seed_type(value), row=row+1, column=0, columnspan=3, padx=20, pady=(5, 15), width=200)
+        self.seed_type_button = App.create_segmented_button(self.settings_frame, values=["Q-Switch","CPA"], command=lambda value: self.toggle_seed_type(value), row=row+1, column=1, columnspan=3, width=110)
+        self.seed_type_label = App.create_label(self.settings_frame, text="Seed Type", column=0, row=row+1)
 
         self.seed_QSwitch_fluence, self.seed_QSwitch_fluence_label = App.create_entry(self.settings_frame,column=1, row=row+2, columnspan=2, width=110, text="fluence [J/cm²]", init_val=Seed().fluence*1e-4, textwidget=True)
         self.seed_QSwitch_wavelength, self.seed_QSwitch_wavelength_label = App.create_entry(self.settings_frame,column=1, row=row+3, columnspan=2, width=110, text="wavelength [nm]", init_val=Seed().wavelength*1e9, textwidget=True)
@@ -328,7 +342,7 @@ class App(customtkinter.CTk):
 
         self.seed_widgets= ["seed_QSwitch_fluence","seed_QSwitch_fluence_label","seed_QSwitch_wavelength","seed_QSwitch_wavelength_label","seed_title", "seed_QSwitch_duration", "seed_QSwitch_duration_label", "seed_QSwitch_pulsetype", "seed_QSwitch_pulsetype_label",
                             "seed_CPA_fluence", "seed_CPA_fluence_label", "seed_CPA_wavelength", "seed_CPA_wavelength_label", "seed_CPA_duration", "seed_CPA_duration_label", "seed_CPA_pulsetype", "seed_CPA_pulsetype_label",
-                            "seed_type_button", "plot_seed_button"]
+                            "seed_type_button", "plot_seed_button", "seed_type_label"]
         self.toggle_sidebar_window(self.seed_button, self.seed_widgets)
 
         self.seed_type_button.set("Q-Switch")
@@ -392,6 +406,17 @@ class App(customtkinter.CTk):
         if button == self.seed_button:
             self.toggle_seed_type(self.seed_type_button.get())
 
+    def toggle_multiplot_buttons(self):
+        if self.multiplot_button.get():
+            self.plot_crystal_button.configure(width=140)
+            self.plot_amplifier_button.configure(width=140)
+            self.reset_amplifier_plot.grid()
+            self.reset_material_plot.grid()
+        else:
+            self.plot_crystal_button.configure(width=200)
+            self.plot_amplifier_button.configure(width=200)
+            self.reset_amplifier_plot.grid_remove()
+            self.reset_material_plot.grid_remove()
     def toggle_grid(self):
         self.ax.grid(self.show_grid.get())
         plt.rcParams["axes.grid"] = self.show_grid.get()
@@ -404,16 +429,24 @@ class App(customtkinter.CTk):
     def setup_plot_area(self):
         """Call this ONCE when initializing the GUI"""
         self.fig = plt.figure(constrained_layout=True, dpi=150)
+        self.ax = self.fig.add_subplot(1, 1, 1)
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.tabview.tab("Show Plots"))
         self.canvas_widget = self.canvas.get_tk_widget()
         self.toolbar = self.create_toolbar()
         self.canvas_widget.pack(fill="both", expand=True)
         self.canvas.draw()
 
-    def clear_axis(self):
+    def clear_figure(self):
         self.fig.clear()
         self.ax = self.fig.add_subplot(1, 1, 1)
-        
+
+    def clear_axis(self):
+        if not self.multiplot_button.get():
+            self.clear_figure()
+        else:
+            self.ax.relim()
+            self.ax.autoscale()
+
         self.kwargs = {"axis": [self.ax, self.fig],
                        "save_data": self.save_data.get(),
                        "save_path": self.folder_path.get(),
@@ -437,6 +470,7 @@ class App(customtkinter.CTk):
 
         plot_function = self.amplifier_plot_functions[self.amplifier_plot_list.get()]
         seed_type = "Q-Switch"
+        kwargs = dict()
 
         if plot_function == plot_temporal_fluence:
             seed_type = "Q-Switch"
@@ -444,13 +478,17 @@ class App(customtkinter.CTk):
             seed_type = "CPA"
         elif plot_function == plot_inversion_before_after or plot_function == plot_total_fluence_per_pass:
             seed_type = self.seed_type_button.get()
+        elif plot_function == plot_storage_efficiency_2D:
+            kwargs["add_text"] = self.add_text_2D.get()
+        elif plot_function == plot_storage_efficiency_vs_pump_time:
+            kwargs["pump_intensity"] = [float(self.pump_intensity.get())*1e7]
 
         seed = self.load_seed_pulse(seed_type)
         crystal = self.load_crystal()
         pump = self.load_pump(crystal=crystal)
 
         amplifier = Amplifier(crystal=crystal, pump=pump, seed=seed, passes=int(self.amplifier_passes.get()), losses=float(self.amplifier_losses.get())*1e-2, max_fluence=float(self.amplifier_maxfluence.get()))
-        plot_function(amplifier, **self.kwargs)
+        plot_function(amplifier, **self.kwargs, **kwargs)
 
         self.canvas.draw()
 
@@ -493,6 +531,7 @@ class App(customtkinter.CTk):
         if self.temperature_list.get() not in temperatures:
             self.temperature_list.set(temperatures[0])
 
+        self.material = material
         self.crystal_doping.reinsert(str(Crystal(material=material).doping_concentration*1e-6))
         self.crystal_thickness.reinsert(str(Crystal(material=material).length*1e3))
         self.crystal_tau_f.reinsert(str(Crystal(material=material).tau_f*1e3))
@@ -509,6 +548,14 @@ class App(customtkinter.CTk):
             self.plot_pump_laser_cross_sections.grid()
         else:
             self.plot_pump_laser_cross_sections.grid_remove()
+    
+    def toggle_extra_amplifier_arguments(self, argument):
+        if argument == "Storage efficiency 2D":
+            self.add_text_2D.grid()
+            self.add_text_2D_label.grid()
+        else:
+            self.add_text_2D.grid_remove()
+            self.add_text_2D_label.grid_remove()
 
     def read_file_list(self):
         path = customtkinter.filedialog.askdirectory(initialdir=self.folder_path)
