@@ -584,7 +584,34 @@ class App(customtkinter.CTk):
     # Save the current figure or the data based on the file type
     def save_figure(self):
         file_name = customtkinter.filedialog.asksaveasfilename()
-        self.fig.savefig(file_name, bbox_inches='tight')
+        if file_name.endswith((".pdf",".png",".jpg",".jpeg",".PNG",".JPG",".svg")): 
+            self.fig.savefig(file_name, bbox_inches='tight')
+        elif file_name.endswith((".dat",".txt",".csv")):
+            all_data = []
+            headers = []
+
+            # Collect data
+            for i, ax in enumerate(self.fig.axes):
+                for j, line in enumerate(ax.get_lines()):
+                    x = line.get_xdata()
+                    y = line.get_ydata()
+                    # make sure lengths match if different lines differ
+                    length = min(len(x), len(y))
+                    all_data.append(np.column_stack([x[:length], y[:length]]))
+                    headers.extend([f"X{i}_{j}", f"Y{i}_{j}"])
+
+            # Align all datasets by rows (pad with blanks if needed)
+            max_len = max(arr.shape[0] for arr in all_data)
+            aligned = np.full((max_len, len(all_data)*2), "", dtype=object)
+
+            for k, arr in enumerate(all_data):
+                aligned[:arr.shape[0], 2*k:2*k+2] = arr
+
+            # Write to file
+            with open(file_name, "w") as f:
+                f.write("\t".join(headers) + "\n")
+                for row in aligned:
+                    f.write("\t".join(f"{float(val):.5e}" if val != "" else "" for val in row) + "\n")
 
     def save_project(self, filename):
         # collect all data-variables to be saved into a dictionary
