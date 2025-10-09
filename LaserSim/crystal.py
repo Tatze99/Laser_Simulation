@@ -52,6 +52,11 @@ class Crystal():
             self.name = self.dict["name"]
             self.lambda_ZPL = self.dict["ZPL"]
 
+            if self.dict["energy_lower_level"]:
+                self.energy_lower_level = self.dict["energy_lower_level"]
+            if self.dict["energy_upper_level"]:
+                self.energy_upper_level = self.dict["energy_upper_level"]
+
     def load_spline_interpolation(self):
         """"
         Perform a spline interpolation of the absorption and emission cross sections
