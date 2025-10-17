@@ -22,7 +22,7 @@ from LaserSim.seed_CPA import plot_seed_pulse as plot_CPA_pulse
 from LaserSim.spectral_losses import test_reflectivity_approximation
 
 
-version_number = "25/09"
+version_number = "25/10"
 Standard_path = os.path.dirname(os.path.abspath(__file__))
 LaserSim_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -79,8 +79,8 @@ class App(customtkinter.CTk):
         self.amplifier_plot_functions = {'Temporal fluence': plot_temporal_fluence, 
                                         'Total fluence pass': plot_total_fluence_per_pass,
                                         'Spectral fluence': plot_spectral_fluence,
-                                        'Spatial inversion': plot_inversion1D, 
-                                        'Temporal inversion': plot_inversion_temporal,
+                                        'Inversion 1D (space)': plot_inversion1D, 
+                                        'Inversion 1D (time)': plot_inversion_temporal,
                                         'Inversion 2D': plot_inversion2D,
                                         'Inversion vs Ip': plot_inversion_vs_pump_intensity, 
                                         'Inversion before vs after': plot_inversion_before_after,
@@ -107,7 +107,7 @@ class App(customtkinter.CTk):
 
         self.sidebar_frame = customtkinter.CTkFrame(self, width=200, height=600, corner_radius=0)
         self.sidebar_frame.grid(row=0, column=0, rowspan=999, sticky="nesw")
-        self.sidebar_frame.rowconfigure(15, weight=1)
+        self.sidebar_frame.rowconfigure(20, weight=1)
         self.rowconfigure(11,weight=1)
 
         App.create_label(self.sidebar_frame, text="LaserSim v."+version_number, font=customtkinter.CTkFont(size=20, weight="bold"),row=0, column=0, padx=20, pady=(10,15), sticky=None)
@@ -130,33 +130,31 @@ class App(customtkinter.CTk):
         self.plot_crystal_button    = App.create_button(frame, text="Plot material", command=self.crystal_plot, column=0, row=4, image=self.img_crystal, sticky="w")
         
         self.amplifier_plot_list  = App.create_Menu(frame, values=list(self.amplifier_plot_functions.keys()), column=0, row=7, pady=(25,5), command=self.toggle_extra_amplifier_arguments)
-        self.plot_amplifier_button = App.create_button(frame, text="Plot amplifier", command=self.amplifier_plot, column=0, row=8, pady=(5,15), image=self.img_laser, sticky="w")
+        self.plot_amplifier_button = App.create_button(frame, text="Plot amplifier", command=self.amplifier_plot, column=0, row=8, image=self.img_laser, sticky="w")
         
         
         # extra settings
         self.inversion    = App.create_entry(frame, column=0, row=5, init_val="0.1,0.15,0.2", width=170, padx=(210-170, 10))
         self.inversion_label    = App.create_label(frame, column=0, row=5, text="β", padx=(5, 215-20))
-        self.plot_pump_laser_cross_sections = App.create_switch(frame, text="Show σ(λ_p), σ(λ_l)", command=None,  column=0, row=5, padx=20)
+        self.plot_pump_laser_cross_sections = App.create_switch(frame, text="Show values at λp, λl", command=None,  column=0, row=5, padx=20)
         self.add_text_2D   = App.create_entry(frame, column=0, row=9, init_val="", width=150, padx=(210-150, 10))
         self.add_text_2D_label    = App.create_label(frame, column=0, row=9, text="legend", padx=(10, 210-40))
         self.reset_material_plot = App.create_button(frame, width=50, command=lambda: (self.clear_figure(), self.crystal_plot()), column=0, row=4, image=self.img_reset, sticky="e")
-        self.reset_amplifier_plot = App.create_button(frame, width=50, command=lambda: (self.clear_figure(), self.amplifier_plot()), column=0, row=8, image=self.img_reset, sticky="e", pady=(5,15))
+        self.reset_amplifier_plot = App.create_button(frame, width=50, command=lambda: (self.clear_figure(), self.amplifier_plot()), column=0, row=8, image=self.img_reset, sticky="e")
+        self.normalize = App.create_switch(frame, text="Normalize", command=None,  column=0, row=9, padx=20, pady=(5,15))
 
-
-        # self.set_button     = App.create_button(frame, text="Plot settings",command=None, column=0, row=16, image=self.img_settings)
-        self.save_data = App.create_switch(frame, text="Save data during plot", command=None,  column=0, row=16, padx=20, pady=(10,5))
-        self.save_plot = App.create_switch(frame, text="Save figure during plot", command=None,  column=0, row=17, padx=20)
-        self.save_button    = App.create_button(frame, text="Save current figure", command=self.save_figure,     column=0, row=18,  image=self.img_save, pady=(5,15))
+        # bottom settings
+        self.save_button    = App.create_button(frame, text="Save figure/data", command=self.save_figure,     column=0, row=23,  image=self.img_save, pady=(5,15))
         
         #switches
-        self.multiplot_button   = App.create_switch(frame, text="Multiplot", command= self.toggle_multiplot_buttons,  column=0, row=10, padx=20, pady=(5,15))
+        self.config_title = App.create_label(frame, text="Configure Simulation", font=customtkinter.CTkFont(size=16, weight="bold"), row=10, column=0, padx=20, pady=(20, 5),sticky=None)
         self.crystal_button   = App.create_switch(frame, text="Config Crystal", command=lambda: self.toggle_sidebar_window(self.crystal_button, self.crystal_widgets),  column=0, row=11, padx=20)
         self.pump_button      = App.create_switch(frame, text="Config Pump", command=lambda: self.toggle_sidebar_window(self.pump_button, self.pump_widgets),  column=0, row=12, padx=20)
         self.seed_button      = App.create_switch(frame, text="Config Seed", command=lambda: self.toggle_sidebar_window(self.seed_button, self.seed_widgets),  column=0, row=13, padx=20)
         self.amplifier_button = App.create_switch(frame, text="Config Amplifier", command=lambda: self.toggle_sidebar_window(self.amplifier_button, self.amplifier_widgets),  column=0, row=14, padx=20)
+        self.multiplot_button   = App.create_switch(frame, text="Multiplot", command= self.toggle_multiplot_buttons,  column=0, row=15, padx=20, pady=(5,15))
 
         #Settings section
-
         frame = self.tabview.tab("Settings")
         self.load_button = App.create_button(frame, text="Set Working directory", command=self.read_file_list,  column=0, row=0, columnspan=2, image=self.img_folder, width=250)
         self.folder_path = App.create_entry(frame, row=0, column=3, text="Folder path", columnspan=2, width=600, padx=10, pady=10, sticky="w")
@@ -168,7 +166,9 @@ class App(customtkinter.CTk):
 
         self.plot_settings_title = App.create_label(frame, text="Plot settings", font=customtkinter.CTkFont(size=16, weight="bold"), row=2, column=0, columnspan=2, padx=20, pady=(20, 5),sticky=None)
         self.show_title = App.create_switch(frame, text="Show title", command=None,  column=0, row=3, padx=20, pady=(10,5), columnspan=2)
-        self.show_grid = App.create_switch(frame, text="Use Grid", command=self.toggle_grid,  column=0, row=4, padx=20, pady=(10,5), columnspan=2)
+        self.show_grid = App.create_switch(frame, text="Use Grid", command=self.toggle_grid,  column=0, row=4, padx=20, columnspan=2)
+        self.save_data = App.create_switch(frame, text="Save data during plot", command=None,  column=0, row=5, padx=20, columnspan=2)
+        self.save_plot = App.create_switch(frame, text="Save figure during plot", command=None,  column=0, row=6, padx=20, columnspan=2)
 
         self.canvas_size_title = App.create_label(frame, text="Canvas Size", font=customtkinter.CTkFont(size=16, weight="bold"), row=9, column=0, columnspan=2, padx=20, pady=(20, 5),sticky=None)
         self.canvas_width, self.canvas_width_label        = App.create_entry(frame,column=1, row=11, width=70,text="width in cm", placeholder_text="10 [cm]", sticky='w', init_val=10, textwidget=True)
@@ -177,6 +177,7 @@ class App(customtkinter.CTk):
 
         self.settings_widgets = ["save_data", "save_plot", "crystal_button", "pump_button", "seed_button", "amplifier_button", "show_title", "show_grid", "canvas_width", "canvas_height", "canvas_ratio"]
 
+        self.normalize.grid_remove()
         self.inversion.grid_remove()
         self.inversion_label.grid_remove()
         self.plot_pump_laser_cross_sections.grid_remove()
@@ -331,18 +332,19 @@ class App(customtkinter.CTk):
         self.seed_QSwitch_fluence, self.seed_QSwitch_fluence_label = App.create_entry(self.settings_frame,column=1, row=row+2, columnspan=2, width=110, text="fluence [J/cm²]", init_val=Seed().fluence*1e-4, textwidget=True)
         self.seed_QSwitch_wavelength, self.seed_QSwitch_wavelength_label = App.create_entry(self.settings_frame,column=1, row=row+3, columnspan=2, width=110, text="wavelength [nm]", init_val=Seed().wavelength*1e9, textwidget=True)
         self.seed_QSwitch_duration, self.seed_QSwitch_duration_label = App.create_entry(self.settings_frame,column=1, row=row+4, columnspan=2, width=110, text="duration [ns]", init_val=Seed().duration*1e9, textwidget=True)
-        self.seed_QSwitch_pulsetype, self.seed_QSwitch_pulsetype_label = App.create_Menu(self.settings_frame, values=["gauss","lorentz","rect"], column=1, row=row+5, command=None, text="pulse type", width=110, textwidget=True)
+        self.seed_QSwitch_pulsetype, self.seed_QSwitch_pulsetype_label = App.create_Menu(self.settings_frame, values=["gauss","lorentz","rect"], column=1, row=row+5, command=self.toggle_extra_seed_arguments, text="pulse type", width=110, textwidget=True)
+        self.seed_gaussian_order, self.seed_gaussian_order_label = App.create_entry(self.settings_frame,column=1, row=row+6, columnspan=2, width=110, text="gaussian order", init_val=1, textwidget=True)
 
         self.seed_CPA_fluence, self.seed_CPA_fluence_label = App.create_entry(self.settings_frame,column=1, row=row+2, columnspan=2, width=110, text="fluence [J/cm²]", init_val=Seed_CPA().fluence*1e-4, textwidget=True)
         self.seed_CPA_wavelength, self.seed_CPA_wavelength_label = App.create_entry(self.settings_frame,column=1, row=row+3, columnspan=2, width=110, text="wavelength [nm]", init_val=round(Seed_CPA().wavelength*1e9, 3), textwidget=True)
         self.seed_CPA_duration, self.seed_CPA_duration_label = App.create_entry(self.settings_frame,column=1, row=row+4, columnspan=2, width=110, text="bandwidth [nm]", init_val=round(Seed_CPA().bandwidth*1e9, 3), textwidget=True)
-        self.seed_CPA_pulsetype, self.seed_CPA_pulsetype_label = App.create_Menu(self.settings_frame, values=["gauss","lorentz","rect"], column=1, row=row+5, command=None, text="pulse type", width=110, textwidget=True)
+        self.seed_CPA_pulsetype, self.seed_CPA_pulsetype_label = App.create_Menu(self.settings_frame, values=["gauss","lorentz","rect"], column=1, row=row+5, command=self.toggle_extra_seed_arguments, text="pulse type", width=110, textwidget=True)
 
-        self.plot_seed_button = App.create_button(self.settings_frame, text="Plot Seed Pulse", command=self.seed_plot, row=row+6, column=0, columnspan=5, padx=20, pady=(5, 15))
+        self.plot_seed_button = App.create_button(self.settings_frame, text="Plot Seed Pulse", command=self.seed_plot, row=row+7, column=0, columnspan=5, padx=20, pady=(5, 15))
 
         self.seed_widgets= ["seed_QSwitch_fluence","seed_QSwitch_fluence_label","seed_QSwitch_wavelength","seed_QSwitch_wavelength_label","seed_title", "seed_QSwitch_duration", "seed_QSwitch_duration_label", "seed_QSwitch_pulsetype", "seed_QSwitch_pulsetype_label",
                             "seed_CPA_fluence", "seed_CPA_fluence_label", "seed_CPA_wavelength", "seed_CPA_wavelength_label", "seed_CPA_duration", "seed_CPA_duration_label", "seed_CPA_pulsetype", "seed_CPA_pulsetype_label",
-                            "seed_type_button", "plot_seed_button", "seed_type_label"]
+                            "seed_type_button", "plot_seed_button", "seed_type_label", "seed_gaussian_order", "seed_gaussian_order_label"]
         self.toggle_sidebar_window(self.seed_button, self.seed_widgets)
 
         self.seed_type_button.set("Q-Switch")
@@ -379,9 +381,9 @@ class App(customtkinter.CTk):
       
     def load_seed_pulse(self, type):
         if type == "Q-Switch":
-            seed_pulse = Seed(fluence=float(self.seed_QSwitch_fluence.get()), wavelength=float(self.seed_QSwitch_wavelength.get()), duration=float(self.seed_QSwitch_duration.get()), seed_type=self.seed_QSwitch_pulsetype.get())
+            seed_pulse = Seed(fluence=float(self.seed_QSwitch_fluence.get()), wavelength=float(self.seed_QSwitch_wavelength.get()), duration=float(self.seed_QSwitch_duration.get()), seed_type=self.seed_QSwitch_pulsetype.get(), gauss_order=int(self.seed_gaussian_order.get()))
         elif type == "CPA":
-            seed_pulse = Seed_CPA(fluence=float(self.seed_CPA_fluence.get()), wavelength=float(self.seed_CPA_wavelength.get()), bandwidth=float(self.seed_CPA_duration.get()), seed_type=self.seed_CPA_pulsetype.get())
+            seed_pulse = Seed_CPA(fluence=float(self.seed_CPA_fluence.get()), wavelength=float(self.seed_CPA_wavelength.get()), bandwidth=float(self.seed_CPA_duration.get()), seed_type=self.seed_CPA_pulsetype.get(), gauss_order=int(self.seed_gaussian_order.get()))
         
         return seed_pulse
 
@@ -391,9 +393,11 @@ class App(customtkinter.CTk):
         elif value == "Q-Switch":
             [getattr(self, name).grid_remove() for name in self.seed_widgets if "CPA" in name]
             [getattr(self, name).grid() for name in self.seed_widgets if "QSwitch" in name]
+            self.toggle_extra_seed_arguments(self.seed_QSwitch_pulsetype.get())
         elif value == "CPA":
             [getattr(self, name).grid_remove() for name in self.seed_widgets if "QSwitch" in name]
             [getattr(self, name).grid() for name in self.seed_widgets if "CPA" in name]
+            self.toggle_extra_seed_arguments(self.seed_CPA_pulsetype.get())
 
     def toggle_sidebar_window(self, button, widgets):
         if button.get():
@@ -417,6 +421,7 @@ class App(customtkinter.CTk):
             self.plot_amplifier_button.configure(width=200)
             self.reset_amplifier_plot.grid_remove()
             self.reset_material_plot.grid_remove()
+
     def toggle_grid(self):
         self.ax.grid(self.show_grid.get())
         plt.rcParams["axes.grid"] = self.show_grid.get()
@@ -474,8 +479,10 @@ class App(customtkinter.CTk):
 
         if plot_function == plot_temporal_fluence:
             seed_type = "Q-Switch"
+            kwargs["normalize"] = self.normalize.get()
         elif plot_function == plot_spectral_fluence:
             seed_type = "CPA"
+            kwargs["normalize"] = self.normalize.get()
         elif plot_function == plot_inversion_before_after or plot_function == plot_total_fluence_per_pass:
             seed_type = self.seed_type_button.get()
         elif plot_function == plot_storage_efficiency_2D:
@@ -509,7 +516,7 @@ class App(customtkinter.CTk):
             kwargs.update({"lambda0": lambda_p, "xlim": (lambda_p - 30, lambda_p + 30)})
         elif plot_function == plot_Fsat:
             kwargs.update({"lambda0": lambda_l, "xlim": (lambda_l - 30, lambda_l + 30)})
-        elif plot_function == plot_cross_sections and self.plot_pump_laser_cross_sections.get():
+        elif (plot_function == plot_cross_sections or plot_function == plot_beta_eq) and self.plot_pump_laser_cross_sections.get():
             kwargs.update({"lambda_p": lambda_p, "lambda_l": lambda_l})
 
         # one single call
@@ -544,7 +551,7 @@ class App(customtkinter.CTk):
             self.inversion.grid_remove()
             self.inversion_label.grid_remove()
 
-        if argument == "Cross sections":
+        if argument == "Cross sections" or argument == "Equilibrium inversion":
             self.plot_pump_laser_cross_sections.grid()
         else:
             self.plot_pump_laser_cross_sections.grid_remove()
@@ -556,6 +563,16 @@ class App(customtkinter.CTk):
         else:
             self.add_text_2D.grid_remove()
             self.add_text_2D_label.grid_remove()
+
+        self.normalize.grid() if (argument == "Temporal fluence" or argument == "Spectral fluence") else self.normalize.grid_remove()
+    
+    def toggle_extra_seed_arguments(self, argument):
+        if argument == "gauss":
+            self.seed_gaussian_order.grid()
+            self.seed_gaussian_order_label.grid()
+        else:
+            self.seed_gaussian_order.grid_remove()
+            self.seed_gaussian_order_label.grid_remove()
 
     def read_file_list(self):
         path = customtkinter.filedialog.askdirectory(initialdir=self.folder_path)
@@ -630,8 +647,6 @@ class App(customtkinter.CTk):
             if hasattr(val, "get"):
                 val = val.get()
             project_data[name] = val
-        
-        print(project_data)
 
         # Read out the variables and convert to JSON-safe dict
         def to_json_safe(obj):
@@ -654,7 +669,6 @@ class App(customtkinter.CTk):
         with open(filename, "r") as f:
             data = json.load(f)
 
-        print(data)
         for name, val in data.items():
             if hasattr(self, name):
                 attr = getattr(self, name)
