@@ -253,7 +253,7 @@ def plot_small_signal_gain(crystal, beta, round_trips=1, normalize=False, xlim=(
 
     plot_function(lambd * 1e9, y_list, xlabel, ylabel, title, legends, axis, save, path, save_data, xlim=xlim, ylim=ylim)
 
-def plot_beta_eq(crystal, lambda_max=None, save=False, save_path=None, save_data=False, show_title=True, axis=None):
+def plot_beta_eq(crystal, lambda_p=None, lambda_l=None, lambda_max=None, save=False, save_path=None, save_data=False, show_title=True, kwargs=dict(),axis=None):
     """
     Plot equilibrium inversion beta_eq with a logistic fit.
     """
@@ -270,7 +270,33 @@ def plot_beta_eq(crystal, lambda_max=None, save=False, save_path=None, save_data
     fname = f"{crystal.material}_{crystal.temperature}K_equilibrium_inversion.pdf"
     path = create_save_path(save_path, fname)
 
-    plot_function(lambd * 1e9, y_list, xlabel, ylabel, title, legends, axis, save, path, save_data, ylim=(-.1,1.1))
+    # now use lambda_p and lambda_l separately
+    if not isinstance(kwargs, list): 
+        kwargs = [kwargs, kwargs]  # base kwargs for your two original curves
+    
+    x = [lambd*1e9, lambd*1e9]
+
+    # Helper function to append sigma values for one wavelength
+    def append_sigma_points(x, y, legends, lam, color="tab:green"):
+        beta = y[1][np.argmin(abs(lam - x[1]))]
+
+        x.extend([lam])
+        y.extend([beta])
+        legends.extend([
+            f"$\\beta_{{eq}}$({lam}nm) = {beta:.2f}"
+        ])
+
+        return [dict(marker='o', c=color)]
+
+    if lambda_p is not None:
+        kwargs.extend(append_sigma_points(x, y_list, legends, lambda_p, color="tab:green"))
+
+    if lambda_l is not None:
+        kwargs.extend(append_sigma_points(x, y_list, legends, lambda_l, color="tab:red"))
+
+    print(x)
+    print(y_list)
+    plot_function(x, y_list, xlabel, ylabel, title, legends, axis, save, path, save_data, ylim=(-.1,1.1), kwargs=kwargs)
 
 def plot_Isat(crystal, save=False, save_path=None, save_data=False, xlim=(900,1000), ylim=(0,200), lambda0 = None, legends=None, show_title=True, axis=None, kwargs=None):
     """

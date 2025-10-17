@@ -333,7 +333,7 @@ class Amplifier():
 # Display of results
 # =============================================================================
 
-def plot_temporal_fluence(amplifier, axis=None, save=False, save_path=None, save_data=False, show_title=True):
+def plot_temporal_fluence(amplifier, axis=None, save=False, save_path=None, save_data=False, show_title=True, normalize=False):
     """ 
     Plot the temporal fluence for the last ten passes
     """
@@ -356,7 +356,7 @@ def plot_temporal_fluence(amplifier, axis=None, save=False, save_path=None, save
 
     kwargs = dict(marker="o")
 
-    plot_function(x,y_array, xlabel, ylabel, title, legend, axis, save, path, save_data, outer_legend=True)
+    plot_function(x,y_array, xlabel, ylabel, title, legend, axis, save, path, save_data, outer_legend=True, normalize=normalize)
 
 def plot_total_fluence_per_pass(amplifier, axis=None, save=False, save_path=None, save_data=False, show_title=True):
     """ 
@@ -448,7 +448,7 @@ def plot_inversion2D(amplifier, cmap="magma", save=False, save_path=None, save_d
         plt.tight_layout()
         plt.savefig(path)
 
-def plot_spectral_fluence(amplifier, axis=None, save=False, save_path=None, save_data=False, xlim=(-np.inf,np.inf), show_title=True):
+def plot_spectral_fluence(amplifier, axis=None, save=False, save_path=None, save_data=False, xlim=(-np.inf,np.inf), show_title=True, normalize=False):
     """ 
     Plot the spectral fluence at the end of the ten last roundtrips. Note, that a roundtrip corresponds to two passes through the material.
     """
@@ -470,7 +470,7 @@ def plot_spectral_fluence(amplifier, axis=None, save=False, save_path=None, save
     fname = f"Spectral_seed_{amplifier.seed.fluence*1e-4}Jcm2_{amplifier.crystal.material}_{amplifier.crystal.temperature}_spectral-fluence.pdf"
     path = create_save_path(save_path, fname)
 
-    plot_function(x,y_array, xlabel, ylabel, title, legend, axis, save, path, save_data, outer_legend=True, xlim=xlim)
+    plot_function(x,y_array, xlabel, ylabel, title, legend, axis, save, path, save_data, outer_legend=True, xlim=xlim, normalize=normalize)
 
 def plot_inversion_before_after(amplifier, save=False, save_path=None, save_data=False, show_title=True, axis=None):
     """

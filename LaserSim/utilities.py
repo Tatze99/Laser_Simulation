@@ -129,7 +129,7 @@ def moving_average(x, window_size):
 
     return smoothed_array
 
-def plot_function(x, y, xlabel, ylabel, title=None, legends=None, axis=None, save=False, save_path=None, save_data=False, xlim = (-np.inf, np.inf), ylim = (-np.inf, np.inf), outer_legend = False, kwargs=None):
+def plot_function(x, y, xlabel, ylabel, title=None, legends=None, axis=None, save=False, save_path=None, save_data=False, xlim = (-np.inf, np.inf), ylim = (-np.inf, np.inf), outer_legend = False, normalize=False, kwargs=None):
     """
     General function for plotting and saving figures.
     
@@ -162,6 +162,9 @@ def plot_function(x, y, xlabel, ylabel, title=None, legends=None, axis=None, sav
         y = [y]
     if not isinstance(x, list):
         x = [x] * len(y)
+    
+    if normalize:
+        y = [yi / np.max(yi) if np.max(yi) != 0 else yi for yi in y]
 
     for i, (x_elem, y_elem) in enumerate(zip(x, y)):
         kw = kwargs[i]
