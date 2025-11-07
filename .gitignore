@@ -16,3 +16,4 @@
 !material_database/*
 !material_database/*/*
 material_database/plots/*
+output/

@@ -17,7 +17,7 @@ def logistic_function(x, a,b,d):
 class Crystal():
     def __init__(self, material="YbCaF2", temperature=300, lambda_a = 940, lambda_e = 1030, length=None, N_dop=None, tau_f=None, smooth_sigmas = True, resolution=numres, point_density_reduction=1):
         self.inversion = np.zeros(resolution)
-        self.temperature = temperature
+        self.temperature = int(temperature)
         self.use_spline_interpolation = True
         self.material = material
         self.lambda_a = lambda_a  # absorption wavelength in nm (used for displaying cross sections with print)
@@ -79,7 +79,7 @@ class Crystal():
             if self.table_sigma_e[1,0] < self.table_sigma_e[0,0]: 
                 self.table_sigma_e = np.flipud(self.table_sigma_e)
         else:
-            raise FileNotFoundError(f"No file found for file pattern: {Folder} -> material_database -> {self.name} @ {self.temperature}K")
+            raise FileNotFoundError(f"No file found for file pattern: {Folder} -> material_database -> {self.material} @ {self.temperature}K")
 
     def smooth_cross_sections(self, FF_filter=0, mov_average=4, useMcCumber = True, lambda_max=None):
         """
@@ -160,6 +160,7 @@ class Crystal():
         f"- length = {self.length*1e3} mm\n"
         f"- tau_f = {self.tau_f*1e3} ms\n"
         f"- N_dop = {self.doping_concentration*1e-6} cm^-3\n"
+        f"- T = {self.temperature} K\n"
         f"- sigma_a({self.lambda_a}nm) = {self.sigma_a(self.lambda_a*1e-9)*1e4:.3e}cm²\n"
         f"- sigma_e({self.lambda_a}nm) = {self.sigma_e(self.lambda_a*1e-9)*1e4:.3e}cm²\n"
         f"- sigma_a({self.lambda_e}nm) = {self.sigma_a(self.lambda_e*1e-9)*1e4:.3e}cm²\n"
