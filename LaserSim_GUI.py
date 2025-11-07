@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 import json
 from CTkRangeSlider import *
 import customtkinter
@@ -24,8 +25,27 @@ from LaserSim.spectral_losses import test_reflectivity_approximation
 
 version_number = "25/10"
 Standard_path = os.path.dirname(os.path.abspath(__file__))
-LaserSim_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+def get_database_path():
+    """
+    Return the absolute path to the material_database folder,
+    whether the app is running from source or from a PyInstaller build.
+    """
+    if getattr(sys, 'frozen', False):
+        # Running from a PyInstaller bundle
+        base_path = sys._MEIPASS  # internal temp folder (_internal)
+        # Check if it exists next to the executable instead:
+        exe_dir = os.path.dirname(sys.executable)
+        possible_path = os.path.join(exe_dir, "material_database")
+        if os.path.exists(possible_path):
+            return possible_path
+    else:
+        # Running from source
+        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    return os.path.join(base_path, "material_database")
+
+database_path = get_database_path()
 
 class App(customtkinter.CTk):
     def __init__(self):
@@ -67,8 +87,7 @@ class App(customtkinter.CTk):
         self.img_laser = customtkinter.CTkImage(dark_image=Image.open(os.path.join(Standard_path,"ui_images","laser.png")), size=(15, 15))
 
     def initialize_variables(self):
-        folder = os.path.join(LaserSim_path, "material_database")
-        self.materials = [f for f in os.listdir(folder) if os.path.isdir(os.path.join(folder, f)) and not f.startswith('plots') and not f.startswith('reflectivity_curves')]
+        self.materials = [f for f in os.listdir(database_path) if os.path.isdir(os.path.join(database_path, f)) and not f.startswith('plots') and not f.startswith('reflectivity_curves')]
         self.material_plot_functions = {'Cross sections': plot_cross_sections, 
                                         'Small signal gain': plot_small_signal_gain,
                                         'Equilibrium inversion': plot_beta_eq, 
@@ -524,7 +543,7 @@ class App(customtkinter.CTk):
         self.canvas.draw()
 
     def update_material(self, material):
-        material_path = os.path.join(LaserSim_path, "material_database", material)
+        material_path = os.path.join(database_path, material)
         file_name = [f for f in os.listdir(material_path)]
         temperatures = []
         for s in file_name:
