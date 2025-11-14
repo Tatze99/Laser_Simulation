@@ -320,50 +320,51 @@ class App(customtkinter.CTk):
     # Load the sidebar
     def load_crystal_sidebar(self):
         row = 0
+        before = set(self.settings_frame.winfo_children())
         self.crystal_title = App.create_label(self.settings_frame, text="Crystal Settings", font=customtkinter.CTkFont(size=16, weight="bold"), row=row, column=0, columnspan=5, padx=20, pady=(20, 5),sticky=None)
         self.crystal_doping, self.crystal_doping_label = App.create_entry(self.settings_frame,column=1, row=row+1, columnspan=2, width=110, text="doping [cm⁻³]", textwidget=True)
         self.crystal_thickness, self.crystal_thickness_label = App.create_entry(self.settings_frame,column=1, row=row+2, columnspan=2, width=110, text="thickness [mm]", textwidget=True)
         self.crystal_tau_f, self.crystal_tau_f_label = App.create_entry(self.settings_frame,column=1, row=row+3, columnspan=2, width=110, text="lifetime τ [ms]", textwidget=True)
 
-        self.crystal_widgets = ["crystal_title", "crystal_doping", "crystal_thickness", "crystal_tau_f", "crystal_doping_label", "crystal_thickness_label", "crystal_tau_f_label"]
+        self.crystal_widgets = set(self.settings_frame.winfo_children()) - before
         self.toggle_sidebar_window(self.crystal_button, self.crystal_widgets)
 
     def load_pump_sidebar(self):
         row = 10
+        before = set(self.settings_frame.winfo_children())
         self.pump_title = App.create_label(self.settings_frame, text="Pump Settings", font=customtkinter.CTkFont(size=16, weight="bold"), row=row, column=0, columnspan=5, padx=20, pady=(20, 5),sticky=None)
-        self.pump_wavelength, self.pump_wavelength_label = App.create_entry(self.settings_frame,column=1, row=row+1, columnspan=2, width=110, text="wavelength [nm]", init_val=round(Pump().wavelength*1e9, 3), textwidget=True)
+        self.pump_wavelength = App.create_entry(self.settings_frame,column=1, row=row+1, columnspan=2, width=110, text="wavelength [nm]", init_val=round(Pump().wavelength*1e9, 3))
         
-        self.pump_intensity, self.pump_intensity_label = App.create_entry(self.settings_frame,column=1, row=row+2, columnspan=2, width=110-50, text="intensity [kW/cm²]", init_val=Pump().intensity*1e-7, padx=(10,10+50), textwidget=True)
+        self.pump_intensity = App.create_entry(self.settings_frame,column=1, row=row+2, columnspan=2, width=110-50, text="intensity [kW/cm²]", init_val=Pump().intensity*1e-7, padx=(10,10+50))
         self.pump_intensity_button = App.create_button(self.settings_frame,column=1, row=row+2, columnspan=2, width=40, text="Isat", command=lambda: self.pump_intensity.reinsert(round(Crystal(material=self.material).I_sat(float(self.pump_wavelength.get())*1e-9)*1e-7,2)), padx=(80,10))
 
-        self.pump_duration, self.pump_duration_label = App.create_entry(self.settings_frame,column=1, row=row+3, columnspan=2, width=110-50, text="duration [ms]", init_val=Pump().duration*1e3, padx=(10,10+50), textwidget=True)
+        self.pump_duration = App.create_entry(self.settings_frame,column=1, row=row+3, columnspan=2, width=110-50, text="duration [ms]", init_val=Pump().duration*1e3, padx=(10,10+50))
         self.pump_duration_button = App.create_button(self.settings_frame,column=1, row=row+3, columnspan=2, width=40, text="τ", command=lambda: self.pump_duration.reinsert(self.crystal_tau_f.get()), padx=(80,10))
 
-        self.pump_widgets= ["pump_intensity","pump_intensity_label","pump_wavelength","pump_wavelength_label","pump_title", "pump_duration", "pump_duration_label", "pump_intensity_button", "pump_duration_button"]
+        self.pump_widgets= set(self.settings_frame.winfo_children()) - before
         self.toggle_sidebar_window(self.pump_button, self.pump_widgets)
 
     def load_seed_sidebar(self):
         row = 20
+        before = set(self.settings_frame.winfo_children())
         self.seed_title = App.create_label(self.settings_frame, text="Seed Settings", font=customtkinter.CTkFont(size=16, weight="bold"), row=row, column=0, columnspan=5, padx=20, pady=(20, 5),sticky=None)
         self.seed_type_button = App.create_segmented_button(self.settings_frame, values=["Q-Switch","CPA"], command=lambda value: self.toggle_seed_type(value), row=row+1, column=1, columnspan=3, width=110)
         self.seed_type_label = App.create_label(self.settings_frame, text="Seed Type", column=0, row=row+1)
 
-        self.seed_QSwitch_fluence, self.seed_QSwitch_fluence_label = App.create_entry(self.settings_frame,column=1, row=row+2, columnspan=2, width=110, text="fluence [J/cm²]", init_val=Seed().fluence*1e-4, textwidget=True)
-        self.seed_QSwitch_wavelength, self.seed_QSwitch_wavelength_label = App.create_entry(self.settings_frame,column=1, row=row+3, columnspan=2, width=110, text="wavelength [nm]", init_val=Seed().wavelength*1e9, textwidget=True)
-        self.seed_QSwitch_duration, self.seed_QSwitch_duration_label = App.create_entry(self.settings_frame,column=1, row=row+4, columnspan=2, width=110, text="duration [ns]", init_val=Seed().duration*1e9, textwidget=True)
-        self.seed_QSwitch_pulsetype, self.seed_QSwitch_pulsetype_label = App.create_Menu(self.settings_frame, values=["gauss","lorentz","rect"], column=1, row=row+5, command=self.toggle_extra_seed_arguments, text="pulse type", width=110, textwidget=True)
-        self.seed_gaussian_order, self.seed_gaussian_order_label = App.create_entry(self.settings_frame,column=1, row=row+6, columnspan=2, width=110, text="gaussian order", init_val=1, textwidget=True)
+        self.seed_QSwitch_fluence     = App.create_entry(self.settings_frame,column=1, row=row+2, columnspan=2, width=110, text="fluence [J/cm²]", init_val=Seed().fluence*1e-4)
+        self.seed_QSwitch_wavelength  = App.create_entry(self.settings_frame,column=1, row=row+3, columnspan=2, width=110, text="wavelength [nm]", init_val=Seed().wavelength*1e9)
+        self.seed_QSwitch_duration    = App.create_entry(self.settings_frame,column=1, row=row+4, columnspan=2, width=110, text="duration [ns]", init_val=Seed().duration*1e9)
+        self.seed_QSwitch_pulsetype   = App.create_Menu(self.settings_frame, values=["gauss","lorentz","rect"], column=1, row=row+5, command=self.toggle_extra_seed_arguments, text="pulse type", width=110)
+        self.seed_gaussian_order, self.seed_gaussian_order_label = App.create_entry(self.settings_frame,column=1, row=row+6, columnspan=2, width=110, text="gaussian order", init_val=1, textwidget=True) # need the label!
 
-        self.seed_CPA_fluence, self.seed_CPA_fluence_label = App.create_entry(self.settings_frame,column=1, row=row+2, columnspan=2, width=110, text="fluence [J/cm²]", init_val=Seed_CPA().fluence*1e-4, textwidget=True)
-        self.seed_CPA_wavelength, self.seed_CPA_wavelength_label = App.create_entry(self.settings_frame,column=1, row=row+3, columnspan=2, width=110, text="wavelength [nm]", init_val=round(Seed_CPA().wavelength*1e9, 3), textwidget=True)
-        self.seed_CPA_duration, self.seed_CPA_duration_label = App.create_entry(self.settings_frame,column=1, row=row+4, columnspan=2, width=110, text="bandwidth [nm]", init_val=round(Seed_CPA().bandwidth*1e9, 3), textwidget=True)
-        self.seed_CPA_pulsetype, self.seed_CPA_pulsetype_label = App.create_Menu(self.settings_frame, values=["gauss","lorentz","rect"], column=1, row=row+5, command=self.toggle_extra_seed_arguments, text="pulse type", width=110, textwidget=True)
+        self.seed_CPA_fluence         = App.create_entry(self.settings_frame,column=1, row=row+2, columnspan=2, width=110, text="fluence [J/cm²]", init_val=Seed_CPA().fluence*1e-4)
+        self.seed_CPA_wavelength      = App.create_entry(self.settings_frame,column=1, row=row+3, columnspan=2, width=110, text="wavelength [nm]", init_val=round(Seed_CPA().wavelength*1e9, 3))
+        self.seed_CPA_duration        = App.create_entry(self.settings_frame,column=1, row=row+4, columnspan=2, width=110, text="bandwidth [nm]", init_val=round(Seed_CPA().bandwidth*1e9, 3))
+        self.seed_CPA_pulsetype       = App.create_Menu(self.settings_frame, values=["gauss","lorentz","rect"], column=1, row=row+5, command=self.toggle_extra_seed_arguments, text="pulse type", width=110)
 
         self.plot_seed_button = App.create_button(self.settings_frame, text="Plot Seed Pulse", command=self.seed_plot, row=row+7, column=0, columnspan=5, padx=20, pady=(5, 15))
 
-        self.seed_widgets= ["seed_QSwitch_fluence","seed_QSwitch_fluence_label","seed_QSwitch_wavelength","seed_QSwitch_wavelength_label","seed_title", "seed_QSwitch_duration", "seed_QSwitch_duration_label", "seed_QSwitch_pulsetype", "seed_QSwitch_pulsetype_label",
-                            "seed_CPA_fluence", "seed_CPA_fluence_label", "seed_CPA_wavelength", "seed_CPA_wavelength_label", "seed_CPA_duration", "seed_CPA_duration_label", "seed_CPA_pulsetype", "seed_CPA_pulsetype_label",
-                            "seed_type_button", "plot_seed_button", "seed_type_label", "seed_gaussian_order", "seed_gaussian_order_label"]
+        self.seed_widgets= set(self.settings_frame.winfo_children()) - before
         self.toggle_sidebar_window(self.seed_button, self.seed_widgets)
 
         self.seed_type_button.set("Q-Switch")
@@ -371,14 +372,14 @@ class App(customtkinter.CTk):
 
     def load_amplifier_sidebar(self):
         row=30
+        before = set(self.settings_frame.winfo_children())
         self.amplifier_title = App.create_label(self.settings_frame, text="Amplifier Settings", font=customtkinter.CTkFont(size=16, weight="bold"), row=row, column=0, columnspan=5, padx=20, pady=(20, 5), sticky=None)
 
         self.amplifier_passes, self.amplifier_passes_label = App.create_entry(self.settings_frame,column=1, row=row+1, columnspan=2, width=110, text="passes", init_val=Amplifier().passes, textwidget=True)
         self.amplifier_losses, self.amplifier_losses_label = App.create_entry(self.settings_frame,column=1, row=row+2, columnspan=2, width=110, text="losses [%]", init_val=Amplifier().losses*1e2, textwidget=True)
         self.amplifier_maxfluence, self.amplifier_maxfluence_label = App.create_entry(self.settings_frame, column=1, row=row+3, columnspan=2, width=110, text="max fluence [J/cm²]", init_val=Amplifier().max_fluence*1e-4, textwidget=True)
 
-        self.amplifier_widgets = ["amplifier_title", "amplifier_passes", "amplifier_passes_label", "amplifier_losses", "amplifier_losses_label", "amplifier_maxfluence", "amplifier_maxfluence_label"]
-
+        self.amplifier_widgets = set(self.settings_frame.winfo_children()) - before
         self.toggle_sidebar_window(self.amplifier_button, self.amplifier_widgets)
 
     # load the classes
@@ -408,22 +409,22 @@ class App(customtkinter.CTk):
 
     def toggle_seed_type(self, value):
         if not self.seed_button.get():
-            [getattr(self, name).grid_remove() for name in self.seed_widgets]
+            [widget.grid_remove() for widget in self.seed_widgets]
         elif value == "Q-Switch":
-            [getattr(self, name).grid_remove() for name in self.seed_widgets if "CPA" in name]
-            [getattr(self, name).grid() for name in self.seed_widgets if "QSwitch" in name]
+            [widget.grid_remove() for widget in self.seed_widgets if "CPA" in widget.winfo_name()]
+            [widget.grid() for widget in self.seed_widgets if "QSwitch" in widget.winfo_name()]
             self.toggle_extra_seed_arguments(self.seed_QSwitch_pulsetype.get())
         elif value == "CPA":
-            [getattr(self, name).grid_remove() for name in self.seed_widgets if "QSwitch" in name]
-            [getattr(self, name).grid() for name in self.seed_widgets if "CPA" in name]
+            [widget.grid_remove() for widget in self.seed_widgets if "QSwitch" in widget.winfo_name()]
+            [widget.grid() for widget in self.seed_widgets if "CPA" in widget.winfo_name()]
             self.toggle_extra_seed_arguments(self.seed_CPA_pulsetype.get())
 
     def toggle_sidebar_window(self, button, widgets):
         if button.get():
             self.settings_frame.grid()
-            [getattr(self, name).grid() for name in widgets]
+            [widget.grid() for widget in widgets]
         else:
-            [getattr(self, name).grid_remove() for name in widgets]
+            [widget.grid_remove() for widget in widgets]
             self.close_sidebar_window()
 
         if button == self.seed_button:
@@ -726,6 +727,11 @@ class App(customtkinter.CTk):
         self.canvas.draw()  # Redraw canvas to apply the automatic size
 
     def on_closing(self):
+        try:
+            if hasattr(self, "canvas"): self.canvas.get_tk_widget().destroy()
+            if hasattr(self, "fig"): plt.close(self.fig)
+        except:
+            pass
         self.quit()    # Python 3.12 works
         self.destroy() # needed for built exe
 
