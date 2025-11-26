@@ -23,7 +23,7 @@ from LaserSim.seed_CPA import plot_seed_pulse as plot_CPA_pulse
 from LaserSim.spectral_losses import test_reflectivity_approximation
 
 
-version_number = "25/10"
+version_number = "25/11"
 Standard_path = os.path.dirname(os.path.abspath(__file__))
 
 def get_database_path():
@@ -67,6 +67,8 @@ class App(customtkinter.CTk):
         self.update_material(self.material_list.get())
 
         self.crystal_plot()
+        self.toggle_extra_material_arguments("Cross sections")
+
         self.canvas_width.bind("<KeyRelease>", lambda val: self.update_canvas_size(self.canvas_ratio_list[self.canvas_ratio.get()]))
         self.canvas_height.bind("<KeyRelease>", lambda val: self.update_canvas_size(self.canvas_ratio_list[self.canvas_ratio.get()]))
 
@@ -156,8 +158,8 @@ class App(customtkinter.CTk):
         self.inversion    = App.create_entry(frame, column=0, row=5, init_val="0.1,0.15,0.2", width=170, padx=(210-170, 10))
         self.inversion_label    = App.create_label(frame, column=0, row=5, text="β", padx=(5, 215-20))
         self.plot_pump_laser_cross_sections = App.create_switch(frame, text="Show values at λp, λl", command=None,  column=0, row=5, padx=20)
-        self.add_text_2D   = App.create_entry(frame, column=0, row=9, init_val="", width=150, padx=(210-150, 10))
-        self.add_text_2D_label    = App.create_label(frame, column=0, row=9, text="legend", padx=(10, 210-40))
+        self.add_legend   = App.create_entry(frame, column=0, row=9, init_val="", width=150, padx=(210-150, 10))
+        self.add_legend_label    = App.create_label(frame, column=0, row=9, text="legend", padx=(10, 210-40))
         self.reset_material_plot = App.create_button(frame, width=50, command=lambda: (self.clear_figure(), self.crystal_plot()), column=0, row=4, image=self.img_reset, sticky="e")
         self.reset_amplifier_plot = App.create_button(frame, width=50, command=lambda: (self.clear_figure(), self.amplifier_plot()), column=0, row=8, image=self.img_reset, sticky="e")
         self.normalize = App.create_switch(frame, text="Normalize", command=None,  column=0, row=9, padx=20, pady=(5,15))
@@ -200,8 +202,8 @@ class App(customtkinter.CTk):
         self.inversion.grid_remove()
         self.inversion_label.grid_remove()
         self.plot_pump_laser_cross_sections.grid_remove()
-        self.add_text_2D.grid_remove()
-        self.add_text_2D_label.grid_remove()
+        self.add_legend.grid_remove()
+        self.add_legend_label.grid_remove()
         self.reset_material_plot.grid_remove()
         self.reset_amplifier_plot.grid_remove()
         self.show_title.select()
@@ -514,9 +516,20 @@ class App(customtkinter.CTk):
             kwargs["normalize"] = self.normalize.get()
         elif plot_function == plot_inversion_before_after or plot_function == plot_total_fluence_per_pass:
             seed_type = self.seed_type_button.get()
-        elif plot_function == plot_storage_efficiency_2D:
-            kwargs["add_text"] = self.add_text_2D.get()
-        elif plot_function == plot_storage_efficiency_vs_pump_time:
+        
+        if plot_function in [plot_total_fluence_per_pass, plot_inversion1D, plot_inversion_temporal, plot_inversion2D, plot_inversion_vs_pump_intensity, plot_storage_efficiency_2D, plot_storage_efficiency_vs_pump_intensity]:
+            kwargs["custom_legend"] = self.add_legend.get().format(crystal = self.material_list.get(),
+                                                                   intensity=float(self.pump_intensity.get()), 
+                                                                   tau_p=float(self.pump_duration.get()),
+                                                                   Ndop=float(self.crystal_doping.get()),
+                                                                   thickness=float(self.crystal_thickness.get()),
+                                                                   temperature=self.temperature_list.get(),
+                                                                   ZPL=float(self.crystal_ZPL.get()),
+                                                                   tau_f=float(self.crystal_tau_f.get()),
+                                                                   losses=float(self.amplifier_losses.get()),
+                                                                   lambda_p=float(self.pump_wavelength.get()),
+                                                                   lambda_l=float(self.seed_QSwitch_wavelength.get()))
+        if plot_function == plot_storage_efficiency_vs_pump_time:
             kwargs["pump_intensity"] = [float(self.pump_intensity.get())*1e7]
 
         seed = self.load_seed_pulse(seed_type)
@@ -588,12 +601,13 @@ class App(customtkinter.CTk):
             self.plot_pump_laser_cross_sections.grid_remove()
     
     def toggle_extra_amplifier_arguments(self, argument):
-        if argument == "Storage efficiency 2D":
-            self.add_text_2D.grid()
-            self.add_text_2D_label.grid()
+        if argument in ["Total fluence pass", "Storage efficiency 2D", "Inversion 1D (space)", "Inversion 1D (time)", "Inversion 2D", "Inversion vs Ip", "Storage efficiency vs Ip"]:
+            self.add_legend.grid()
+            self.add_legend_label.grid()
         else:
-            self.add_text_2D.grid_remove()
-            self.add_text_2D_label.grid_remove()
+            self.add_legend.grid_remove()
+            self.add_legend.delete(0, 'end')
+            self.add_legend_label.grid_remove()
 
         self.normalize.grid() if (argument == "Temporal fluence" or argument == "Spectral fluence") else self.normalize.grid_remove()
     
