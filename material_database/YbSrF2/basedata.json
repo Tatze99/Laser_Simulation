@@ -5,6 +5,8 @@
     "N_dop": 4.065e26,
     "density": 4.24e3,
     "refractive_index": 1.4316,
+    "energy_lower_level": [0],
+    "energy_upper_level": [10262],
     "ZPL": 974.5e-9,
     "comment": "lasermaterials.info from Mathias Siebold"
 }

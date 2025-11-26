@@ -358,7 +358,7 @@ def plot_temporal_fluence(amplifier, axis=None, save=False, save_path=None, save
 
     plot_function(x,y_array, xlabel, ylabel, title, legend, axis, save, path, save_data, outer_legend=True, normalize=normalize)
 
-def plot_total_fluence_per_pass(amplifier, axis=None, save=False, save_path=None, save_data=False, show_title=True):
+def plot_total_fluence_per_pass(amplifier, axis=None, save=False, save_path=None, save_data=False, show_title=True, custom_legend=""):
     """ 
     Plot the total fluence at the end of each pass
     """
@@ -371,7 +371,7 @@ def plot_total_fluence_per_pass(amplifier, axis=None, save=False, save_path=None
     x = np.arange(0,len(fluence_out),1)
     xlabel = "Pass number"
     ylabel = "output fluence in J/cm²"
-    legend = f"F$_{{max}}$ = {np.max(fluence_out)*1e-4:.3g}J/cm²"
+    legend = custom_legend if custom_legend != "" else f"F$_{{max}}$ = {np.max(fluence_out)*1e-4:.3g}J/cm²"
     title  = f"{amplifier.crystal.material}, Output fluence vs. pass number" if show_title else None
     fname = f"Temporal_seed_{amplifier.seed.fluence*1e-4}Jcm2_{amplifier.crystal.material}_{amplifier.crystal.temperature}K_total-fluence.pdf"
     path = create_save_path(save_path, fname)
@@ -380,7 +380,7 @@ def plot_total_fluence_per_pass(amplifier, axis=None, save=False, save_path=None
 
     plot_function(x,fluence_out*1e-4, xlabel, ylabel, title, legend, axis, save, path, save_data, kwargs=kwargs)
 
-def plot_inversion1D(amplifier, axis=None, save=False, save_path=None, save_data=False, ylim=(0,np.inf), show_title=True):
+def plot_inversion1D(amplifier, axis=None, save=False, save_path=None, save_data=False, ylim=(0,np.inf), show_title=True, custom_legend=""):
     """
     Plot the inversion in the crystal after the pumping process
     """
@@ -390,14 +390,14 @@ def plot_inversion1D(amplifier, axis=None, save=False, save_path=None, save_data
     y = crystal.inversion_end 
     xlabel = "depth $z$ in mm"
     ylabel = "inversion $\\beta$"
-    legend = f"$\\beta_{{mean}}$ = {np.mean(crystal.inversion_end):.4f}"
+    legend = f"$\\beta_{{mean}}$ = {np.mean(crystal.inversion_end):.4f}" if custom_legend == "" else custom_legend
     title = "$\\beta(z)$ at the end of pumping" if show_title else None
     fname = f"{crystal.material}_{crystal.temperature}K_{pump.intensity*1e-7}kWcm2_inversion1D.pdf"
     path = create_save_path(save_path, fname)
 
     plot_function(x, y, xlabel, ylabel, title, legend, axis, save, path, save_data, ylim=ylim)
 
-def plot_inversion_temporal(amplifier, axis=None, save=False, save_path=None, save_data=False, ylim=(0,np.inf), show_title=True):
+def plot_inversion_temporal(amplifier, axis=None, save=False, save_path=None, save_data=False, ylim=(0,np.inf), show_title=True, custom_legend=""):
     """
     Plot the inversion at the surface of the crystal as a function of time
     """
@@ -407,14 +407,14 @@ def plot_inversion_temporal(amplifier, axis=None, save=False, save_path=None, sa
     y = crystal.inversion[:,0]
     xlabel = "time $t$ in ms"
     ylabel = "inversion $\\beta$"
-    legend = f"$\\beta_{{max}}$ = {np.ma.max(y):.4f}"
+    legend = f"$\\beta_{{max}}$ = {np.ma.max(y):.4f}" if custom_legend == "" else custom_legend
     title = "$\\beta(t)$ at the surface of the medium" if show_title else None
     fname = f"{crystal.material}_{crystal.temperature}K_{pump.intensity*1e-7}kWcm2_inversion1D_front.pdf"
     path = create_save_path(save_path, fname)
 
     plot_function(x, y, xlabel, ylabel, title, legend, axis, save, path, save_data, ylim=ylim)
 
-def plot_inversion2D(amplifier, cmap="magma", save=False, save_path=None, save_data=False, axis=None, show_title=True):
+def plot_inversion2D(amplifier, cmap="magma", save=False, save_path=None, save_data=False, axis=None, show_title=True, custom_legend=""):
     """
     Plot the inversion in the crystal over time and space
     """
@@ -438,6 +438,14 @@ def plot_inversion2D(amplifier, cmap="magma", save=False, save_path=None, save_d
 
     ax.set_ylabel("pump time $\\tau_p$ in ms")
     ax.set_xlabel("$z$ in mm")
+
+    if custom_legend != "":
+        base = ax.transAxes
+        offset = offset_copy(base, x=10, y=10, units='points', fig=fig)
+        ax.text(0, 0, custom_legend, transform=offset, fontsize=10,
+                verticalalignment='bottom', horizontalalignment='left',
+                bbox=dict(boxstyle='round', facecolor='white', alpha=1))
+        
     if show_title:
         ax.set_title(r"$\beta$ vs time and space")
     ax.grid()
@@ -493,7 +501,7 @@ def plot_inversion_before_after(amplifier, save=False, save_path=None, save_data
 
     plot_function(x, [y_before, y_after], xlabel, ylabel, title, legend, axis, save, path, save_data)
 
-def plot_inversion_vs_pump_intensity(amplifier, axis=None, save=False, save_data=False, save_path=None, show_title=True):
+def plot_inversion_vs_pump_intensity(amplifier, axis=None, save=False, save_data=False, save_path=None, show_title=True, custom_legend=""):
     """
     Plot the inversion as a function of pump intensity
     """
@@ -513,7 +521,7 @@ def plot_inversion_vs_pump_intensity(amplifier, axis=None, save=False, save_data
     xlabel = "pump intensity in kW/cm²"
     ylabel = "average inversion $\\beta$"
     title = "$\\beta(z)$ as a function of pump intensity" if show_title else None
-    legend = None
+    legend = None if custom_legend == "" else custom_legend
     fname = f"{crystal.material}_{crystal.temperature}K_{2*pump.intensity*1e-7}kWcm2_inversion_vs_pump_intensity.pdf"
     path = create_save_path(save_path, fname)
     kwargs = dict(marker="o")
@@ -522,7 +530,7 @@ def plot_inversion_vs_pump_intensity(amplifier, axis=None, save=False, save_data
 
     plot_function(x, y, xlabel, ylabel, title, legend, axis, save, path, save_data, kwargs=kwargs)
 
-def plot_storage_efficiency_vs_pump_intensity(amplifier, axis=None, save=False, save_data=False, save_path=None, show_title=True):
+def plot_storage_efficiency_vs_pump_intensity(amplifier, axis=None, save=False, save_data=False, save_path=None, show_title=True, custom_legend=""):
     """
     Plot the storage efficiency as a function of pump intensity
     """
@@ -537,7 +545,7 @@ def plot_storage_efficiency_vs_pump_intensity(amplifier, axis=None, save=False, 
     xlabel = "pump intensity in kW/cm²"
     ylabel = "storage efficiency"
     title = "storage efficiency as a function of pump intensity" if show_title else None
-    legend = None
+    legend = None if custom_legend == "" else custom_legend
     fname = f"{crystal.material}_{crystal.temperature}K_{pump.duration*1e3}ms_storage_efficiency_vs_pump_intensity.pdf"
     path = create_save_path(save_path, fname)
     kwargs = dict(marker="o")
@@ -568,7 +576,7 @@ def plot_storage_efficiency_vs_pump_time(amplifier, pump_intensity=[], axis=None
 
     plot_function(x, y, xlabel, ylabel, title, legend, axis, save, path, save_data, kwargs=kwargs)
 
-def plot_storage_efficiency_2D(amplifier, cmap="magma", save=False, save_path=None, save_data=False, show_title=True, add_text="", axis=None):
+def plot_storage_efficiency_2D(amplifier, cmap="magma", save=False, save_path=None, save_data=False, show_title=True, custom_legend="", axis=None):
     """
     Plot the storage efficiency in the crystal over time and pump intensity
     """
@@ -601,10 +609,10 @@ def plot_storage_efficiency_2D(amplifier, cmap="magma", save=False, save_path=No
     if show_title:
         ax.set_title(r"storage efficiency vs pump duration and intensity") 
 
-    if add_text != "":
+    if custom_legend != "":
         base = ax.transAxes
         offset = offset_copy(base, x=10, y=10, units='points', fig=fig)
-        ax.text(0, 0, add_text, transform=offset, fontsize=10,
+        ax.text(0, 0, custom_legend, transform=offset, fontsize=10,
                 verticalalignment='bottom', horizontalalignment='left',
                 bbox=dict(boxstyle='round', facecolor='white', alpha=1))
     ax.grid()
