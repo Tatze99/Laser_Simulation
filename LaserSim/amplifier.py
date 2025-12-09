@@ -18,7 +18,7 @@ Folder = os.path.abspath(os.path.join(Folder, os.pardir))
 
 class Amplifier():
 
-    def __init__(self, crystal=Crystal(), pump=Pump(), seed=Seed(), passes = 50, losses = 2e-2, print_iteration = False, spectral_losses = None, max_fluence=10, fast_CPA_computing=False):
+    def __init__(self, crystal=Crystal(), pump=Pump(), seed=Seed(), passes = 50, losses = 2e-2, print_iteration = False, spectral_losses = None, max_fluence=10, fast_CPA_computing=False, symmetric_pump=False):
         self.pump = pump
         self.seed = seed
         self.crystal = crystal
@@ -27,6 +27,7 @@ class Amplifier():
         self.print_iteration = print_iteration
         self.spectral_losses = spectral_losses
         self.max_fluence = max_fluence*1e4  # [J/m²]
+        self.symmetric_pump = symmetric_pump  # if True, the pump is applied from both sides of the crystal
         self.fast_CPA_computing = fast_CPA_computing  # if True, the CPA calculation is faster, but doesn't include spectral edge steepening, i.e. reduction of the inversion is calculated once at the end of the pass (using a mean saturation and Gain value) and not after every wavelength has passed. This is only ,valid when saturation is low.
 
     def averaged_beta_eq(self):
@@ -61,7 +62,7 @@ class Amplifier():
         def break_condition(beta_low, beta_high, it):
             max_it = 30
             abweichung = np.abs(np.max(beta_high-beta_low))
-            fehler = 1/(numres*t_axis[-1]/tau_f)
+            fehler = 1/np.max([numres*t_axis[-1]/tau_f, 1e3])
 
             A = (it > max_it)
             B = (abweichung < fehler)
@@ -77,6 +78,11 @@ class Amplifier():
         beta_high = np.ones_like(beta_low) * beta_eq
         R0 = pump_intensity * sigma_a / h / (c / self.pump.wavelength)
         lambert_beer = np.exp(-alpha * z_axis)
+
+        if self.symmetric_pump:
+            lambert_beer = 0.5 * (np.exp(-alpha * z_axis) + np.exp(-alpha * (z_axis[-1] - z_axis)))
+
+        
         Ra = R0 * npm.repmat(lambert_beer, len(t_axis), 1)
         iteration = 0
         betas = []
@@ -86,10 +92,17 @@ class Amplifier():
         while not break_condition(beta_low, beta_high, iteration):
             iteration += 1
             if self.print_iteration: print("Iteration number: " + str(iteration))
-            R_high = Ra * Rb(beta_high)
-            R_low = Ra * Rb(beta_low)
-            beta_high = beta(R_high)
-            beta_low = beta(R_low)
+
+            if self.symmetric_pump:
+                R_high = Ra * (Rb(beta_high) + np.flip(Rb(np.flip(beta_high, axis=1)), axis=1))/2
+                R_low = Ra * (Rb(beta_low) + np.flip(Rb(np.flip(beta_low, axis=1)), axis=1))/2
+                beta_high = (beta(R_high)+ np.flip(beta(np.flip(R_high, axis=1)), axis=1))/2
+                beta_low = (beta(R_low) + np.flip(beta(np.flip(R_low, axis=1)), axis=1))/2
+            else:
+                R_high = Ra * Rb(beta_high)
+                R_low = Ra * Rb(beta_low)
+                beta_high = beta(R_high)
+                beta_low = beta(R_low)
 
             betas.append((beta_low, beta_high))
             pumprates.append((R_low, R_high))
@@ -98,9 +111,11 @@ class Amplifier():
         pumprate = (R_high + R_low) / 2
 
         stored_fluence = h * c / self.seed.wavelength * self.crystal.doping_concentration * np.sum(beta_total - self.crystal.beta_eq(self.seed.wavelength), 1) * self.crystal.dz
+        absorbed_energy = h * c / self.pump.wavelength *  self.crystal.doping_concentration * integ(beta_total[-1,:], self.crystal.dz)[-1] / (self.pump.intensity * self.pump.duration)
 
         self.crystal.inversion = beta_total
         self.pump.pumprate = pumprate
+        self.pump.absorbed_energy = absorbed_energy
         self.crystal.inversion_end = beta_total[-1,:]
         self.crystal.stored_fluence = stored_fluence
         self.beta_0 = np.mean(self.crystal.inversion_end)
