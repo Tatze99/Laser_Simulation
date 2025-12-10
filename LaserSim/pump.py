@@ -10,7 +10,8 @@ class Pump():
                        bandwidth=0, # [nm]
                        gauss_order=1, # order of the gaussian pulse
                        resolution=numres,
-                       spectral_type="rect"
+                       spectral_type="rect",
+                       symmetric=False # if True, two pump pulses are generated for symmetric pumping, the intensity is divided equally
                 ):
         self.intensity = intensity*1e7   # [W/m²]
         self.duration = duration*1e-3    # [s]
@@ -18,6 +19,7 @@ class Pump():
         self.dt = self.duration / resolution
         self.t_axis = np.linspace(0, self.duration, resolution)
         self.fluence = self.intensity * self.duration
+        self.symmetric = symmetric
 
         # Generate the spectral pump pulse
         self.seed_type = spectral_type
