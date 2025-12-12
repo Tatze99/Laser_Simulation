@@ -224,11 +224,15 @@ def plot_cross_sections(crystal, lambda_p=None, lambda_l=None, axis=None, save=F
 
     plot_function(x, y, xlabel, ylabel, title, legends, axis, save, path, save_data, kwargs=kwargs)
 
-def plot_small_signal_gain(crystal, beta, round_trips=1, normalize=False, xlim=(1000,1060), ylim=(1.1, np.inf), save=False, save_path=None, save_data=False, show_title=True, axis=None):
+def plot_small_signal_gain(crystal, beta, round_trips=1, normalize=False, xlim=(1000,1060), ylim=(1.1, np.inf), save=False, save_path=None, save_data=False, show_title=True, axis=None, double_pass=True):
     """
     Plot small signal gain for a given beta.
     """
     lambd = np.linspace(xlim[0] * 1e-9, xlim[1] * 1e-9, 100)
+    if double_pass:
+        factor = 2
+    else:
+        factor = 1
     
     if not isinstance(beta, (list, tuple, np.ndarray)):
         beta = [beta]
@@ -236,7 +240,7 @@ def plot_small_signal_gain(crystal, beta, round_trips=1, normalize=False, xlim=(
     xlabel = "wavelength in nm"
     ylabel = "Gain G"
     title = f"small signal gain, {crystal.name} at {crystal.temperature}K" if show_title else None
-    y_list = [crystal.small_signal_gain(lambd, b)**(2*round_trips) for b in beta]
+    y_list = [crystal.small_signal_gain(lambd, b)**(factor*round_trips) for b in beta]
     if normalize:
         y_list = [y/np.max(y) for y in y_list]
         ylim = (0,1.1)
