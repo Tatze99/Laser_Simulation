@@ -156,6 +156,7 @@ class App(customtkinter.CTk):
         
         # extra settings
         self.inversion    = App.create_entry(frame, column=0, row=5, init_val="0.1,0.15,0.2", width=170, padx=(210-170, 10))
+        self.double_pass = App.create_switch(frame, text="Double pass", command=None,  column=0, row=6, padx=20)
         self.inversion_label    = App.create_label(frame, column=0, row=5, text="β", padx=(5, 215-20))
         self.plot_pump_laser_cross_sections = App.create_switch(frame, text="Show values at λp, λl", command=None,  column=0, row=5, padx=20)
         self.add_legend   = App.create_entry(frame, column=0, row=9, init_val="", width=150, padx=(210-150, 10))
@@ -200,6 +201,7 @@ class App(customtkinter.CTk):
 
         self.normalize.grid_remove()
         self.inversion.grid_remove()
+        self.double_pass.grid_remove()
         self.inversion_label.grid_remove()
         self.plot_pump_laser_cross_sections.grid_remove()
         self.add_legend.grid_remove()
@@ -207,6 +209,7 @@ class App(customtkinter.CTk):
         self.reset_material_plot.grid_remove()
         self.reset_amplifier_plot.grid_remove()
         self.show_title.select()
+        self.double_pass.select()
         self.show_grid.select()
 
         self.load_settings_frame()
@@ -554,6 +557,7 @@ class App(customtkinter.CTk):
 
         if plot_function == plot_small_signal_gain:
             kwargs["beta"] = ast.literal_eval(self.inversion.get())
+            kwargs["double_pass"] = self.double_pass.get()
         elif plot_function == plot_Isat:
             kwargs.update({"lambda0": lambda_p, "xlim": (lambda_p - 30, lambda_p + 30)})
         elif plot_function == plot_Fsat:
@@ -591,9 +595,11 @@ class App(customtkinter.CTk):
         if argument == "Small signal gain":
             self.inversion.grid()
             self.inversion_label.grid()
+            self.double_pass.grid()
         else:
             self.inversion.grid_remove()
             self.inversion_label.grid_remove()
+            self.double_pass.grid_remove()
 
         if argument == "Cross sections" or argument == "Equilibrium inversion":
             self.plot_pump_laser_cross_sections.grid()
