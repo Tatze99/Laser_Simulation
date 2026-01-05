@@ -61,7 +61,7 @@ class Amplifier():
         def break_condition(beta_low, beta_high, it):
             max_it = 30
             abweichung = np.abs(np.max(beta_high-beta_low))
-            fehler = 1/(numres*t_axis[-1]/tau_f)
+            fehler = 1/np.max([numres*t_axis[-1]/tau_f, 1e3])
 
             A = (it > max_it)
             B = (abweichung < fehler)
@@ -77,6 +77,7 @@ class Amplifier():
         beta_high = np.ones_like(beta_low) * beta_eq
         R0 = pump_intensity * sigma_a / h / (c / self.pump.wavelength)
         lambert_beer = np.exp(-alpha * z_axis)
+        
         Ra = R0 * npm.repmat(lambert_beer, len(t_axis), 1)
         iteration = 0
         betas = []
@@ -86,8 +87,14 @@ class Amplifier():
         while not break_condition(beta_low, beta_high, iteration):
             iteration += 1
             if self.print_iteration: print("Iteration number: " + str(iteration))
-            R_high = Ra * Rb(beta_high)
-            R_low = Ra * Rb(beta_low)
+
+            if self.pump.symmetric:
+                R_high = (Ra * Rb(beta_high) + np.flip(Ra, axis=1) * np.flip(Rb(np.flip(beta_high, axis=1)), axis=1))/2
+                R_low = (Ra * Rb(beta_low) + np.flip(Ra, axis=1) *np.flip(Rb(np.flip(beta_low, axis=1)), axis=1))/2
+            else:
+                R_high = Ra * Rb(beta_high)
+                R_low = Ra * Rb(beta_low)
+
             beta_high = beta(R_high)
             beta_low = beta(R_low)
 
@@ -98,9 +105,11 @@ class Amplifier():
         pumprate = (R_high + R_low) / 2
 
         stored_fluence = h * c / self.seed.wavelength * self.crystal.doping_concentration * np.sum(beta_total - self.crystal.beta_eq(self.seed.wavelength), 1) * self.crystal.dz
+        absorbed_energy = h * c / self.pump.wavelength *  self.crystal.doping_concentration * integ(beta_total[-1,:], self.crystal.dz) / (self.pump.intensity * self.pump.duration)
 
         self.crystal.inversion = beta_total
         self.pump.pumprate = pumprate
+        self.pump.absorbed_energy = absorbed_energy
         self.crystal.inversion_end = beta_total[-1,:]
         self.crystal.stored_fluence = stored_fluence
         self.beta_0 = np.mean(self.crystal.inversion_end)
@@ -312,8 +321,10 @@ class Amplifier():
             extractable_fluence[i, :] = z_integ(inversion - self.crystal.beta_eq(self.seed.wavelength), self.crystal.dz)[:,-1] * h * c * self.crystal.doping_concentration / (self.seed.wavelength)
 
         I, T = np.meshgrid(pump_intensity, self.pump.t_axis, indexing="ij")
-        efficiency = extractable_fluence / (I * T)
-        efficiency = np.where(efficiency < 0, 0, efficiency)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            # ignore divide by zero warning for for starting values of the arrays
+            efficiency = extractable_fluence / (I * T)
+            efficiency = np.where(efficiency < 0, 0, efficiency)
 
         self.pump = original_pump
 
@@ -530,6 +541,30 @@ def plot_inversion_vs_pump_intensity(amplifier, axis=None, save=False, save_data
 
     plot_function(x, y, xlabel, ylabel, title, legend, axis, save, path, save_data, kwargs=kwargs)
 
+def plot_pump_absorption(amplifier, axis=None, save=False, save_data=False, save_path=None, show_title=True, custom_legend=""):
+    """
+    Plot the absorbed pump energy as a fraction of the total input fluence 
+    """
+    amplifier_ideal = copy.deepcopy(amplifier)
+    amplifier_ideal.crystal.tau_f = np.inf # set an infinite lifetime to simulate ideal absorption
+    amplifier_ideal.inversion()
+
+    amplifier.inversion()
+
+    crystal, pump = amplifier.crystal, amplifier.pump
+    x = crystal.z_axis*1e3
+    y = amplifier.pump.absorbed_energy
+    y_ideal = amplifier_ideal.pump.absorbed_energy
+
+    xlabel = "depth $z$ in mm"
+    ylabel = "absorbed pump energy fraction $\\eta$"
+    title = "absorbed pump light vs crystal thickness" if show_title else None
+    legend = [f"$\\tau_f$ = {crystal.tau_f*1e3} ms, $\\eta_\\text{{max}}$ = {np.max(y)*1e2:.1f} %", f"$\\tau_f\\;\\to\\;\\infty$, $\\eta_\\text{{max}}$ = {np.max(y_ideal)*1e2:.1f} %"] if custom_legend == "" else custom_legend
+    fname = f"{crystal.material}_{crystal.temperature}K_{pump.duration*1e3}ms_{pump.intensity*1e-7}kWcm2_pump_absorption_vs_crystal_thickness.pdf"
+    path = create_save_path(save_path, fname)
+
+    plot_function(x, [y, y_ideal], xlabel, ylabel, title, legend, axis, save, path, save_data)
+
 def plot_storage_efficiency_vs_pump_intensity(amplifier, axis=None, save=False, save_data=False, save_path=None, show_title=True, custom_legend=""):
     """
     Plot the storage efficiency as a function of pump intensity
@@ -633,16 +668,16 @@ if __name__ == "__main__":
     print(CW_amplifier)
     
     CPA_amplifier.inversion()
-    # plot_inversion1D(CW_amplifier)
-    # plot_inversion_temporal(CW_amplifier)
-    # plot_inversion2D(CW_amplifier)
-    # plot_total_fluence_per_pass(CW_amplifier)
-    # plot_temporal_fluence(CW_amplifier)
-    # plot_spectral_fluence(CPA_amplifier)
-    # plot_inversion_vs_pump_intensity(CW_amplifier)
-    # plot_inversion_before_after(CW_amplifier)
-    # plot_storage_efficiency_vs_pump_intensity(CW_amplifier)
-    # plot_storage_efficiency_vs_pump_time(CW_amplifier, pump_intensity=[10e7, 20e7, 30e7])
-    plot_storage_efficiency_2D(CW_amplifier, add_text="Yb:CaF2")
-
+    plot_inversion1D(CW_amplifier)
+    plot_inversion_temporal(CW_amplifier)
+    plot_inversion2D(CW_amplifier)
+    plot_total_fluence_per_pass(CW_amplifier)
+    plot_temporal_fluence(CW_amplifier)
+    plot_spectral_fluence(CPA_amplifier)
+    plot_inversion_vs_pump_intensity(CW_amplifier)
+    plot_inversion_before_after(CW_amplifier)
+    plot_storage_efficiency_vs_pump_intensity(CW_amplifier)
+    plot_storage_efficiency_2D(CW_amplifier)
+    plot_storage_efficiency_vs_pump_time(CW_amplifier, pump_intensity=[10e7, 20e7, 30e7])
+    plot_pump_absorption(CW_amplifier)
 
