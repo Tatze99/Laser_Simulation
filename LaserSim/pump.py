@@ -42,7 +42,8 @@ class Pump():
         f"- intensity = {self.intensity*1e-7} kW/cm² \n"
         f"- duration = {self.duration*1e3} ms \n"
         f"- wavelength = {self.wavelength*1e9:.2f} nm\n"
-        F"- fluence = {self.fluence*1e-4} J/cm²\n\n"
+        F"- fluence = {self.fluence*1e-4} J/cm²\n"
+        F"- symmetric pump = {self.symmetric}\n\n"
         )
 
 def plot_pump_pulse(pump, save=False, save_path=None, save_data=False, xlim=(-np.inf,np.inf), ylim=(-np.inf,np.inf), show_title=True, axis=None):

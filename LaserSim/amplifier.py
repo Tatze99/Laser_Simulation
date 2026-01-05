@@ -321,8 +321,10 @@ class Amplifier():
             extractable_fluence[i, :] = z_integ(inversion - self.crystal.beta_eq(self.seed.wavelength), self.crystal.dz)[:,-1] * h * c * self.crystal.doping_concentration / (self.seed.wavelength)
 
         I, T = np.meshgrid(pump_intensity, self.pump.t_axis, indexing="ij")
-        efficiency = extractable_fluence / (I * T)
-        efficiency = np.where(efficiency < 0, 0, efficiency)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            # ignore divide by zero warning for for starting values of the arrays
+            efficiency = extractable_fluence / (I * T)
+            efficiency = np.where(efficiency < 0, 0, efficiency)
 
         self.pump = original_pump
 
@@ -543,22 +545,25 @@ def plot_pump_absorption(amplifier, axis=None, save=False, save_data=False, save
     """
     Plot the absorbed pump energy as a fraction of the total input fluence 
     """
-    pump = amplifier.pump
-    crystal = amplifier.crystal
+    amplifier_ideal = copy.deepcopy(amplifier)
+    amplifier_ideal.crystal.tau_f = np.inf # set an infinite lifetime to simulate ideal absorption
+    amplifier_ideal.inversion()
 
     amplifier.inversion()
+
     crystal, pump = amplifier.crystal, amplifier.pump
     x = crystal.z_axis*1e3
     y = amplifier.pump.absorbed_energy
+    y_ideal = amplifier_ideal.pump.absorbed_energy
 
     xlabel = "depth $z$ in mm"
-    ylabel = "absorbed pump energy fraction"
+    ylabel = "absorbed pump energy fraction $\\eta$"
     title = "absorbed pump light vs crystal thickness" if show_title else None
-    legend = None if custom_legend == "" else custom_legend
+    legend = [f"$\\tau_f$ = {crystal.tau_f*1e3} ms, $\\eta_\\text{{max}}$ = {np.max(y)*1e2:.1f} %", f"$\\tau_f\\;\\to\\;\\infty$, $\\eta_\\text{{max}}$ = {np.max(y_ideal)*1e2:.1f} %"] if custom_legend == "" else custom_legend
     fname = f"{crystal.material}_{crystal.temperature}K_{pump.duration*1e3}ms_{pump.intensity*1e-7}kWcm2_pump_absorption_vs_crystal_thickness.pdf"
     path = create_save_path(save_path, fname)
 
-    plot_function(x, y, xlabel, ylabel, title, legend, axis, save, path, save_data)
+    plot_function(x, [y, y_ideal], xlabel, ylabel, title, legend, axis, save, path, save_data)
 
 def plot_storage_efficiency_vs_pump_intensity(amplifier, axis=None, save=False, save_data=False, save_path=None, show_title=True, custom_legend=""):
     """
@@ -663,16 +668,16 @@ if __name__ == "__main__":
     print(CW_amplifier)
     
     CPA_amplifier.inversion()
-    # plot_inversion1D(CW_amplifier)
-    # plot_inversion_temporal(CW_amplifier)
-    # plot_inversion2D(CW_amplifier)
-    # plot_total_fluence_per_pass(CW_amplifier)
-    # plot_temporal_fluence(CW_amplifier)
-    # plot_spectral_fluence(CPA_amplifier)
-    # plot_inversion_vs_pump_intensity(CW_amplifier)
-    # plot_inversion_before_after(CW_amplifier)
-    # plot_storage_efficiency_vs_pump_intensity(CW_amplifier)
-    # plot_storage_efficiency_vs_pump_time(CW_amplifier, pump_intensity=[10e7, 20e7, 30e7])
-    # plot_pump_absorption(CW_amplifier)
-    plot_storage_efficiency_2D(CW_amplifier, custom_legend="Yb:CaF2")
+    plot_inversion1D(CW_amplifier)
+    plot_inversion_temporal(CW_amplifier)
+    plot_inversion2D(CW_amplifier)
+    plot_total_fluence_per_pass(CW_amplifier)
+    plot_temporal_fluence(CW_amplifier)
+    plot_spectral_fluence(CPA_amplifier)
+    plot_inversion_vs_pump_intensity(CW_amplifier)
+    plot_inversion_before_after(CW_amplifier)
+    plot_storage_efficiency_vs_pump_intensity(CW_amplifier)
+    plot_storage_efficiency_2D(CW_amplifier)
+    plot_storage_efficiency_vs_pump_time(CW_amplifier, pump_intensity=[10e7, 20e7, 30e7])
+    plot_pump_absorption(CW_amplifier)
 
