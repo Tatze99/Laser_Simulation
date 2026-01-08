@@ -144,7 +144,7 @@ class App(customtkinter.CTk):
         
         frame = self.sidebar_frame
 
-        self.material_list  = App.create_Menu(frame, values=self.materials, column=0, row=1, command=self.update_material, width=135, padx = (10,210-135), init_val=self.materials[1])
+        self.material_list  = App.create_Menu(frame, values=self.materials, column=0, row=1, command=self.update_material, width=135, padx = (10,210-135), init_val="YbCaF2")
         self.temperature_list  = App.create_Menu(frame, values=["300"], column=0, row=1, command=None, width=60, padx = (210-60,10))
 
         self.material_plot_list  = App.create_Menu(frame, values=list(self.material_plot_functions.keys()), column=0, row=2, pady=(15,5), command=self.toggle_extra_material_arguments)
@@ -192,6 +192,10 @@ class App(customtkinter.CTk):
         self.save_data = App.create_switch(frame, text="Save data during plot", command=None,  column=0, row=5, padx=20, columnspan=2)
         self.save_plot = App.create_switch(frame, text="Save figure during plot", command=None,  column=0, row=6, padx=20, columnspan=2)
 
+        self.cross_section_settings_title = App.create_label(frame, text="Cross section settings", font=customtkinter.CTkFont(size=16, weight="bold"), row=2, column=2, columnspan=2, padx=20, pady=(20, 5),sticky=None)
+        self.smooth_sigma = App.create_switch(frame, text="Smooth cross sections", command=None,  column=2, row=3, padx=20, pady=(10,5), columnspan=2)
+        self.McCumber_absorption = App.create_switch(frame, text="Use McCumber absorption", command=None,  column=2, row=4, padx=20, pady=(10,5), columnspan=2)
+
         self.canvas_size_title = App.create_label(frame, text="Canvas Size", font=customtkinter.CTkFont(size=16, weight="bold"), row=9, column=0, columnspan=2, padx=20, pady=(20, 5),sticky=None)
         self.canvas_width, self.canvas_width_label        = App.create_entry(frame,column=1, row=11, width=70,text="width in cm", placeholder_text="10 [cm]", sticky='w', init_val=10, textwidget=True)
         self.canvas_height, self.canvas_height_label      = App.create_entry(frame,column=1, row=12, width=70,text="height in cm", placeholder_text="10 [cm]", sticky='w', init_val=10, textwidget=True)
@@ -211,6 +215,8 @@ class App(customtkinter.CTk):
         self.show_title.select()
         self.double_pass.select()
         self.show_grid.select()
+        self.smooth_sigma.select()
+        self.McCumber_absorption.select()
 
         self.load_settings_frame()
 
@@ -254,9 +260,10 @@ class App(customtkinter.CTk):
         button.grid(row=row, column=column, columnspan=columnspan, padx=padx, pady=pady, sticky=sticky, **kwargs)
         return button
 
-    def create_switch(self, command, row, column, text, columnspan=1, padx=10, pady=5, sticky='w', **kwargs):
+    def create_switch(self, command, row, column, text, columnspan=1, padx=10, pady=5, sticky='w',init_on = False, **kwargs):
         switch = customtkinter.CTkSwitch(self, text=text, command=command, **kwargs)
         switch.grid(row=row, column=column, columnspan=columnspan, padx=padx, pady=pady, sticky=sticky, **kwargs)
+        if init_on: switch.select()
         return switch
     
     def create_combobox(self, values, column, row, width=200, state='readonly', command=None, text=None, columnspan=1, padx=10, pady=5, sticky=None, **kwargs):
@@ -387,8 +394,9 @@ class App(customtkinter.CTk):
         self.amplifier_title = App.create_label(self.settings_frame, text="Amplifier Settings", font=customtkinter.CTkFont(size=16, weight="bold"), row=row, column=0, columnspan=5, padx=20, pady=(20, 5), sticky=None)
 
         self.amplifier_passes = App.create_entry(self.settings_frame,column=1, row=row+1, columnspan=2, width=110, text="passes", init_val=Amplifier().passes)
-        self.amplifier_losses = App.create_entry(self.settings_frame,column=1, row=row+2, columnspan=2, width=110, text="losses [%]", init_val=Amplifier().losses*1e2)
+        self.amplifier_losses = App.create_entry(self.settings_frame,column=1, row=row+2, columnspan=2, width=110, text="losses per RT [%]", init_val=Amplifier().losses*1e2)
         self.amplifier_maxfluence = App.create_entry(self.settings_frame, column=1, row=row+3, columnspan=2, width=110, text="max fluence [J/cm²]", init_val=Amplifier().max_fluence*1e-4)
+        self.amplifier_double_pass = App.create_switch(self.settings_frame, command=None, column=1, row=row+4, columnspan=2, text="double pass", init_on=True)
 
         self.amplifier_widgets = set(self.settings_frame.winfo_children()) - before
         self.toggle_sidebar_window(self.amplifier_button, self.amplifier_widgets)
@@ -401,7 +409,7 @@ class App(customtkinter.CTk):
         length = float(self.crystal_thickness.get())*1e-3
         tau_f = float(self.crystal_tau_f.get())*1e-3
 
-        crystal = Crystal(material=material, temperature=temperature, N_dop=N_dop, length=length, tau_f=tau_f)
+        crystal = Crystal(material=material, temperature=temperature, N_dop=N_dop, length=length, tau_f=tau_f, smooth_sigmas=self.smooth_sigma.get(), useMcCumber_absorption=self.McCumber_absorption.get())
         crystal.lambda_ZPL = float(self.crystal_ZPL.get())*1e-9
         return crystal
 
@@ -539,7 +547,7 @@ class App(customtkinter.CTk):
         crystal = self.load_crystal()
         pump = self.load_pump(crystal=crystal)
 
-        amplifier = Amplifier(crystal=crystal, pump=pump, seed=seed, passes=int(self.amplifier_passes.get()), losses=float(self.amplifier_losses.get())*1e-2, max_fluence=float(self.amplifier_maxfluence.get()))
+        amplifier = Amplifier(crystal=crystal, pump=pump, seed=seed, passes=int(self.amplifier_passes.get()), losses=float(self.amplifier_losses.get())*1e-2, max_fluence=float(self.amplifier_maxfluence.get()), double_pass=self.amplifier_double_pass.get())
         plot_function(amplifier, **self.kwargs, **kwargs)
 
         self.canvas.draw()
@@ -548,20 +556,22 @@ class App(customtkinter.CTk):
         self.clear_axis()
 
         crystal = self.load_crystal()
-        lambda_p = float(self.pump_wavelength.get())
-        lambda_l = float(self.seed_QSwitch_wavelength.get())
+        lambda_p = crystal.to_display_lambda(float(self.pump_wavelength.get())*1e-9)
+        lambda_l = crystal.to_display_lambda(float(self.seed_QSwitch_wavelength.get())*1e-9)
 
         plot_function = self.material_plot_functions[self.material_plot_list.get()]
 
         kwargs = dict()
+        bandwidth = crystal.to_display_lambda(float(self.seed_CPA_bandwidth.get())*1e-9)
 
         if plot_function == plot_small_signal_gain:
             kwargs["beta"] = ast.literal_eval(self.inversion.get())
             kwargs["double_pass"] = self.double_pass.get()
+            kwargs["xlim"] = (lambda_l - bandwidth, lambda_l + bandwidth)
         elif plot_function == plot_Isat:
-            kwargs.update({"lambda0": lambda_p, "xlim": (lambda_p - 30, lambda_p + 30)})
+            kwargs.update({"lambda0": lambda_p, "xlim": (lambda_p - bandwidth, lambda_p + bandwidth)})
         elif plot_function == plot_Fsat:
-            kwargs.update({"lambda0": lambda_l, "xlim": (lambda_l - 30, lambda_l + 30)})
+            kwargs.update({"lambda0": lambda_l, "xlim": (lambda_l - bandwidth, lambda_l + bandwidth)})
         elif (plot_function == plot_cross_sections or plot_function == plot_beta_eq) and self.plot_pump_laser_cross_sections.get():
             kwargs.update({"lambda_p": lambda_p, "lambda_l": lambda_l})
 
@@ -585,11 +595,14 @@ class App(customtkinter.CTk):
             self.temperature_list.set(temperatures[0])
 
         self.material = material
-        crystal = Crystal(material=material)
+        crystal = Crystal(material=material, smooth_sigmas=self.smooth_sigma.get())
         self.crystal_doping.reinsert(str(crystal.doping_concentration*1e-6))
         self.crystal_thickness.reinsert(str(crystal.length*1e3))
         self.crystal_tau_f.reinsert(str(crystal.tau_f*1e3))
         self.crystal_ZPL.reinsert(str(crystal.lambda_ZPL*1e9))
+        self.seed_QSwitch_wavelength.reinsert(f"{crystal.to_internal_lambda(crystal.lambda_e)*1e9:g}")
+        self.seed_CPA_wavelength.reinsert(f"{crystal.to_internal_lambda(crystal.lambda_e)*1e9:g}")
+        self.pump_wavelength.reinsert(f"{crystal.to_internal_lambda(crystal.lambda_a)*1e9:g}")
 
     def toggle_extra_material_arguments(self, argument):
         if argument == "Small signal gain":
