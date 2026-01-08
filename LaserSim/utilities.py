@@ -21,6 +21,21 @@ PLOT_DEFAULTS = dict(
     axis=None,
 )
 
+UNIT_TABLE = {
+    "m": {
+        "scale_to_m": 1.0,
+        "label": "m"
+    },
+    "nm": {
+        "scale_to_m": 1e-9,
+        "label": "nm"
+    },
+    "um": {      # safer than µ in JSON
+        "scale_to_m": 1e-6,
+        "label": "µm"
+    }
+}
+
 def set_plot_params():
     plt.rcParams["figure.figsize"] = (8,4)
     plt.rcParams["axes.grid"] = True

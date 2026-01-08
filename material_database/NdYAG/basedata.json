@@ -6,5 +6,7 @@
     "energy_lower_level": [0, 565, 612, 785],
     "energy_upper_level": [10327, 10624, 10930],
     "ZPL": 914.9e-9,
+    "lambda_a": 809.1,
+    "lambda_e": 1064.6,
     "comment": "Spectra taken from Jörg Körners data base"
 }
