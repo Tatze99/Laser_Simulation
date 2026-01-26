@@ -1,0 +1,11 @@
+{
+    "name": "CrZnS",
+    "length": 5e-3,
+    "tau_f": 5.7e-6,
+    "N_dop": 6e24,
+    "refractive_index": 2.27,
+    "ZPL": 1.9e-6,
+    "wavelength_unit": "um",
+    "lambda_a": 1.9,
+    "lambda_e": 2.4
+}
