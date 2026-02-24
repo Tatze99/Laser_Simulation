@@ -114,7 +114,8 @@ class Crystal():
         
     def sigma_a(self,lambd):
         """
-        return the absorption cross section at a given wavelength in m²
+        Input: SI unit (meters)
+        Returns: absorption cross section at a given wavelength in m²
         Use either the spline interpolation or a linear interpolation
         """
         if self.use_spline_interpolation:
@@ -124,7 +125,8 @@ class Crystal():
         
     def sigma_e(self,lambd):
         """
-        return the emission cross section at a given wavelength in m²
+        Input: SI unit (meters)
+        Returns: emission cross section at a given wavelength in m²
         Use either the spline interpolation or a linear interpolation
         """
         if self.use_spline_interpolation:
@@ -134,22 +136,42 @@ class Crystal():
     
     # equilibrium inversion
     def beta_eq(self,lambd):
+        """
+        Input: wavelength in SI unit (meters)
+        Returns: equilibrium inversion at a given wavelength (unitless)
+        """
         return self.sigma_a(lambd)/(self.sigma_a(lambd)+self.sigma_e(lambd))
 
     # saturation fluence
     def F_sat(self,lambd):
+        """
+        Input: wavelength in SI unit (meters)
+        Returns: saturation fluence at a given wavelength in J/m²
+        """
         return h*c/lambd /(self.sigma_a(lambd)+self.sigma_e(lambd))
     
     # saturation intensity
     def I_sat(self,lambd):
+        """
+        Input: wavelength in SI unit (meters)
+        Returns: saturation intensity at a given wavelength in W/m²
+        """
         return self.F_sat(lambd) / self.tau_f
     
     # Absorption coefficient
     def alpha(self,lambd):
+        """
+        Input: wavelength in SI unit (meters)
+        Returns: absorption coefficient at a given wavelength in 1/m
+        """
         return self.doping_concentration * self.sigma_a(lambd)
     
     # Calculate the small signal gain
     def small_signal_gain(self, lambd, beta):
+        """
+        Input: wavelength in SI unit (meters), inversion beta (unitless)
+        Returns: small signal gain G0
+        """
         Gain = np.exp(self.doping_concentration*(self.sigma_e(lambd)*beta-self.sigma_a(lambd)*(1-beta))*self.length)
         return Gain
     

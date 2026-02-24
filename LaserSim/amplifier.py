@@ -34,6 +34,18 @@ class Amplifier():
         return integ(self.crystal.beta_eq(self.pump.lambdas)*self.pump.pulse, self.pump.dlambda)[-1] / integ(self.pump.pulse, self.pump.dlambda)[-1]
     
     def inversion(self, pump_intensity = None):
+        """
+        Input: pump intensity in W/m² (1kW/cm² = 1e7 W/m²), if None, use the pump intensity defined in the pump object
+        Returns: total inversion beta along the crystal (1D) at the end of the pump pulse (unitless)
+
+        other accessible attributes after calling this function:
+        self.crystal.inversion_end # same as the return value, but stored as an attribute of the crystal
+        self.crystal.inversion # 2D array of the inversion along the crystal and during the pump pulse
+        self.pump.pumprate # 2D array of the pump rate along the crystal and during the pump pulse
+        self.pump.absorbed_energy # absorbed energy ratio in the crystal 
+        self.crystal.stored_fluence # 1D array of the stored_fluence 
+        self.beta_0 # averaged inversion in the crystal at the end of the pump pulse 
+        """
 
         if pump_intensity is None:
             pump_intensity = self.pump.intensity
@@ -123,8 +135,18 @@ class Amplifier():
     
     def extraction(self):
         """
-        Calculate the energy extraction for a monochromatic, temporal pulse.
+        Calculate the energy extraction for a monochromatic, temporal pulse using Frantz-Nodvik equation.
         Returns the total fluence at the end of each pass and the temporal fluence at the end of each pass.
+        Input: None 
+        Returns: temporal_fluence_out: 2D array of the temporal fluence at the end of each pass, shape (passes, len(seed.time))
+
+        other accessible attributes after calling this function:
+        self.temporal_fluence_out # return value
+        self.pulse_out # 2D array of the photon density after amplification, shape (passes, len(seed.time))
+        self.total_fluence_out # 1D array of the total fluence at the end of each pass
+        self.beta_out # 1D array of the inversion at the end of each pass
+        self.max_gain # (float) maximum gain achieved during the amplification process 
+        self.beta_out # 2D array of the inversion at the end of each pass
         """
         if np.any(self.crystal.inversion_end):
             beta_0 = self.crystal.inversion_end           
