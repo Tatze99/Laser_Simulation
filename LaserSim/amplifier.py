@@ -73,16 +73,17 @@ class Amplifier():
 
         def break_condition(beta_low, beta_high, it):
             max_it = 30
-            abweichung = np.abs(np.max(beta_high-beta_low))
-            fehler = 1/np.max([numres*t_axis[-1]/tau_f, 1e3])
+            diff = beta_high - beta_low
+            idx = np.unravel_index(np.argmax(diff), diff.shape)
+            abweichung = np.abs(np.max(diff)) / beta_low[idx]
+            fehler = 1/np.max([numres*t_axis[-1]/tau_f, 1e4])
 
             A = (it > max_it)
             B = (abweichung < fehler)
             if A and self.print_iteration:
-                print("Max iterations of " + str(it) + " exceeded.")
+                print(f"Max iterations of {it} exceeded.")
             if B and self.print_iteration:
-                print("Deviation between beta_low and beta_high =",
-                    abweichung, "<", fehler)
+                print(f"Deviation between beta_low and beta_high = {abweichung}, < {fehler}, iterations = {it}")
             return A or B
 
         # Initialisierung

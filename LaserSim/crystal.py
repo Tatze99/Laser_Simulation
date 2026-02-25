@@ -406,6 +406,24 @@ def plot_Fsat(crystal, save=False, save_path=None, save_data=False, xlim=None, y
 
     plot_function(lambd, Fsat, xlabel, ylabel, title, legends, axis, save, path, save_data, xlim=xlim, ylim=ylim, kwargs=kwargs)
 
+def plot_lambert_beer(crystal, lambda0 = None, axis=None, save=False, save_data=False, save_path=None, show_title=True, custom_legend=""):
+    """
+    Plot the absorbed pump energy as a fraction of the total input fluence 
+    """
+    lambda0 = lambda0 if lambda0 else crystal.lambda_a
+    x = crystal.z_axis*1e3
+    y = np.exp(-crystal.alpha(crystal.to_internal_lambda(lambda0))*crystal.z_axis)
+    print("lambda, alpha", crystal.to_internal_lambda(lambda0), crystal.alpha(crystal.to_internal_lambda(lambda0)))
+
+    xlabel = "depth $z$ in mm"
+    ylabel = "transmitted light fraction $I(z)/I_0$"
+    title = "transmitted light with Lambert Beer's law" if show_title else None
+    legend = [f"$T$ ({x[-1]}mm) = {np.min(y)*1e2:.1f} % at {lambda0:g} {crystal.lambda_label}"] if custom_legend == "" else custom_legend
+    fname = f"{crystal.material}_{crystal.temperature}K_Lambert_Beer_transmission_vs_crystal_thickness.pdf"
+    path = create_save_path(save_path, fname)
+
+    plot_function(x, y, xlabel, ylabel, title, legend, axis, save, path, save_data)
+
 #=============================================================================
 # main script, if this file is executed
 # ============================================================================
