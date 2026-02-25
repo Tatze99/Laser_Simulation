@@ -1,0 +1,16 @@
+stages:
+  - publish
+
+publish_to_pypi:
+  stage: publish
+  tags: 
+    - shell # runner tags
+    - linux
+  script:
+    - poetry_default
+  artifacts:
+    paths:
+      - dist/  # Save the 'dist' directory containing the built package
+    expire_in: 1 week  # Artifacts will be deleted after 1 week
+  only:
+    - tags  # Publish only on tagged commits
