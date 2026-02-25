@@ -10,7 +10,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 from PIL import Image
 import ast # for literal_eval of a user input
 
-from LaserSim.crystal import Crystal, plot_cross_sections, plot_small_signal_gain, plot_beta_eq, plot_Isat, plot_Fsat
+from LaserSim.crystal import Crystal, plot_cross_sections, plot_small_signal_gain, plot_beta_eq, plot_Isat, plot_Fsat, plot_lambert_beer
 from LaserSim.pump import Pump
 from LaserSim.seed import Seed
 from LaserSim.seed_CPA import Seed_CPA
@@ -94,7 +94,8 @@ class App(customtkinter.CTk):
                                         'Small signal gain': plot_small_signal_gain,
                                         'Equilibrium inversion': plot_beta_eq, 
                                         'Saturation intensity': plot_Isat, 
-                                        'Saturation fluence': plot_Fsat
+                                        'Saturation fluence': plot_Fsat,
+                                        'Lambert-Beer transmission': plot_lambert_beer
                                         }
         
         self.amplifier_plot_functions = {'Temporal fluence': plot_temporal_fluence, 
@@ -575,6 +576,8 @@ class App(customtkinter.CTk):
             kwargs.update({"lambda0": lambda_l, "xlim": (lambda_l - bandwidth, lambda_l + bandwidth)})
         elif (plot_function == plot_cross_sections or plot_function == plot_beta_eq) and self.plot_pump_laser_cross_sections.get():
             kwargs.update({"lambda_p": lambda_p, "lambda_l": lambda_l})
+        elif plot_function == plot_lambert_beer:
+            kwargs.update({"lambda0": lambda_p})
 
         # one single call
         plot_function(crystal, **self.kwargs, **kwargs)
