@@ -33,10 +33,10 @@ Laser_Simulation/
 │   ├── seed.py
 │   ├── spectral_losses.py              # Calculate spectral losses with tunable spectral filters (TSFs)
 │   ├── utilities.py                    # Helper functions, plot settings, constants
-│── material_database/
-│   ├── plots/                          # contains the generated plots, when they are saved
-│   ├── reflectivity_curves/            # contains spectral reflectivity curves of the TSFs
-│   ├── Ybxxx/                          # Contains data about a specific material
+│   │── material_database/
+│   │   ├── plots/                          # contains the generated plots, when they are saved
+│   │   ├── reflectivity_curves/            # contains spectral reflectivity curves of the TSFs
+│   │   ├── Ybxxx/                          # Contains data about a specific material
 │── requirements.txt                    # Contains the required packages to install with pip
 │── setup.py                            # file to pack "LaserSim" into a package
 |── tutorial.ipynb                      # Jupyter Notebook with a tutorial how to get started

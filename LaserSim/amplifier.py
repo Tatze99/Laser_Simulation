@@ -13,12 +13,24 @@ import os
 import copy
 
 set_plot_params()
-Folder = os.path.dirname(os.path.abspath(__file__))
-Folder = os.path.abspath(os.path.join(Folder, os.pardir))
 
 class Amplifier():
 
     def __init__(self, crystal=Crystal(), pump=Pump(), seed=Seed(), passes = 50, losses = 2e-2, print_iteration = False, spectral_losses = None, max_fluence=10, double_pass = True, fast_CPA_computing=False):
+        """
+        Docstring for __init__
+
+        :param crystal: Crystal() object
+        :param pump: Pump() object
+        :param seed: Seed() object
+        :param passes: number of passes through the crystal (int)
+        :param losses: constant losses per pass (unitless)
+        :param print_iteration: print the iteration number during the inversion calculation
+        :param spectral_losses: Spectral_Losses() object
+        :param max_fluence: maximum fluence in J/cm², if the fluence exceeds this value during the amplification process, the calculation will be stopped
+        :param double_pass: if True, the beam will pass through the crystal in alternating directions after each pass and losses are applied only after every second pass, if False, the beam will only pass through the crystal in one direction, and the losses will be applied after every pass
+        :param fast_CPA_computing: faster, but less accurate implementation of the Frantz-Nodvik solution for chirped pulses
+        """
         self.pump = pump
         self.seed = seed
         self.crystal = crystal
@@ -75,7 +87,8 @@ class Amplifier():
             max_it = 30
             diff = beta_high - beta_low
             idx = np.unravel_index(np.argmax(diff), diff.shape)
-            abweichung = np.abs(np.max(diff)) / beta_low[idx]
+            min_val = beta_low[idx] if beta_low[idx] != 0 else 1e-10
+            abweichung = np.abs(np.max(diff)) / min_val
             fehler = 1/np.max([numres*t_axis[-1]/tau_f, 1e4])
 
             A = (it > max_it)

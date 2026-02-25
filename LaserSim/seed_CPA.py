@@ -3,11 +3,24 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 set_plot_params()
-Folder = os.path.dirname(os.path.abspath(__file__))
-Folder = os.path.abspath(os.path.join(Folder, os.pardir))
 
 class Seed_CPA():
     def __init__(self, wavelength = 1030, bandwidth = 30, fluence = 1e-4, seed_type = "gauss", gauss_order = 1, custom_file = None, custom_file_delimiter="\t", custom_file_xunit=1e0, resolution = 250, lambda_min=None, lambda_max=None, chirp="positive"):
+        """
+        Docstring for __init__
+        
+        :param wavelength: Central wavelength in nm
+        :param bandwidth: Bandwidth (FWHM) in nm
+        :param fluence: Input fluence in J/cm²
+        :param gauss_order: Order of the Gaussian pulse (only for seed_type = "gauss")
+        :param seed_type: Shape of the temporal seed pulse, can be "gauss", "rect" or "lorentz"
+        :param resolution: Number of points for the spectral seed pulse
+        :param lambda_min: lambda_min in nm
+        :param lambda_max: lambda_max in nm
+        :param custom_file: custom pulse file path
+        :param custom_file_delimiter: delimiter of the custom pulse file 
+        :param custom_file_xunit: unit of the x-axis in the custom pulse file (default is 1e0 = 1 nm)
+        """
         self.bandwidth = bandwidth*1e-9     # [m]
         self.wavelength = wavelength*1e-9   # [m]
         self.fluence = fluence*1e4          # [J/m²]

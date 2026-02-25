@@ -3,11 +3,24 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 set_plot_params()
-Folder = os.path.dirname(os.path.abspath(__file__))
-Folder = os.path.abspath(os.path.join(Folder, os.pardir))
 
 class Seed():
     def __init__(self, fluence = 1e-4, duration = 5, wavelength = 1030, gauss_order = 1, seed_type = "gauss", resolution = 200, t_min=None, t_max=None, custom_file = None, custom_file_delimiter="\t", custom_file_xunit=1e0, ):
+        """
+        Docstring for __init__
+        
+        :param fluence: Input fluence in J/cm²
+        :param duration: Pulse duration in ns
+        :param wavelength: Central wavelength in nm
+        :param gauss_order: Order of the Gaussian pulse (only for seed_type = "gauss")
+        :param seed_type: Shape of the temporal seed pulse, can be "gauss", "rect" or "lorentz"
+        :param resolution: Number of points for the temporal seed pulse
+        :param t_min: start time in ns
+        :param t_max: end time in ns
+        :param custom_file: custom pulse file path
+        :param custom_file_delimiter: delimiter of the custom pulse file 
+        :param custom_file_xunit: unit of the x-axis in the custom pulse file (default is 1e0 = 1 ns)
+        """
         self.duration = duration*1e-9     # [s]
         self.wavelength = wavelength*1e-9 # [m]
         self.fluence = fluence*1e4        # [J/m²]

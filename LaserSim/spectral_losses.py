@@ -7,10 +7,16 @@ import matplotlib.pyplot as plt
 set_plot_params()
 
 Folder = os.path.dirname(os.path.abspath(__file__))
-Folder = os.path.abspath(os.path.join(Folder, os.pardir))
 
 class Spectral_Losses():
     def __init__(self, material= "YbFP15", calc_formula = True, custom_File = None):
+        """
+        Docstring for __init__
+        
+        :param material: name of the material for which the spectral losses should be calculated, this should correspond to a folder in the "material_database/reflectivity_curves" folder, if custom_File is None
+        :param calc_formula: calculate the change of the spectral losses with angle of incidence by approximating the shift of the reflectivity curve with a linear formula, if False, the angle formula will be loaded from the metadata file
+        :param custom_File: load a custom file for the losses
+        """
         File = os.path.join(Folder, "material_database", "reflectivity_curves", material) if custom_File is None else custom_File
         self.TSF_name = material
         self.load_basedata(os.path.join(File, "*_Metadata.json"))

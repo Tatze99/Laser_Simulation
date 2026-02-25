@@ -16,36 +16,16 @@ from LaserSim.seed import Seed
 from LaserSim.seed_CPA import Seed_CPA
 from LaserSim.spectral_losses import Spectral_Losses
 from LaserSim.amplifier import Amplifier, plot_inversion1D, plot_inversion_temporal, plot_inversion2D, plot_temporal_fluence, plot_total_fluence_per_pass, plot_spectral_fluence, plot_inversion_before_after, plot_inversion_vs_pump_intensity, plot_storage_efficiency_vs_pump_time, plot_storage_efficiency_2D, plot_storage_efficiency_vs_pump_intensity, plot_pump_absorption
-from LaserSim.utilities import set_plot_params, numres
+from LaserSim.utilities import set_plot_params, numres, LaserSimFolder
 from LaserSim.seed import plot_seed_pulse as plot_QSwitch_pulse
 from LaserSim.seed_CPA import plot_seed_pulse as plot_CPA_pulse
 
 from LaserSim.spectral_losses import test_reflectivity_approximation
 
 
-version_number = "25/11"
+version_number = "26/02"
 Standard_path = os.path.dirname(os.path.abspath(__file__))
-
-def get_database_path():
-    """
-    Return the absolute path to the material_database folder,
-    whether the app is running from source or from a PyInstaller build.
-    """
-    if getattr(sys, 'frozen', False):
-        # Running from a PyInstaller bundle
-        base_path = sys._MEIPASS  # internal temp folder (_internal)
-        # Check if it exists next to the executable instead:
-        exe_dir = os.path.dirname(sys.executable)
-        possible_path = os.path.join(exe_dir, "material_database")
-        if os.path.exists(possible_path):
-            return possible_path
-    else:
-        # Running from source
-        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-    return os.path.join(base_path, "material_database")
-
-database_path = get_database_path()
+database_path = os.path.join(LaserSimFolder, "material_database")
 
 class App(customtkinter.CTk):
     def __init__(self):
@@ -809,6 +789,6 @@ class CustomEntry(customtkinter.CTkEntry):
 if __name__ == "__main__":
 
     app = App()
-    app.state('zoomed')
+    app.state('normal')
     app.protocol("WM_DELETE_WINDOW", app.on_closing)
     app.mainloop()

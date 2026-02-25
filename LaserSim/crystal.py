@@ -10,13 +10,27 @@ import matplotlib.pyplot as plt
 
 kB = 1.380649e-23  # Boltzmann constant in J/K
 Folder = os.path.dirname(os.path.abspath(__file__))
-Folder = os.path.abspath(os.path.join(Folder, os.pardir))
 
 def logistic_function(x, a,b,d):
     return 1/(1+a*np.exp((1/d-1/x)/b*h*c/kB))
 
 class Crystal():
     def __init__(self, material="YbCaF2", temperature=300, lambda_a = None, lambda_e = None, length=None, N_dop=None, tau_f=None, smooth_sigmas = True, useMcCumber_absorption=True, resolution=numres, point_density_reduction=1):
+        """
+        Docstring for __init__
+        
+        :param material: name of the material as in the database (string)
+        :param temperature: temperature of the crystal in K (int), has to match the temperature of the cross section data in the database
+        :param lambda_a: absorption wavelength in the units given in basedata.json (usually nm), if None, the value from the database is used
+        :param lambda_e: emission wavelength in the units given in basedata.json (usually nm), if None, the value from the database is used
+        :param length: crystal length in m
+        :param N_dop: doping concentration in m⁻³
+        :param tau_f: fluorescence lifetime in s
+        :param smooth_sigmas: if True, smooth the cross sections using a moving average filter and a fourier filter, and use the McCumber relation to approximate the absorption cross section at wavelengths longer than self.lambda_ZPL
+        :param useMcCumber_absorption: toggle the use of the McCumber relation for approximating the absorption cross section at wavelengths longer than self.lambda_ZPL when smoothing the cross sections
+        :param resolution: numerical resolution for the z-axis of the crystal
+        :param point_density_reduction: reduce the number of points in the cross section data by this (integer) factor
+        """
         self.inversion = np.zeros(resolution)
         self.temperature = int(temperature)
         self.use_spline_interpolation = True

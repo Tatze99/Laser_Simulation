@@ -13,6 +13,18 @@ class Pump():
                        spectral_type="rect",
                        symmetric=False # if True, two pump pulses are generated for symmetric pumping, the intensity is divided equally
                 ):
+        """
+        Docstring for __init__
+        
+        :param intensity: Input intensity in kW/cm²
+        :param duration: Pulse duration in ms
+        :param wavelength: Central wavelength in nm
+        :param bandwidth: Bandwidth of the pump pulse in nm, if 0, a monochromatic pump pulse is generated
+        :param gauss_order: Order of the Gaussian pulse (only for spectral_type = "gauss")
+        :param resolution: Number of points for the pump pulse
+        :param spectral_type: Shape of the spectral pump pulse, can be "gauss", "rect" or "lorentz"
+        :param symmetric: If True, two pump pulses are generated for symmetric pumping, the intensity is divided equally
+        """
         self.intensity = intensity*1e7   # [W/m²]
         self.duration = duration*1e-3    # [s]
         self.wavelength = wavelength*1e-9 # [m]

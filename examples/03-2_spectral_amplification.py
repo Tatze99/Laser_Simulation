@@ -14,7 +14,7 @@ crystal = Crystal(material="YbCaF2", # material of the crystal
 
 # Load the pump with its standard values
 pump = Pump(intensity = 30,         # input intensity in kW/cm²
-            duration = 2,           # pulse duration in ns
+            duration = 2,           # pulse duration in ms
             wavelength = 940,       # monochromatic wavelength of the quasi-CW pulse
             ) 
 

@@ -11,7 +11,6 @@ h = 6.626e-34 # [Js]
 # numerical resolution
 numres = 300
 LaserSimFolder = os.path.dirname(os.path.abspath(__file__))
-LaserSimFolder = os.path.abspath(os.path.join(LaserSimFolder, os.pardir))
 
 PLOT_DEFAULTS = dict(
     save=False,
