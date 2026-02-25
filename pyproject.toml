@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "LaserSim"
-version = "1.0.1"
+version = "1.1.0"
 description = "Lasersimulation"
 authors = ["Marin Beyer <m.beyer@uni-jena.de"]
 license = "Proprietary"
