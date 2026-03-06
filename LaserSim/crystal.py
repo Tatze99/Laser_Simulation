@@ -289,7 +289,7 @@ def plot_cross_sections(crystal, lambda_p=None, lambda_l=None, axis=None, save=F
 
     plot_function(x, y, xlabel, ylabel, title, legends, axis, save, path, save_data, kwargs=kwargs)
 
-def plot_small_signal_gain(crystal, beta, round_trips=1, normalize=False, xlim=None, ylim=(1.1, np.inf), save=False, save_path=None, save_data=False, show_title=True, axis=None, double_pass=True):
+def plot_small_signal_gain(crystal, beta, round_trips=1, normalize=False, xlim=None, ylim=(1.1, np.inf), save=False, save_path=None, save_data=False, show_title=True, axis=None, double_pass=True, custom_legend=""):
     """
     Plot small signal gain for a given beta.
     """
@@ -318,7 +318,7 @@ def plot_small_signal_gain(crystal, beta, round_trips=1, normalize=False, xlim=N
     if round_trips != 1:
         title += f", for {round_trips} round trips"
 
-    legends = [f"$\\beta$ = {b:.2f}" for b in beta]
+    legends = custom_legend if custom_legend != "" else [f"$\\beta$ = {b:.2f}" for b in beta]
     beta_name = "_".join(str(round(b,2)) for b in beta)
     RT_name = f"_{round_trips}RT" if round_trips != 1 else ""
 
