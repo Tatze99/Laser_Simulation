@@ -432,7 +432,7 @@ def plot_lambert_beer(crystal, lambda0 = None, axis=None, save=False, save_data=
     xlabel = "depth $z$ in mm"
     ylabel = "transmitted light fraction $I(z)/I_0$"
     title = "transmitted light with Lambert Beer's law" if show_title else None
-    legend = [f"$T$ ({x[-1]}mm) = {np.min(y)*1e2:.1f} % at {lambda0:g} {crystal.lambda_label}"] if custom_legend == "" else custom_legend
+    legend = [f"$T$ ({x[-1]:g}mm) = {np.min(y)*1e2:.1f} % at {lambda0:g} {crystal.lambda_label}"] if custom_legend == "" else custom_legend
     fname = f"{crystal.material}_{crystal.temperature}K_Lambert_Beer_transmission_vs_crystal_thickness.pdf"
     path = create_save_path(save_path, fname)
 
