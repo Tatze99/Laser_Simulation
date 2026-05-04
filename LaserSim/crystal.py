@@ -289,7 +289,7 @@ def plot_cross_sections(crystal, lambda_p=None, lambda_l=None, axis=None, save=F
 
     plot_function(x, y, xlabel, ylabel, title, legends, axis, save, path, save_data, kwargs=kwargs)
 
-def plot_small_signal_gain(crystal, beta, round_trips=1, normalize=False, xlim=None, ylim=(1.1, np.inf), save=False, save_path=None, save_data=False, show_title=True, axis=None, double_pass=True, custom_legend=""):
+def plot_small_signal_gain(crystal, beta, round_trips=1, normalize=False, xlim=None, ylim=(0, np.inf), save=False, save_path=None, save_data=False, show_title=True, axis=None, double_pass=True, custom_legend=""):
     """
     Plot small signal gain for a given beta.
     """

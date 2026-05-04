@@ -137,12 +137,14 @@ class App(customtkinter.CTk):
         
         
         # extra settings
+        self.add_legend_row = 9
+
         self.inversion    = App.create_entry(frame, column=0, row=5, init_val="0.1,0.15,0.2", width=170, padx=(210-170, 10))
         self.double_pass = App.create_switch(frame, text="Double pass", command=None,  column=0, row=6, padx=20)
         self.inversion_label    = App.create_label(frame, column=0, row=5, text="β", padx=(5, 215-20))
         self.plot_pump_laser_cross_sections = App.create_switch(frame, text="Show values at λp, λl", command=None,  column=0, row=5, padx=20)
-        self.add_legend   = App.create_entry(frame, column=0, row=9, init_val="", width=150, padx=(210-150, 10))
-        self.add_legend_label    = App.create_label(frame, column=0, row=9, text="legend", padx=(10, 210-40))
+        self.add_legend   = App.create_entry(frame, column=0, row=self.add_legend_row, init_val="", width=150, padx=(210-150, 10))
+        self.add_legend_label    = App.create_label(frame, column=0, row=self.add_legend_row, text="legend", padx=(10, 210-40))
         self.reset_material_plot = App.create_button(frame, width=50, command=lambda: (self.clear_figure(), self.crystal_plot()), column=0, row=4, image=self.img_reset, sticky="e")
         self.reset_amplifier_plot = App.create_button(frame, width=50, command=lambda: (self.clear_figure(), self.amplifier_plot()), column=0, row=8, image=self.img_reset, sticky="e")
         self.normalize = App.create_switch(frame, text="Normalize", command=None,  column=0, row=9, padx=20, pady=(5,15))
@@ -511,17 +513,7 @@ class App(customtkinter.CTk):
             seed_type = self.seed_type_button.get()
         
         if plot_function in [plot_total_fluence_per_pass, plot_inversion1D, plot_inversion_temporal, plot_inversion2D, plot_inversion_vs_pump_intensity, plot_storage_efficiency_2D, plot_storage_efficiency_vs_pump_intensity]:
-            kwargs["custom_legend"] = self.add_legend.get().format(crystal = self.material_list.get(),
-                                                                   intensity=float(self.pump_intensity.get()), 
-                                                                   tau_p=float(self.pump_duration.get()),
-                                                                   Ndop=float(self.crystal_doping.get()),
-                                                                   thickness=float(self.crystal_thickness.get()),
-                                                                   temperature=self.temperature_list.get(),
-                                                                   ZPL=float(self.crystal_ZPL.get()),
-                                                                   tau_f=float(self.crystal_tau_f.get()),
-                                                                   losses=float(self.amplifier_losses.get()),
-                                                                   lambda_p=float(self.pump_wavelength.get()),
-                                                                   lambda_l=float(self.seed_QSwitch_wavelength.get()))
+            kwargs["custom_legend"] = self.get_custom_legend_string()
         if plot_function == plot_storage_efficiency_vs_pump_time:
             kwargs["pump_intensity"] = [float(self.pump_intensity.get())*1e7]
 
@@ -550,6 +542,7 @@ class App(customtkinter.CTk):
             kwargs["beta"] = ast.literal_eval(self.inversion.get())
             kwargs["double_pass"] = self.double_pass.get()
             kwargs["xlim"] = (lambda_l - bandwidth, lambda_l + bandwidth)
+            kwargs["custom_legend"] = self.get_custom_legend_string()
         elif plot_function == plot_Isat:
             kwargs.update({"lambda0": lambda_p, "xlim": (lambda_p - bandwidth, lambda_p + bandwidth)})
         elif plot_function == plot_Fsat:
@@ -580,10 +573,10 @@ class App(customtkinter.CTk):
 
         self.material = material
         crystal = Crystal(material=material, smooth_sigmas=self.smooth_sigma.get())
-        self.crystal_doping.reinsert(str(crystal.doping_concentration*1e-6))
-        self.crystal_thickness.reinsert(str(crystal.length*1e3))
-        self.crystal_tau_f.reinsert(str(crystal.tau_f*1e3))
-        self.crystal_ZPL.reinsert(str(crystal.lambda_ZPL*1e9))
+        self.crystal_doping.reinsert(f"{crystal.doping_concentration*1e-6:g}")
+        self.crystal_thickness.reinsert(f"{crystal.length*1e3:g}")
+        self.crystal_tau_f.reinsert(f"{crystal.tau_f*1e3:g}")
+        self.crystal_ZPL.reinsert(f"{crystal.lambda_ZPL*1e9:g}")
         self.seed_QSwitch_wavelength.reinsert(f"{crystal.to_internal_lambda(crystal.lambda_e)*1e9:g}")
         self.seed_CPA_wavelength.reinsert(f"{crystal.to_internal_lambda(crystal.lambda_e)*1e9:g}")
         self.pump_wavelength.reinsert(f"{crystal.to_internal_lambda(crystal.lambda_a)*1e9:g}")
@@ -593,10 +586,15 @@ class App(customtkinter.CTk):
             self.inversion.grid()
             self.inversion_label.grid()
             self.double_pass.grid()
+            self.add_legend.grid()
+            self.add_legend_label.grid()
         else:
             self.inversion.grid_remove()
             self.inversion_label.grid_remove()
             self.double_pass.grid_remove()
+            self.add_legend.grid_remove()
+            self.add_legend.delete(0, 'end')
+            self.add_legend_label.grid_remove()
 
         if argument == "Cross sections" or argument == "Equilibrium inversion":
             self.plot_pump_laser_cross_sections.grid()
@@ -622,6 +620,19 @@ class App(customtkinter.CTk):
             self.seed_gaussian_order.grid_remove()
             self.seed_gaussian_order_label.grid_remove()
 
+    def get_custom_legend_string(self):
+        return self.add_legend.get().format(crystal = self.material_list.get(),
+                                                                   intensity=float(self.pump_intensity.get()), 
+                                                                   tau_p=float(self.pump_duration.get()),
+                                                                   Ndop=float(self.crystal_doping.get()),
+                                                                   thickness=float(self.crystal_thickness.get()),
+                                                                   temperature=self.temperature_list.get(),
+                                                                   ZPL=float(self.crystal_ZPL.get()),
+                                                                   tau_f=float(self.crystal_tau_f.get()),
+                                                                   losses=float(self.amplifier_losses.get()),
+                                                                   lambda_p=float(self.pump_wavelength.get()),
+                                                                   lambda_l=float(self.seed_QSwitch_wavelength.get()))
+    
     def read_file_list(self):
         path = customtkinter.filedialog.askdirectory(initialdir=self.folder_path)
         if path != "":
