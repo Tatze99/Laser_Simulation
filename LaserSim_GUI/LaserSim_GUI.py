@@ -131,26 +131,26 @@ class App(customtkinter.CTk):
         self.temperature_list  = App.create_Menu(frame, values=["300"], column=0, row=1, command=None, width=60, padx = (210-60,10))
 
         self.material_plot_list  = App.create_Menu(frame, values=list(self.material_plot_functions.keys()), column=0, row=2, pady=(15,5), command=self.toggle_extra_material_arguments)
-        self.plot_crystal_button    = App.create_button(frame, text="Plot material", command=self.crystal_plot, column=0, row=4, image=self.img_crystal, sticky="w")
+        self.plot_crystal_button    = App.create_button(frame, text="Plot material", command=self.crystal_plot, column=0, row=3, image=self.img_crystal, sticky="w")
+        self.reset_material_plot = App.create_button(frame, width=50, command=lambda: (self.clear_figure(), self.crystal_plot()), column=0, row=3, image=self.img_reset, sticky="e")
         
-        self.amplifier_plot_list  = App.create_Menu(frame, values=list(self.amplifier_plot_functions.keys()), column=0, row=7, pady=(25,5), command=self.toggle_extra_amplifier_arguments)
-        self.plot_amplifier_button = App.create_button(frame, text="Plot amplifier", command=self.amplifier_plot, column=0, row=8, image=self.img_laser, sticky="w")
+        self.amplifier_plot_list  = App.create_Menu(frame, values=list(self.amplifier_plot_functions.keys()), column=0, row=4, pady=(15,5), command=self.toggle_extra_amplifier_arguments)
+        self.plot_amplifier_button = App.create_button(frame, text="Plot amplifier", command=self.amplifier_plot, column=0, row=5, image=self.img_laser, sticky="w")
+        self.reset_amplifier_plot = App.create_button(frame, width=50, command=lambda: (self.clear_figure(), self.amplifier_plot()), column=0, row=5, image=self.img_reset, sticky="e")
         
         
         # extra settings
-        self.add_legend_row = 9
-
-        self.inversion    = App.create_entry(frame, column=0, row=5, init_val="0.1,0.15,0.2", width=170, padx=(210-170, 10))
-        self.inversion_label    = App.create_label(frame, column=0, row=5, text="β", padx=(5, 215-20))
-        self.intensity    = App.create_entry(frame, column=0, row=10, init_val="10,20,30", width=170, padx=(210-170, 10))
-        self.intensity_label    = App.create_label(frame, column=0, row=10, text="I", padx=(5, 215-20))
-        self.double_pass = App.create_switch(frame, text="Double pass", command=None,  column=0, row=6, padx=20)
-        self.plot_pump_laser_cross_sections = App.create_switch(frame, text="Show values at λp, λl", command=None,  column=0, row=5, padx=20)
-        self.add_legend   = App.create_entry(frame, column=0, row=self.add_legend_row, init_val="", width=150, padx=(210-150, 10))
-        self.add_legend_label    = App.create_label(frame, column=0, row=self.add_legend_row, text="legend", padx=(10, 210-40))
-        self.reset_material_plot = App.create_button(frame, width=50, command=lambda: (self.clear_figure(), self.crystal_plot()), column=0, row=4, image=self.img_reset, sticky="e")
-        self.reset_amplifier_plot = App.create_button(frame, width=50, command=lambda: (self.clear_figure(), self.amplifier_plot()), column=0, row=8, image=self.img_reset, sticky="e")
-        self.normalize = App.create_switch(frame, text="Normalize", command=None,  column=0, row=11, padx=20, pady=(5,15))
+        row = 6
+        self.extra_title        = App.create_label(frame, text="Configure Plot", font=customtkinter.CTkFont(size=16, weight="bold"), row=row, column=0, padx=20, pady=(20, 5),sticky=None)
+        self.inversion          = App.create_entry(frame, column=0, row=row+1, init_val="0.1,0.15,0.2", width=170, padx=(210-170, 10))
+        self.inversion_label    = App.create_label(frame, column=0, row=row+1, text="β", padx=(5, 215-20))
+        self.intensity          = App.create_entry(frame, column=0, row=row+2, init_val="10,20,30", width=170, padx=(210-170, 10))
+        self.intensity_label    = App.create_label(frame, column=0, row=row+2, text="int.", padx=(5, 215-20))
+        self.double_pass        = App.create_switch(frame, text="Double pass", command=None,  column=0, row=row+3, padx=20)
+        self.plot_pump_laser_cross_sections = App.create_switch(frame, column=0, row=row+4, text="Show values at λp, λl", command=None, padx=20)
+        self.add_legend         = App.create_entry(frame, column=0, row=row+5, init_val="", width=150, padx=(210-150, 10))
+        self.add_legend_label   = App.create_label(frame, column=0, row=row+5, text="legend", padx=(10, 210-40))
+        self.normalize          = App.create_switch(frame, text="Normalize", command=None,  column=0, row=row+6, padx=20, pady=(5,15))
 
         self.extra_widget_names = ["inversion", "inversion_label", "intensity", "intensity_label", "double_pass", "plot_pump_laser_cross_sections", "add_legend", "add_legend_label", "reset_material_plot", "reset_amplifier_plot"]
 
@@ -158,7 +158,7 @@ class App(customtkinter.CTk):
         self.save_button    = App.create_button(frame, text="Save figure/data", command=self.save_figure,     column=0, row=23,  image=self.img_save, pady=(5,15))
         
         #switches
-        switch_row = 12
+        switch_row = 13
         self.config_title = App.create_label(frame, text="Configure Simulation", font=customtkinter.CTkFont(size=16, weight="bold"), row=switch_row, column=0, padx=20, pady=(20, 5),sticky=None)
         self.crystal_button   = App.create_switch(frame, text="Config Crystal", command=lambda: self.toggle_sidebar_window(self.crystal_button, self.crystal_widgets),  column=0, row=switch_row+1, padx=20)
         self.pump_button      = App.create_switch(frame, text="Config Pump", command=lambda: self.toggle_sidebar_window(self.pump_button, self.pump_widgets),  column=0, row=switch_row+2, padx=20)
