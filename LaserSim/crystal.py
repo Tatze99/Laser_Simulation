@@ -1,4 +1,4 @@
-from LaserSim.utilities import numres, h, c, moving_average, fourier_filter, set_plot_params, plot_function, create_save_path, PLOT_DEFAULTS, UNIT_TABLE
+from LaserSim.utilities import numres, h, c, moving_average, fourier_filter, set_plot_params, plot_function, create_save_path, PLOT_DEFAULTS, UNIT_TABLE, z_integ
 import json
 import numpy as np
 import os
@@ -186,7 +186,20 @@ class Crystal():
         Input: wavelength in SI unit (meters), inversion beta (unitless)
         Returns: small signal gain G0
         """
-        Gain = np.exp(self.doping_concentration*(self.sigma_e(lambd)*beta-self.sigma_a(lambd)*(1-beta))*self.length)
+        if isinstance(beta, (int, float)):
+            Gain = np.exp(self.doping_concentration*(self.sigma_e(lambd)*beta-self.sigma_a(lambd)*(1-beta))*self.length)
+        else:
+            # 1. Ensure sigma is a column vector (Shape: L x 1)
+            sig_e = self.sigma_e(lambd)[:, np.newaxis]
+            sig_a = self.sigma_a(lambd)[:, np.newaxis]
+
+            # 2. Ensure beta is a row vector (Shape: 1 x Z)
+            # If beta is already 1D, this makes it 2D for broadcasting
+            beta_2d = beta[np.newaxis, :] 
+
+            # 4. Integrate
+            Gain = np.exp(self.doping_concentration * z_integ(sig_e * beta_2d - sig_a * (1 - beta_2d), self.dz)[:, -1])
+            # Gain = np.exp(self.doping_concentration*integ(self.sigma_e(lambd)*beta-self.sigma_a(lambd)*(1-beta), self.dz)[-1])
         return Gain
     
     def McCumber_absorption(self, lambda_max=None):
@@ -303,20 +316,26 @@ def plot_small_signal_gain(crystal, beta, round_trips=1, normalize=False, xlim=N
     else:
         factor = 1
     
-    if not isinstance(beta, (list, tuple, np.ndarray)):
+    if not isinstance(beta, (list, tuple)):
         beta = [beta]
         
     xlabel = f"wavelength in {crystal.lambda_label}"
     ylabel = "Gain G"
     title = f"small signal gain, {crystal.name} at {crystal.temperature}K" if show_title else None
+    for b in beta:
+        print(type(b))
     y_list = [crystal.small_signal_gain(lambd, b)**(factor*round_trips) for b in beta]
     if normalize:
         y_list = [y/np.max(y) for y in y_list]
         ylim = (0,1.1)
         ylabel = "normalized Gain G"
 
-    if round_trips != 1:
+    if round_trips != 1 and title is not None:
         title += f", for {round_trips} round trips"
+
+    for i, item in enumerate(beta):
+        if not isinstance(item, (int, float)):
+            beta[i] = np.mean(item)
 
     legends = custom_legend if custom_legend != "" else [f"$\\beta$ = {b:.2f}" for b in beta]
     beta_name = "_".join(str(round(b,2)) for b in beta)

@@ -1,4 +1,4 @@
-from LaserSim.crystal import Crystal, plot_beta_eq
+from LaserSim.crystal import Crystal, plot_beta_eq, plot_small_signal_gain
 from LaserSim.pump import Pump
 from LaserSim.seed import Seed
 from LaserSim.seed_CPA import Seed_CPA
@@ -508,6 +508,28 @@ def plot_inversion2D(amplifier, cmap="magma", save=False, save_path=None, save_d
         plt.tight_layout()
         plt.savefig(path)
 
+def plot_simulated_small_signal_gain(amplifier, intensity=None, round_trips=1, double_pass=True, axis=None, save=False, save_path=None, save_data=False, show_title=True):
+    """
+    Plot the simulated small signal gain as a function of wavelength
+    """
+    amplifier.inversion()
+
+
+    if intensity is None:
+        intensity = np.atleast_1d(amplifier.pump.intensity)
+        beta = amplifier.crystal.inversion_end
+    else:
+        intensity = np.atleast_1d(intensity)*1e7
+        beta = []
+        for i in intensity: 
+            amplifier.pump.intensity = i
+            amplifier.inversion()
+            beta.append(amplifier.crystal.inversion_end)
+
+    custom_legend = [f"$I$ = {I*1e-7:.1f} kW/cm²" for I in intensity]
+
+    plot_small_signal_gain(amplifier.crystal, beta, round_trips=round_trips, double_pass=double_pass, axis=axis, save=save, show_title=show_title, custom_legend=custom_legend)
+
 def plot_spectral_fluence(amplifier, axis=None, save=False, save_path=None, save_data=False, xlim=(-np.inf,np.inf), show_title=True, normalize=False):
     """ 
     Plot the spectral fluence at the end of the ten last roundtrips. Note, that a roundtrip corresponds to two passes through the material.
@@ -710,16 +732,18 @@ if __name__ == "__main__":
     print(CW_amplifier)
     
     CPA_amplifier.inversion()
-    plot_inversion1D(CW_amplifier)
-    plot_inversion_temporal(CW_amplifier)
-    plot_inversion2D(CW_amplifier)
-    plot_total_fluence_per_pass(CW_amplifier)
-    plot_temporal_fluence(CW_amplifier)
-    plot_spectral_fluence(CPA_amplifier)
-    plot_inversion_vs_pump_intensity(CW_amplifier)
-    plot_inversion_before_after(CW_amplifier)
-    plot_storage_efficiency_vs_pump_intensity(CW_amplifier)
-    plot_storage_efficiency_2D(CW_amplifier)
-    plot_storage_efficiency_vs_pump_time(CW_amplifier, pump_intensity=[10e7, 20e7, 30e7])
-    plot_pump_absorption(CW_amplifier)
+    # plot_inversion1D(CW_amplifier)
+    # plot_inversion_temporal(CW_amplifier)
+    # plot_inversion2D(CW_amplifier)
+    # plot_total_fluence_per_pass(CW_amplifier)
+    # plot_temporal_fluence(CW_amplifier)
+    # plot_spectral_fluence(CPA_amplifier)
+    # plot_inversion_vs_pump_intensity(CW_amplifier)
+    # plot_inversion_before_after(CW_amplifier)
+    # plot_storage_efficiency_vs_pump_intensity(CW_amplifier)
+    # plot_storage_efficiency_2D(CW_amplifier)
+    # plot_storage_efficiency_vs_pump_time(CW_amplifier, pump_intensity=[10e7, 20e7, 30e7])
+    # plot_pump_absorption(CW_amplifier)
+
+    plot_simulated_small_signal_gain(CW_amplifier, intensity=[10,20,30])
 
