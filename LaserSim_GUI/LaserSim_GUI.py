@@ -47,7 +47,7 @@ class App(customtkinter.CTk):
         self.update_material(self.material_list.get())
 
         self.crystal_plot()
-        self.toggle_extra_material_arguments("Cross sections")
+        self.toggle_extra_amplifier_arguments("Cross sections")
 
         self.canvas_width.bind("<KeyRelease>", lambda val: self.update_canvas_size(self.canvas_ratio_list[self.canvas_ratio.get()]))
         self.canvas_height.bind("<KeyRelease>", lambda val: self.update_canvas_size(self.canvas_ratio_list[self.canvas_ratio.get()]))
@@ -81,7 +81,7 @@ class App(customtkinter.CTk):
         self.amplifier_plot_functions = {'Temporal fluence': plot_temporal_fluence, 
                                         'Total fluence pass': plot_total_fluence_per_pass,
                                         'Spectral fluence': plot_spectral_fluence,
-                                        'Small signal gain': plot_simulated_small_signal_gain,
+                                        'Small signal gain (Ip)': plot_simulated_small_signal_gain,
                                         'Inversion 1D (space)': plot_inversion1D, 
                                         'Inversion 1D (time)': plot_inversion_temporal,
                                         'Inversion 2D': plot_inversion2D,
@@ -130,7 +130,7 @@ class App(customtkinter.CTk):
         self.material_list  = App.create_Menu(frame, values=self.materials, column=0, row=1, command=self.update_material, width=135, padx = (10,210-135), init_val="YbCaF2")
         self.temperature_list  = App.create_Menu(frame, values=["300"], column=0, row=1, command=None, width=60, padx = (210-60,10))
 
-        self.material_plot_list  = App.create_Menu(frame, values=list(self.material_plot_functions.keys()), column=0, row=2, pady=(15,5), command=self.toggle_extra_material_arguments)
+        self.material_plot_list  = App.create_Menu(frame, values=list(self.material_plot_functions.keys()), column=0, row=2, pady=(15,5), command=self.toggle_extra_amplifier_arguments)
         self.plot_crystal_button    = App.create_button(frame, text="Plot material", command=self.crystal_plot, column=0, row=3, image=self.img_crystal, sticky="w")
         self.reset_material_plot = App.create_button(frame, width=50, command=lambda: (self.clear_figure(), self.crystal_plot()), column=0, row=3, image=self.img_reset, sticky="e")
         
@@ -141,18 +141,19 @@ class App(customtkinter.CTk):
         
         # extra settings
         row = 6
+        entry_width = 150
         self.extra_title        = App.create_label(frame, text="Configure Plot", font=customtkinter.CTkFont(size=16, weight="bold"), row=row, column=0, padx=20, pady=(20, 5),sticky=None)
-        self.inversion          = App.create_entry(frame, column=0, row=row+1, init_val="0.1,0.15,0.2", width=170, padx=(210-170, 10))
-        self.inversion_label    = App.create_label(frame, column=0, row=row+1, text="β", padx=(5, 215-20))
-        self.intensity          = App.create_entry(frame, column=0, row=row+2, init_val="10,20,30", width=170, padx=(210-170, 10))
-        self.intensity_label    = App.create_label(frame, column=0, row=row+2, text="int.", padx=(5, 215-20))
+        self.inversion          = App.create_entry(frame, column=0, row=row+1, init_val="0.1,0.15,0.2", width=entry_width, padx=(210-entry_width, 10))
+        self.inversion_label    = App.create_label(frame, column=0, row=row+1, text="β", padx=(10, 210-40))
+        self.intensity          = App.create_entry(frame, column=0, row=row+2, init_val="", width=entry_width, padx=(210-entry_width, 10))
+        self.intensity_label    = App.create_label(frame, column=0, row=row+2, text="intens.", padx=(10, 210-40))
         self.double_pass        = App.create_switch(frame, text="Double pass", command=None,  column=0, row=row+3, padx=20)
         self.plot_pump_laser_cross_sections = App.create_switch(frame, column=0, row=row+4, text="Show values at λp, λl", command=None, padx=20)
-        self.add_legend         = App.create_entry(frame, column=0, row=row+5, init_val="", width=150, padx=(210-150, 10))
+        self.add_legend         = App.create_entry(frame, column=0, row=row+5, init_val="", width=entry_width, padx=(210-entry_width, 10))
         self.add_legend_label   = App.create_label(frame, column=0, row=row+5, text="legend", padx=(10, 210-40))
         self.normalize          = App.create_switch(frame, text="Normalize", command=None,  column=0, row=row+6, padx=20, pady=(5,15))
 
-        self.extra_widget_names = ["inversion", "inversion_label", "intensity", "intensity_label", "double_pass", "plot_pump_laser_cross_sections", "add_legend", "add_legend_label", "reset_material_plot", "reset_amplifier_plot"]
+        self.extra_widget_names = ["inversion", "inversion_label", "intensity", "intensity_label", "double_pass", "plot_pump_laser_cross_sections", "add_legend", "add_legend_label", "normalize"]
 
         # bottom settings
         self.save_button    = App.create_button(frame, text="Save figure/data", command=self.save_figure,     column=0, row=23,  image=self.img_save, pady=(5,15))
@@ -196,7 +197,8 @@ class App(customtkinter.CTk):
             widget = getattr(self, name)
             widget.grid_remove()
 
-
+        self.reset_amplifier_plot.grid_remove()
+        self.reset_material_plot.grid_remove()
         self.show_title.select()
         self.double_pass.select()
         self.show_grid.select()
@@ -514,8 +516,13 @@ class App(customtkinter.CTk):
             seed_type = self.seed_type_button.get()
         elif plot_function == plot_simulated_small_signal_gain:
             kwargs["double_pass"] = self.double_pass.get()
-            kwargs["intensity"] = ast.literal_eval(self.intensity.get())
         
+        if plot_function in [plot_inversion1D, plot_inversion_temporal, plot_simulated_small_signal_gain]:
+            try:
+                kwargs["intensity"] = ast.literal_eval(self.intensity.get())
+            except:
+                kwargs["intensity"] = None
+
         if plot_function in [plot_total_fluence_per_pass, plot_inversion1D, plot_inversion_temporal, plot_inversion2D, plot_inversion_vs_pump_intensity, plot_storage_efficiency_2D, plot_storage_efficiency_vs_pump_intensity]:
             kwargs["custom_legend"] = self.get_custom_legend_string()
         if plot_function == plot_storage_efficiency_vs_pump_time:
@@ -585,47 +592,34 @@ class App(customtkinter.CTk):
         self.seed_CPA_wavelength.reinsert(f"{crystal.to_internal_lambda(crystal.lambda_e)*1e9:g}")
         self.pump_wavelength.reinsert(f"{crystal.to_internal_lambda(crystal.lambda_a)*1e9:g}")
 
-    def toggle_extra_material_arguments(self, argument):
+    
+    def toggle_extra_amplifier_arguments(self, argument):
+        for name in self.extra_widget_names:
+            widget = getattr(self, name)
+            widget.grid_remove()
+        
         if argument == "Small signal gain":
             self.inversion.grid()
             self.inversion_label.grid()
+
+        if argument in ["Small signal gain", "Small signal gain (Ip)"]:
             self.double_pass.grid()
-            self.add_legend.grid()
-            self.add_legend_label.grid()
-        else:
-            self.inversion.grid_remove()
-            self.inversion_label.grid_remove()
-            if self.amplifier_plot_list.get() != "Small signal gain":
-                self.double_pass.grid_remove()
-            self.add_legend.grid_remove()
-            self.add_legend.delete(0, 'end')
-            self.add_legend_label.grid_remove()
 
-        if argument == "Cross sections" or argument == "Equilibrium inversion":
+        if argument in ["Cross sections", "Equilibrium inversion"]:
             self.plot_pump_laser_cross_sections.grid()
-        else:
-            self.plot_pump_laser_cross_sections.grid_remove()
-    
-    def toggle_extra_amplifier_arguments(self, argument):
-        if argument in ["Total fluence pass", "Storage efficiency 2D", "Inversion 1D (space)", "Inversion 1D (time)", "Inversion 2D", "Inversion vs Ip", "Storage efficiency vs Ip"]:
+
+        if argument in ["Small signal gain", "Total fluence pass", "Storage efficiency 2D", "Inversion 1D (space)", "Inversion 1D (time)", "Inversion 2D", "Inversion vs Ip", "Storage efficiency vs Ip"]:
             self.add_legend.grid()
             self.add_legend_label.grid()
         else:
-            self.add_legend.grid_remove()
             self.add_legend.delete(0, 'end')
-            self.add_legend_label.grid_remove()
 
-        if argument == "Small signal gain":
+        if argument in ["Inversion 1D (space)", "Inversion 1D (time)", "Small signal gain (Ip)"]:
             self.intensity.grid()
             self.intensity_label.grid()
-            self.double_pass.grid()
-        else: 
-            self.intensity.grid_remove()
-            self.intensity_label.grid_remove()
-            if self.material_plot_list.get() != "Small signal gain":
-                self.double_pass.grid_remove()
 
-        self.normalize.grid() if (argument == "Temporal fluence" or argument == "Spectral fluence") else self.normalize.grid_remove()
+        if argument in ["Temporal fluence", "Spectral fluence"]:
+            self.normalize.grid()
     
     def toggle_extra_seed_arguments(self, argument):
         if argument == "gauss":

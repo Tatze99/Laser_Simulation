@@ -322,8 +322,6 @@ def plot_small_signal_gain(crystal, beta, round_trips=1, normalize=False, xlim=N
     xlabel = f"wavelength in {crystal.lambda_label}"
     ylabel = "Gain G"
     title = f"small signal gain, {crystal.name} at {crystal.temperature}K" if show_title else None
-    for b in beta:
-        print(type(b))
     y_list = [crystal.small_signal_gain(lambd, b)**(factor*round_trips) for b in beta]
     if normalize:
         y_list = [y/np.max(y) for y in y_list]

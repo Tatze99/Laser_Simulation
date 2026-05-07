@@ -432,39 +432,57 @@ def plot_total_fluence_per_pass(amplifier, axis=None, save=False, save_path=None
 
     plot_function(x,fluence_out*1e-4, xlabel, ylabel, title, legend, axis, save, path, save_data, kwargs=kwargs)
 
-def plot_inversion1D(amplifier, axis=None, save=False, save_path=None, save_data=False, ylim=(0,np.inf), show_title=True, custom_legend=""):
+def plot_inversion1D(amplifier, intensity=None, axis=None, save=False, save_path=None, save_data=False, ylim=(0,np.inf), show_title=True, custom_legend=""):
     """
     Plot the inversion in the crystal after the pumping process
     """
+
     amplifier.inversion()
+    
+    if intensity is None:
+        intensity = np.atleast_1d(amplifier.pump.intensity)
+        beta = amplifier.crystal.inversion_end
+    else:
+        intensity = np.atleast_1d(intensity)*1e7
+        beta = [amplifier.inversion(pump_intensity=i) for i in intensity]
+        
     crystal, pump = amplifier.crystal, amplifier.pump
     x = crystal.z_axis*1e3
-    y = crystal.inversion_end 
     xlabel = "depth $z$ in mm"
     ylabel = "inversion $\\beta$"
-    legend = f"$\\beta_{{mean}}$ = {np.mean(crystal.inversion_end):.4f}" if custom_legend == "" else custom_legend
+    legend = [f"$I$ = {I*1e-7:.1f} kW/cm², $\\beta_{{mean}}$ = {np.mean(b):.4f}" for I, b in zip(intensity, beta)] if custom_legend == "" else custom_legend
     title = "$\\beta(z)$ at the end of pumping" if show_title else None
     fname = f"{crystal.material}_{crystal.temperature}K_{pump.intensity*1e-7}kWcm2_inversion1D.pdf"
     path = create_save_path(save_path, fname)
 
-    plot_function(x, y, xlabel, ylabel, title, legend, axis, save, path, save_data, ylim=ylim)
+    plot_function(x, beta, xlabel, ylabel, title, legend, axis, save, path, save_data, ylim=ylim)
 
-def plot_inversion_temporal(amplifier, axis=None, save=False, save_path=None, save_data=False, ylim=(0,np.inf), show_title=True, custom_legend=""):
+def plot_inversion_temporal(amplifier, intensity=None, axis=None, save=False, save_path=None, save_data=False, ylim=(0,np.inf), show_title=True, custom_legend=""):
     """
     Plot the inversion at the surface of the crystal as a function of time
     """
     amplifier.inversion()
+
+    if intensity is None:
+        intensity = np.atleast_1d(amplifier.pump.intensity)
+        beta = [amplifier.crystal.inversion[:,0]]
+    else:
+        intensity = np.atleast_1d(intensity)*1e7
+        beta = []
+        for i in intensity:
+            amplifier.inversion(pump_intensity=i)
+            beta.append(amplifier.crystal.inversion[:,0])
+
     crystal, pump = amplifier.crystal, amplifier.pump
     x = pump.t_axis*1e3
-    y = crystal.inversion[:,0]
     xlabel = "time $t$ in ms"
     ylabel = "inversion $\\beta$"
-    legend = f"$\\beta_{{max}}$ = {np.ma.max(y):.4f}" if custom_legend == "" else custom_legend
+    legend = [f"$I$ = {I*1e-7:.1f} kW/cm², $\\beta_{{max}}$ = {np.ma.max(b):.4f}" for I, b in zip(intensity, beta)] if custom_legend == "" else custom_legend
     title = "$\\beta(t)$ at the surface of the medium" if show_title else None
     fname = f"{crystal.material}_{crystal.temperature}K_{pump.intensity*1e-7}kWcm2_inversion1D_front.pdf"
     path = create_save_path(save_path, fname)
 
-    plot_function(x, y, xlabel, ylabel, title, legend, axis, save, path, save_data, ylim=ylim)
+    plot_function(x, beta, xlabel, ylabel, title, legend, axis, save, path, save_data, ylim=ylim)
 
 def plot_inversion2D(amplifier, cmap="magma", save=False, save_path=None, save_data=False, axis=None, show_title=True, custom_legend=""):
     """
@@ -511,6 +529,7 @@ def plot_inversion2D(amplifier, cmap="magma", save=False, save_path=None, save_d
 def plot_simulated_small_signal_gain(amplifier, intensity=None, round_trips=1, double_pass=True, axis=None, save=False, save_path=None, save_data=False, show_title=True):
     """
     Plot the simulated small signal gain as a function of wavelength
+    :param intensity: pump intensity in kW/cm², if None, use the pump intensity defined in the pump object, if array-like, plot the gain for each intensity value
     """
     amplifier.inversion()
 
@@ -520,11 +539,8 @@ def plot_simulated_small_signal_gain(amplifier, intensity=None, round_trips=1, d
         beta = amplifier.crystal.inversion_end
     else:
         intensity = np.atleast_1d(intensity)*1e7
-        beta = []
-        for i in intensity: 
-            amplifier.pump.intensity = i
-            amplifier.inversion()
-            beta.append(amplifier.crystal.inversion_end)
+        beta = [amplifier.inversion(pump_intensity=i) for i in intensity]
+
 
     custom_legend = [f"$I$ = {I*1e-7:.1f} kW/cm²" for I in intensity]
 
@@ -533,6 +549,7 @@ def plot_simulated_small_signal_gain(amplifier, intensity=None, round_trips=1, d
 def plot_spectral_fluence(amplifier, axis=None, save=False, save_path=None, save_data=False, xlim=(-np.inf,np.inf), show_title=True, normalize=False):
     """ 
     Plot the spectral fluence at the end of the ten last roundtrips. Note, that a roundtrip corresponds to two passes through the material.
+    
     """
     spectral_fluence = amplifier.extraction_CPA()
     crystal, pump, seed = amplifier.crystal, amplifier.pump, amplifier.seed
