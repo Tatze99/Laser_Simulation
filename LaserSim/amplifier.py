@@ -544,7 +544,7 @@ def plot_simulated_small_signal_gain(amplifier, intensity=None, round_trips=1, d
 
     custom_legend = [f"$I$ = {I*1e-7:.1f} kW/cm²" for I in intensity]
 
-    plot_small_signal_gain(amplifier.crystal, beta, round_trips=round_trips, double_pass=double_pass, axis=axis, save=save, show_title=show_title, custom_legend=custom_legend)
+    plot_small_signal_gain(amplifier.crystal, beta, round_trips=round_trips, double_pass=double_pass, axis=axis, save=save, save_path=save_path, save_data=save_data, show_title=show_title, custom_legend=custom_legend)
 
 def plot_spectral_fluence(amplifier, axis=None, save=False, save_path=None, save_data=False, xlim=(-np.inf,np.inf), show_title=True, normalize=False):
     """ 
