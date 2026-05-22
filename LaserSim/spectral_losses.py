@@ -106,7 +106,7 @@ class Spectral_Losses():
             return reflectivity_array[n]
         return reflectivity_array[n] + (1-reflectivity_array[n])*self.calc_total_reflectivity(reflectivity_array, n+1)
     
-    def reflectivity_by_angles(self, angle_array, angle_unit="grad", save_data=False):
+    def reflectivity_by_angles(self, angle_array, angle_unit="rad", save_data=False):
         """
         Calculate the total reflectivity for a given array of angles in radians or degrees
         """
