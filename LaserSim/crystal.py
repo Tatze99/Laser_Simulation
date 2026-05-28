@@ -1,3 +1,18 @@
+"""
+crystal
+=====
+This module contains the Crystal class, describing all properties of the laser material, such as the cross sections, the doping concentration, fluorescence lifetime, etc. It also contains functions for plotting the various laser material properties.
+
+CLASSES: Crystal()
+
+FUNCTIONS: 
+    plot_cross_sections 
+    plot_small_signal_gain
+    plot_beta_eq
+    plot_Isat
+    plot_Fsat
+    plot_lambert_beer
+"""
 from LaserSim.utilities import numres, h, c, moving_average, fourier_filter, set_plot_params, plot_function, create_save_path, PLOT_DEFAULTS, UNIT_TABLE, z_integ
 import json
 import numpy as np

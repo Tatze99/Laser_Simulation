@@ -1,3 +1,14 @@
+"""
+spectral_losses
+=====
+This module contains the Spectral_Losses class, describing all spectral losses during the amplification process, such as reflectivity curves of mirrors.
+
+CLASSES: Spectral_Losses()
+
+FUNCTIONS: 
+    test_reflectivity_approximation
+"""
+
 from LaserSim.utilities import set_plot_params
 import numpy as np
 import os

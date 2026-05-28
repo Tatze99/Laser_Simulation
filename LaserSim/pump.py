@@ -1,3 +1,13 @@
+"""
+pump
+=====
+This module contains the Pump class, describing all properties of the pump pulse, such as the intensity, duration, wavelength, etc.
+
+CLASSES: Pump()
+
+FUNCTIONS: 
+    plot_pump_pulse
+"""
 from LaserSim.utilities import numres, c, h, create_save_path, plot_function, integ, set_plot_params, generate_pulse
 import numpy as np
 

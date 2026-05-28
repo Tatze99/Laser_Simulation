@@ -1,3 +1,26 @@
+"""
+amplifier
+=====
+This module contains the Amplifier class, which requires a Crystal(), Pump() and Seed() object as the input. It calcultes the inversion in the crystal after pumping and the energy extraction using the Frantz-Nodvik equation. It also contains functions for plotting the results of the amplification process.
+
+CLASSES: Amplifier()
+
+FUNCTIONS: 
+    plot_temporal_fluence
+    plot_total_fluence_per_pass
+    plot_inversion_1D
+    plot_inversion_2D
+    plot_inversion_temporal
+    plot_simulated_small_signal_gain
+    plot_spectral_fluence
+    plot_inversion_before_after
+    plot_inversion_vs_pump_intensity
+    plot_pump_absorption
+    plot_storage_efficiency_vs_pump_intensity
+    plot_storage_efficiency_vs_pump_time
+    plot_storage_efficiency_2D
+"""
+
 from LaserSim.crystal import Crystal, plot_beta_eq, plot_small_signal_gain
 from LaserSim.pump import Pump
 from LaserSim.seed import Seed
@@ -441,7 +464,7 @@ def plot_inversion1D(amplifier, intensity=None, axis=None, save=False, save_path
     
     if intensity is None:
         intensity = np.atleast_1d(amplifier.pump.intensity)
-        beta = amplifier.crystal.inversion_end
+        beta = [amplifier.crystal.inversion_end]
     else:
         intensity = np.atleast_1d(intensity)*1e7
         beta = [amplifier.inversion(pump_intensity=i) for i in intensity]

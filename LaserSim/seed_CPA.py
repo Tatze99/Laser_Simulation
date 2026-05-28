@@ -1,3 +1,13 @@
+"""
+seed_CPA
+=====
+This module contains the Seed_CPA class, describing all properties of the spectral seed pulse, such as the fluence, bandwidth, wavelength, chirp, shape, etc.
+
+CLASSES: Seed_CPA()
+
+FUNCTIONS: 
+    plot_seed_pulse
+"""
 from LaserSim.utilities import h, c, integ, set_plot_params, plot_function, create_save_path, generate_pulse, generate_pulse_from_file
 import numpy as np
 import matplotlib.pyplot as plt
@@ -19,7 +29,8 @@ class Seed_CPA():
         :param lambda_max: lambda_max in nm
         :param custom_file: custom pulse file path
         :param custom_file_delimiter: delimiter of the custom pulse file 
-        :param custom_file_xunit: unit of the x-axis in the custom pulse file (default is 1e0 = 1 nm)
+        :param custom_file_xunit: unit of the x-axis in the custom pulse file (default is SI-units), e.g. 1e9 for nm
+        :param chirp: "positive", "negative"
         """
         self.bandwidth = bandwidth*1e-9     # [m]
         self.wavelength = wavelength*1e-9   # [m]
