@@ -202,8 +202,8 @@ class App(customtkinter.CTk):
         self.show_title.select()
         self.double_pass.select()
         self.show_grid.select()
-        self.smooth_sigma.select()
-        self.McCumber_absorption.select()
+        # self.smooth_sigma.select()
+        # self.McCumber_absorption.select()
 
         self.load_settings_frame()
 
@@ -516,6 +516,8 @@ class App(customtkinter.CTk):
             seed_type = self.seed_type_button.get()
         elif plot_function == plot_simulated_small_signal_gain:
             kwargs["double_pass"] = self.double_pass.get()
+            losses = float(self.amplifier_losses.get())*1e-2
+            kwargs["losses"] = losses if losses > 0 else None
         
         if plot_function in [plot_inversion1D, plot_inversion_temporal, plot_simulated_small_signal_gain]:
             try:
@@ -523,7 +525,7 @@ class App(customtkinter.CTk):
             except:
                 kwargs["intensity"] = None
 
-        if plot_function in [plot_total_fluence_per_pass, plot_inversion1D, plot_inversion_temporal, plot_inversion2D, plot_inversion_vs_pump_intensity, plot_storage_efficiency_2D, plot_storage_efficiency_vs_pump_intensity]:
+        if plot_function in [plot_total_fluence_per_pass, plot_inversion1D, plot_inversion_temporal, plot_inversion2D, plot_inversion_vs_pump_intensity, plot_storage_efficiency_2D, plot_storage_efficiency_vs_pump_intensity, plot_simulated_small_signal_gain]:
             kwargs["custom_legend"] = self.get_custom_legend_string()
         if plot_function == plot_storage_efficiency_vs_pump_time:
             kwargs["pump_intensity"] = [float(self.pump_intensity.get())*1e7]
@@ -554,6 +556,9 @@ class App(customtkinter.CTk):
             kwargs["double_pass"] = self.double_pass.get()
             kwargs["xlim"] = (lambda_l - bandwidth, lambda_l + bandwidth)
             kwargs["custom_legend"] = self.get_custom_legend_string()
+            losses = float(self.amplifier_losses.get())*1e-2
+            kwargs["losses"] = losses if losses > 0 else None
+            
         elif plot_function == plot_Isat:
             kwargs.update({"lambda0": lambda_p, "xlim": (lambda_p - bandwidth, lambda_p + bandwidth)})
         elif plot_function == plot_Fsat:
@@ -608,7 +613,7 @@ class App(customtkinter.CTk):
         if argument in ["Cross sections", "Equilibrium inversion"]:
             self.plot_pump_laser_cross_sections.grid()
 
-        if argument in ["Small signal gain", "Total fluence pass", "Storage efficiency 2D", "Inversion 1D (space)", "Inversion 1D (time)", "Inversion 2D", "Inversion vs Ip", "Storage efficiency vs Ip"]:
+        if argument in ["Small signal gain", "Total fluence pass", "Storage efficiency 2D", "Inversion 1D (space)", "Inversion 1D (time)", "Inversion 2D", "Inversion vs Ip", "Storage efficiency vs Ip", "Small signal gain (Ip)"]:
             self.add_legend.grid()
             self.add_legend_label.grid()
         else:

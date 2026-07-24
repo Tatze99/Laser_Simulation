@@ -39,7 +39,7 @@ set_plot_params()
 
 class Amplifier():
 
-    def __init__(self, crystal=Crystal(), pump=Pump(), seed=Seed(), passes = 50, losses = 2e-2, print_iteration = False, spectral_losses = None, max_fluence=10, double_pass = True, fast_CPA_computing=False):
+    def __init__(self, crystal=Crystal(), pump=Pump(), seed=Seed(), passes = 50, losses = 0, print_iteration = False, spectral_losses = None, max_fluence=10, double_pass = True, fast_CPA_computing=False):
         """
         Docstring for __init__
 
@@ -549,10 +549,11 @@ def plot_inversion2D(amplifier, cmap="magma", save=False, save_path=None, save_d
         plt.tight_layout()
         plt.savefig(path)
 
-def plot_simulated_small_signal_gain(amplifier, intensity=None, round_trips=1, double_pass=True, axis=None, save=False, save_path=None, save_data=False, show_title=True):
+def plot_simulated_small_signal_gain(amplifier, intensity=None, round_trips=1, double_pass=True, axis=None, save=False, save_path=None, save_data=False, show_title=True, custom_legend="", losses=None):
     """
     Plot the simulated small signal gain as a function of wavelength
     :param intensity: pump intensity in kW/cm², if None, use the pump intensity defined in the pump object, if array-like, plot the gain for each intensity value
+    :param losses: if not None, the gain is multiplied by (1-losses)**(factor*round_trips) to account for losses in the cavity, where losses is a float between 0 and 1
     """
     amplifier.inversion()
 
@@ -565,9 +566,9 @@ def plot_simulated_small_signal_gain(amplifier, intensity=None, round_trips=1, d
         beta = [amplifier.inversion(pump_intensity=i) for i in intensity]
 
 
-    custom_legend = [f"$I$ = {I*1e-7:.1f} kW/cm²" for I in intensity]
+    if custom_legend == "": custom_legend = [f"$I$ = {I*1e-7:.1f} kW/cm²" for I in intensity]
 
-    plot_small_signal_gain(amplifier.crystal, beta, round_trips=round_trips, double_pass=double_pass, axis=axis, save=save, save_path=save_path, save_data=save_data, show_title=show_title, custom_legend=custom_legend)
+    plot_small_signal_gain(amplifier.crystal, beta, round_trips=round_trips, double_pass=double_pass, axis=axis, save=save, save_path=save_path, save_data=save_data, show_title=show_title, custom_legend=custom_legend, losses=losses)
 
 def plot_spectral_fluence(amplifier, axis=None, save=False, save_path=None, save_data=False, xlim=(-np.inf,np.inf), show_title=True, normalize=False):
     """ 

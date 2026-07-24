@@ -317,9 +317,23 @@ def plot_cross_sections(crystal, lambda_p=None, lambda_l=None, axis=None, save=F
 
     plot_function(x, y, xlabel, ylabel, title, legends, axis, save, path, save_data, kwargs=kwargs)
 
-def plot_small_signal_gain(crystal, beta, round_trips=1, normalize=False, xlim=None, ylim=(0, np.inf), save=False, save_path=None, save_data=False, show_title=True, axis=None, double_pass=True, custom_legend=""):
+def plot_small_signal_gain(crystal, beta, round_trips=1, normalize=False, xlim=None, ylim=(0, np.inf), save=False, save_path=None, save_data=False, show_title=True, axis=None, double_pass=True, custom_legend="", losses=None):
     """
-    Plot small signal gain for a given beta.
+    Plot small signal gain for a given beta.  
+        :param crystal: Crystal object
+        :param beta: inversion (unitless), can be a single value or a list of values
+        :param round_trips: number of round trips (int)
+        :param normalize: if True, normalize the gain to one
+        :param xlim: tuple of (min, max) wavelength in the units given in basedata.json (usually nm), if None, a default range around the emission wavelength is used
+        :param ylim: tuple of (min, max) gain, if None, a default range is used
+        :param save: if True, save the plot to a file
+        :param save_path: path to save the plot, if None, the current working directory is used
+        :param save_data: if True, save the data to a file
+        :param show_title: if True, show the title of the plot
+        :param axis: matplotlib axis object, if None, a new figure is created
+        :param double_pass: if True, the gain is calculated for a double pass through the crystal
+        :param custom_legend: custom legend for the plot, if empty, a default legend is used
+        :param losses: if not None, the gain is multiplied by (1-losses)**(factor*round_trips) to account for losses in the cavity, where losses is a float between 0 and 1
     """
     if xlim is None:
         bandwidth = crystal.to_display_lambda(30e-9)  # 30 nm bandwidth around the emission wavelength
@@ -342,6 +356,9 @@ def plot_small_signal_gain(crystal, beta, round_trips=1, normalize=False, xlim=N
         y_list = [y/np.max(y) for y in y_list]
         ylim = (0,1.1)
         ylabel = "normalized Gain G"
+    elif losses is not None:
+        y_list = [y*(1-losses)**(round_trips) for y in y_list]
+        ylabel = f"Gain G with {losses*100:.1f}% loss per round trip"
 
     if round_trips != 1 and title is not None:
         title += f", for {round_trips} round trips"
