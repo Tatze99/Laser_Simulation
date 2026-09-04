@@ -1,6 +1,7 @@
 *
 !material_database/
 !LaserSim/
+!LaserSim/material_database/*/
 !examples/
 !.md
 !.gitignore
@@ -11,6 +12,7 @@
 !*.txt
 !*.json
 !*.csv
+!*.dat
 
 # all subfolders in material_database
 !material_database/*

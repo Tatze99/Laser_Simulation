@@ -15,7 +15,7 @@ import os
 set_plot_params()
 
 class Seed_CPA():
-    def __init__(self, wavelength = 1030, bandwidth = 30, fluence = 1e-4, seed_type = "gauss", gauss_order = 1, custom_file = None, custom_file_delimiter="\t", custom_file_xunit=1e0, resolution = 250, lambda_min=None, lambda_max=None, chirp="positive"):
+    def __init__(self, wavelength = 1030, bandwidth = 30, fluence = 1e-4, seed_type = "gauss", gauss_order = 1, custom_file = None, custom_array = None, custom_file_delimiter="\t", custom_file_xunit=1e0, resolution = 250, lambda_min=None, lambda_max=None, chirp="positive"):
         """
         Docstring for __init__
         
@@ -28,6 +28,7 @@ class Seed_CPA():
         :param lambda_min: lambda_min in nm
         :param lambda_max: lambda_max in nm
         :param custom_file: custom pulse file path
+        :param custom_array: custom pulse array
         :param custom_file_delimiter: delimiter of the custom pulse file 
         :param custom_file_xunit: unit of the x-axis in the custom pulse file (default is SI-units), e.g. 1e9 for nm
         :param chirp: "positive", "negative"
@@ -52,8 +53,12 @@ class Seed_CPA():
         elif self.chirp == "negative": chirp_factor = -1
         else: chirp_factor = 1
 
-        if custom_file:
+        if custom_file is not None:
             self.lambdas, self.spectral_fluence, self.dlambda = generate_pulse_from_file(self, custom_file, delimiter=custom_file_delimiter, x_unit=custom_file_xunit, x_min=lambda_min, x_max=lambda_max)
+        elif custom_array is not None:
+            self.lambdas = custom_array[:,0]
+            self.spectral_fluence = custom_array[:,1]
+            self.dlambda = abs(self.lambdas[1]-self.lambdas[0])
         else:
             self.lambdas, self.spectral_fluence, self.dlambda = generate_pulse(self, self.bandwidth, center=self.wavelength, chirp_factor=chirp_factor, x_min=lambda_min, x_max=lambda_max)
 

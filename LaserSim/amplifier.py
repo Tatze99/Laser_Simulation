@@ -325,7 +325,7 @@ class Amplifier():
         for k in range(self.passes):
 
             if self.fast_CPA_computing:
-                Saturation = np.exp(integ(spectral_fluence_out[k,:], self.seed.dlambda)[-1]/Fsat_array)
+                Saturation = np.exp(integ(spectral_fluence_out[k,:], dlambda)[-1]/Fsat_array)
                 # Compute the small signal gain by integrating along z
                 Gain = np.exp(self.crystal.doping_concentration*z_integ(np.outer(sigma_e_array,beta_out)-np.outer(sigma_a_array,(1-beta_out)),self.crystal.dz))[:,-1]
 
