@@ -2,6 +2,8 @@
 !material_database/
 !LaserSim/
 !LaserSim/material_database/*/
+!LaserSim/spectral_losses_TSF/
+!LaserSim/spectral_losses_TSF/**
 !examples/
 !.md
 !.gitignore
@@ -15,7 +17,4 @@
 !*.dat
 
 # all subfolders in material_database
-!material_database/*
-!material_database/*/*
-material_database/plots/*
 output/

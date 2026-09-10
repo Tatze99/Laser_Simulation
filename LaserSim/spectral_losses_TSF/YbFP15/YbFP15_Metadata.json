@@ -1,0 +1,16 @@
+{
+    "name": "YbFP15",
+    "spectral_unit": 1e-9,
+    "reflectivity_unit": 1e-2,
+    "file_type": ".txt",
+    "angles": [
+        42.5,
+        45.0,
+        47.5
+    ],
+    "ymax": 6,
+    "n2": 1.6861454912183866,
+    "prop_constant": 6.673643135927857e-07,
+    "slope": -9334021.068502316,
+    "info": "Design by Sebastian Keppler, 2015. Measured by Marco Hellwing, measured for s-polarization. The reflectivity curves are measured at 42.5, 45.0 and 47.5 degrees angle of incidence. The reflectivity is given in percent, the wavelength in nm. The coating batch number is C215C040."
+}

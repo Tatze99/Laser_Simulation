@@ -1,0 +1,15 @@
+{
+    "name": "YbCaF2",
+    "spectral_unit": 1e-9,
+    "reflectivity_unit": 1,
+    "file_type": ".dat",
+    "angles": [
+        27,
+        30,
+        33
+    ],
+    "n2": 1.8320802721929201,
+    "prop_constant": 5.839635177728883e-07,
+    "slope": 2682486.458601995,
+    "info": "Design by Martin Beyer, 2025. Measured by the manufacturer Laseroptik GmbH in Garbsen (Germany). HT1015-1045nm coating @ 30deg, backside: AR 1015-1045nm coating @ 27-33deg, s-pol, FS-LO-U, diameter25x3mm, wedged, Coating batch number: 05095Th1, total number of samples: 20 (3 boxes with 6, one box with 2). Used named during development: YbCaF2_Garbsen_251014_Messung. Experiments verified a low damage threshold of about 100mJ/cm2."
+}

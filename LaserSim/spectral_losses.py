@@ -9,7 +9,7 @@ FUNCTIONS:
     test_reflectivity_approximation
 """
 
-from LaserSim.utilities import set_plot_params
+from LaserSim.utilities import set_plot_params, plot_function
 import numpy as np
 import os
 from glob import glob
@@ -24,11 +24,11 @@ class Spectral_Losses():
         """
         Docstring for __init__
         
-        :param material: name of the material for which the spectral losses should be calculated, this should correspond to a folder in the "material_database/reflectivity_curves" folder, if custom_File is None
+        :param material: name of the material for which the spectral losses should be calculated, this should correspond to a folder in the "spectral_losses_TSF" folder, if custom_File is None
         :param calc_formula: calculate the change of the spectral losses with angle of incidence by approximating the shift of the reflectivity curve with a linear formula, if False, the angle formula will be loaded from the metadata file
         :param custom_File: load a custom file for the losses
         """
-        File = os.path.join(Folder, "material_database", "reflectivity_curves", material) if custom_File is None else custom_File
+        File = os.path.join(Folder, "spectral_losses_TSF", material) if custom_File is None else custom_File
         self.TSF_name = material
         self.load_basedata(os.path.join(File, "*_Metadata.json"))
         self.fnames = glob(os.path.join(File, "*"+ self.file_type))
@@ -45,9 +45,10 @@ class Spectral_Losses():
 
     # calculate the index of the maximum value of an array
     def calc_max_index(self, array):
+        # if this ever breaks again, consider using scipy.signal.find_peaks to find the maximum index of the reflectivity curve
         index = np.argmin(array)
         for j in range(2, len(array)-2):
-            if array[j] > array[j-1] and array[j] > array[j+1] and array[j] < 0.99:
+            if (array[j] > array[j-1] or array[j] > array[j-2]) and (array[j] > array[j+1] or array[j] > array[j+2]) and array[j] < 0.99:
                 if array[j] > array[index]:
                     index =  j
         return index 
@@ -121,9 +122,12 @@ class Spectral_Losses():
         """
         Calculate the total reflectivity for a given array of angles in radians or degrees
         """
-        reflectivity_array = []
         if angle_array is None:
             return np.zeros(len(self.lambdas))
+        
+        if type (angle_array) is int or type(angle_array) is float:
+            angle_array = [angle_array]
+        reflectivity_array = []
         
         for angle in angle_array:
             reflectivity_array.append(self.calc_reflectivity(angle, angle_unit=angle_unit))
@@ -144,6 +148,7 @@ class Spectral_Losses():
                 f"- n2 = {self.n2}\n"
                 f"- prop_constant = {self.prop_constant}\n"
                 f"- slope = {self.slope}\n"
+                f"- info = {self.dict['info']}\n"
         )
 
 def test_reflectivity_approximation(losses, save=False, save_data=False, save_path=os.path.join(Folder, "material_database", "plots")):
@@ -176,8 +181,32 @@ def test_reflectivity_approximation(losses, save=False, save_data=False, save_pa
     if save_data:
         np.savetxt(os.path.join(save_path, f"{losses.TSF_name}_reflectivity_approximation.txt"), np.vstack(arrays).T,  delimiter="\t", fmt="%.5e")
 
+def plot_spectral_losses(losses, angles, angle_unit="deg", xlim=(-np.inf,np.inf), ylim=(-np.inf,np.inf), save=False):
+    """
+    Calculate the individual and total reflectivity for a given array of angles and plot the results
+    """
+    if angles is None: return
+    
+    angles.append(angles.copy()) # append array to itself for total reflectivity calculation
+
+    reflectivities = [losses.reflectivity_by_angles(angle, angle_unit=angle_unit) for angle in angles]
+
+    plot_function(losses.lambdas*1e9, 
+                  reflectivities, 
+                  xlabel="wavelength in nm", 
+                  ylabel="reflectivity R", 
+                  legends=[f"$\\phi$ = {angle}°" for angle in angles[:-1]] + ["total R"], title=f"Reflectivity TSF of {losses.name}", 
+                  save=save, save_path=os.path.join(Folder, "material_database", "plots", f"{losses.TSF_name}_reflectivity_by_angle.pdf"),
+                  xlim=xlim,
+                  ylim=ylim,
+                  save_data=save)
+
 if __name__ == "__main__":
-    losses = Spectral_Losses(material="YbFP15")
+    material = "YbFP15"
+    # material = "YbCaF2"
+    losses = Spectral_Losses(material=material, calc_formula=True)
 
     print(losses)
+
     test_reflectivity_approximation(losses, save=False, save_data=False)
+    plot_spectral_losses(losses, angles=[45, 42, 43], angle_unit="deg", save=False)
