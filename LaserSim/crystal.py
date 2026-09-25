@@ -106,8 +106,13 @@ class Crystal():
         """
         load the absorption and emission cross sections from the database
         """
-        sigma_a_path = glob.glob(os.path.join(Folder, "material_database", material, f"*{self.temperature}Ka.*"))
-        sigma_e_path = glob.glob(os.path.join(Folder, "material_database", material, f"*{self.temperature}Kf.*"))
+        sigma_a_path = glob.glob(os.path.join(Folder, "material_database", material, f"*{self.temperature}*a.*"))
+        sigma_e_path = glob.glob(os.path.join(Folder, "material_database", material, f"*{self.temperature}*f.*"))
+
+        if not (sigma_a_path and sigma_e_path):
+            # Try to find files with a different naming pattern
+            sigma_a_path = glob.glob(os.path.join(Folder, "material_database", material, f"*{self.temperature}*sigma_a.*"))
+            sigma_e_path = glob.glob(os.path.join(Folder, "material_database", material, f"*{self.temperature}*sigma_e.*"))
 
         if sigma_a_path and sigma_e_path:
             self.table_sigma_a = np.nan_to_num(np.loadtxt(sigma_a_path[0]))[::self.point_density_reduction,:]
@@ -125,7 +130,7 @@ class Crystal():
             self.table_sigma_e_SI[:,1] *= 1e-4  # convert to m²
             
         else:
-            raise FileNotFoundError(f"No file found for file pattern: {Folder} -> material_database -> {self.material} @ {self.temperature}K")
+            raise FileNotFoundError(f"No file found for file pattern: {Folder} -> material_database -> {self.material} @ {self.temperature}K. Make sure that the file name contains the temperature and either 'a.' and 'f.' or 'sigma_a.' and 'sigma_e.'.")
 
     def smooth_cross_sections(self, FF_filter=0, mov_average=4, useMcCumber = True, lambda_max=None):
         """
