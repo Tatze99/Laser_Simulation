@@ -30,11 +30,19 @@ class Spectral_Losses():
         """
         File = os.path.join(Folder, "spectral_losses_TSF", material) if custom_File is None else custom_File
         self.TSF_name = material
+        self.calc_formula = calc_formula
         self.load_basedata(os.path.join(File, "*_Metadata.json"))
         self.fnames = glob(os.path.join(File, "*"+ self.file_type))
         self.arrays = np.array([np.loadtxt(f)[:,1] for f in self.fnames])*self.reflectivity_unit
         self.lambdas = np.loadtxt(self.fnames[0])[:,0]*self.spectral_unit
         self.dlambda = self.lambdas[1] - self.lambdas[0]
+
+        if self.spectral_range is not None:
+            xmin = np.argmin(np.abs(self.lambdas - self.spectral_unit * self.spectral_range[0]))
+            xmax = np.argmin(np.abs(self.lambdas - self.spectral_unit * self.spectral_range[1]))
+            self.spectral_range_indices = slice(xmin, xmax)
+        else:
+            self.spectral_range_indices = slice(None, None)
         if calc_formula and len(self.angles) > 1:
             self.reflectivity = self.arrays[1]
             self.calc_angle_formula()
@@ -44,8 +52,10 @@ class Spectral_Losses():
             self.load_angle_formula()
 
     # calculate the index of the maximum value of an array
-    def calc_max_index(self, array):
+    def calc_max_index(self, arr):
         # if this ever breaks again, consider using scipy.signal.find_peaks to find the maximum index of the reflectivity curve
+        array = np.ones_like(arr)
+        array[self.spectral_range_indices] = arr[self.spectral_range_indices]
         index = np.argmin(array)
         for j in range(2, len(array)-2):
             if (array[j] > array[j-1] or array[j] > array[j-2]) and (array[j] > array[j+1] or array[j] > array[j+2]) and array[j] < 0.99:
@@ -63,6 +73,8 @@ class Spectral_Losses():
             self.file_type = self.dict["file_type"]
             self.reflectivity_unit = self.dict["reflectivity_unit"]
             self.spectral_unit = self.dict["spectral_unit"]
+            self.spectral_range = self.dict.get("spectral_range", None)
+            self.calc_formula = self.dict.get("calc_formula", self.calc_formula)
 
     # calculate the angle formula constants (n2, prop_constant) from the three given reflectivity curves,
     def calc_angle_formula(self):                
@@ -148,7 +160,7 @@ class Spectral_Losses():
                 f"- n2 = {self.n2}\n"
                 f"- prop_constant = {self.prop_constant}\n"
                 f"- slope = {self.slope}\n"
-                f"- info = {self.dict['info']}\n"
+                f"- info = {self.dict.get('info', 'N/A')}\n"
         )
 
 def test_reflectivity_approximation(losses, save=False, save_data=False, save_path=os.path.join(Folder, "material_database", "plots")):
