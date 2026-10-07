@@ -1,0 +1,12 @@
+{
+    "name": "YbCaF2",
+    "length": 1.1e-2,
+    "tau_f": 2.3e-3,
+    "N_dop": 7.33e26,
+    "density": 3.18e3,
+    "refractive_index": 1.429,
+    "energy_lower_level": [0, 50, 110, 530],
+    "energy_upper_level": [10205, 10300, 10580],
+    "ZPL": 979.9e-9,
+    "comment": "Spectra and fluorescence lifetime taken from: Siebold et al., 'Yb:CaF2 - a new old laser crystal', appl phys. B (2009) 97: 327-338, the images on page 330 were digitized with Claude Sonnet 5.5, doping concentration was given to be 4.5%, assuming a fluorescence lifetime of 2.3ms, the energy levels were taken from Doualang, Petit et al. Phys. Rev. B 78, (2008)"
+}
