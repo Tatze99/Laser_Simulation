@@ -433,7 +433,7 @@ def plot_temporal_fluence(amplifier, axis=None, save=False, save_path=None, save
 
     plot_function(x,y_array, xlabel, ylabel, title, legend, axis, save, path, save_data, outer_legend=True, normalize=normalize)
 
-def plot_total_fluence_per_pass(amplifier, axis=None, save=False, save_path=None, save_data=False, show_title=True, custom_legend=""):
+def plot_total_fluence_per_pass(amplifier, axis=None, save=False, save_path=None, save_data=False, show_title=True, custom_legend="", show_double_pass=False):
     """ 
     Plot the total fluence at the end of each pass
     """
@@ -447,7 +447,13 @@ def plot_total_fluence_per_pass(amplifier, axis=None, save=False, save_path=None
     xlabel = "Pass number"
     ylabel = "output fluence in J/cm²"
     legend = custom_legend if custom_legend != "" else f"F$_{{max}}$ = {np.max(fluence_out)*1e-4:.3g}J/cm²"
-    title  = f"{amplifier.crystal.material}, Output fluence vs. pass number" if show_title else None
+    if show_double_pass:
+        legend_pass = "round trip number"
+        fluence_out = fluence_out[::2]
+        x = x[:len(fluence_out)]
+    else:
+        legend_pass = "pass number"
+    title  = f"{amplifier.crystal.material}, Output fluence vs. {legend_pass}" if show_title else None
     fname = f"Temporal_seed_{amplifier.seed.fluence*1e-4}Jcm2_{amplifier.crystal.material}_{amplifier.crystal.temperature}K_total-fluence.pdf"
     path = create_save_path(save_path, fname)
 

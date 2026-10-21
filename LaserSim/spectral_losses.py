@@ -33,8 +33,30 @@ class Spectral_Losses():
         self.calc_formula = calc_formula
         self.load_basedata(os.path.join(File, "*_Metadata.json"))
         self.fnames = glob(os.path.join(File, "*"+ self.file_type))
-        self.arrays = np.array([np.loadtxt(f)[:,1] for f in self.fnames])*self.reflectivity_unit
-        self.lambdas = np.loadtxt(self.fnames[0])[:,0]*self.spectral_unit
+        if not self.fnames:
+            raise FileNotFoundError(f"No spectral-loss files found in {File!r} with extension {self.file_type!r}.")
+
+        tables = [np.loadtxt(fname) for fname in self.fnames]
+        if any(table.ndim != 2 or table.shape[1] < 2 for table in tables):
+            raise ValueError("Each spectral-loss file must contain at least two columns: wavelength and reflectivity.")
+
+        reference_wavelengths = tables[0][:, 0]
+        arrays = []
+        for fname, table in zip(self.fnames, tables):
+            wavelengths = table[:, 0]
+            reflectivity = table[:, 1]
+            if np.array_equal(wavelengths, reference_wavelengths):
+                arrays.append(reflectivity)
+                continue
+            if reference_wavelengths[0] < wavelengths[0] or reference_wavelengths[-1] > wavelengths[-1]:
+                raise ValueError(
+                    f"Spectral-loss file {fname!r} does not cover the wavelength range "
+                    "of the first spectral-loss file."
+                )
+            arrays.append(np.interp(reference_wavelengths, wavelengths, reflectivity))
+
+        self.arrays = np.asarray(arrays) * self.reflectivity_unit
+        self.lambdas = reference_wavelengths * self.spectral_unit
         self.dlambda = self.lambdas[1] - self.lambdas[0]
 
         if self.spectral_range is not None:

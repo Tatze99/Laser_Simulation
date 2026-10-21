@@ -258,10 +258,10 @@ class Crystal():
         f"- tau_f = {self.tau_f*1e3} ms\n"
         f"- N_dop = {self.doping_concentration*1e-6} cm^-3\n"
         f"- T = {self.temperature} K\n"
-        f"- sigma_a({self.lambda_a}{self.lambda_label}) = {self.sigma_a(self.lambda_a*1e-9)*1e4:.3e}cm²\n"
-        f"- sigma_e({self.lambda_a}{self.lambda_label}) = {self.sigma_e(self.lambda_a*1e-9)*1e4:.3e}cm²\n"
-        f"- sigma_a({self.lambda_e}{self.lambda_label}) = {self.sigma_a(self.lambda_e*1e-9)*1e4:.3e}cm²\n"
-        f"- sigma_e({self.lambda_e}{self.lambda_label}) = {self.sigma_e(self.lambda_e*1e-9)*1e4:.3e}cm²\n\n"
+        f"- sigma_a({self.lambda_a}{self.lambda_label}) = {self.sigma_a(self.to_internal_lambda(self.lambda_a))*1e4:.3e}cm²\n"
+        f"- sigma_e({self.lambda_a}{self.lambda_label}) = {self.sigma_e(self.to_internal_lambda(self.lambda_a))*1e4:.3e}cm²\n"
+        f"- sigma_a({self.lambda_e}{self.lambda_label}) = {self.sigma_a(self.to_internal_lambda(self.lambda_e))*1e4:.3e}cm²\n"
+        f"- sigma_e({self.lambda_e}{self.lambda_label}) = {self.sigma_e(self.to_internal_lambda(self.lambda_e))*1e4:.3e}cm²\n\n"
     )
 
 # =============================================================================
