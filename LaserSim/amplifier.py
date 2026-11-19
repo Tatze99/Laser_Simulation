@@ -698,7 +698,7 @@ def plot_storage_efficiency_vs_pump_intensity(amplifier, axis=None, save=False, 
 
     plot_function(x, y, xlabel, ylabel, title, legend, axis, save, path, save_data, kwargs=kwargs)
 
-def plot_storage_efficiency_vs_pump_time(amplifier, pump_intensity=[], axis=None, save=False, save_data=False, save_path=None, show_title=True, kwargs=None):
+def plot_storage_efficiency_vs_pump_time(amplifier, pump_intensity=[], axis=None, save=False, save_data=False, save_path=None, show_title=True, kwargs=None, custom_legend=""):
     """
     Plot the storage efficiency as a function of pump time
     pump_intensity: list of pump intensities in W/m²
@@ -716,7 +716,8 @@ def plot_storage_efficiency_vs_pump_time(amplifier, pump_intensity=[], axis=None
     xlabel = "pump duration in ms"
     ylabel = "storage efficiency"
     title = f"storage efficiency as a function of pump duration" if show_title else None
-    legend = [f"$I_p$ = {intensity*1e-7:.1f} kW/cm²" for intensity in pump_intensity]
+    legend = [f"$I_p$ = {intensity*1e-7:.1f} kW/cm²" for intensity in pump_intensity] if custom_legend == "" else custom_legend
+
     fname = f"{crystal.material}_{crystal.temperature}K_{pump.intensity*1e-7}kWcm2_storage_efficiency_vs_pump_duration.pdf"
     path = create_save_path(save_path, fname)
 

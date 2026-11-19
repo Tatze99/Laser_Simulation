@@ -381,7 +381,7 @@ def plot_small_signal_gain(crystal, beta, round_trips=1, normalize=False, xlim=N
 
     plot_function(crystal.to_display_lambda(lambd), y_list, xlabel, ylabel, title, legends, axis, save, path, save_data, xlim=xlim, ylim=ylim)
 
-def plot_beta_eq(crystal, lambda_p=None, lambda_l=None, lambda_max=None, save=False, save_path=None, save_data=False, show_title=True, kwargs=dict(),axis=None):
+def plot_beta_eq(crystal, lambda_p=None, lambda_l=None, lambda_max=None, save=False, save_path=None, save_data=False, show_title=True, kwargs=dict(),axis=None, custom_legend=""):
     """
     Plot equilibrium inversion beta_eq with a logistic fit.
     """
@@ -393,7 +393,7 @@ def plot_beta_eq(crystal, lambda_p=None, lambda_l=None, lambda_max=None, save=Fa
     xlabel = f"wavelength in {crystal.lambda_label}"
     ylabel = "equilibrium inversion $\\beta_{eq}$"
     title = f"equilibrium inversion, {crystal.name} at {crystal.temperature}K" if show_title else None
-    legends = ["Beta Eq", f"Fit, Zl/Zu = {params[0]:.2f}, T = {params[1]:.1f}K, ZPL = {crystal.to_display_lambda(params[2]):.1f}{crystal.lambda_label}"]
+    legends = ["Beta Eq", f"Fit, Zl/Zu = {params[0]:.2f}, T = {params[1]:.1f}K, ZPL = {crystal.to_display_lambda(params[2]):.1f}{crystal.lambda_label}"] if custom_legend == "" else custom_legend
 
     fname = f"{crystal.material}_{crystal.temperature}K_equilibrium_inversion.pdf"
     path = create_save_path(save_path, fname)
@@ -424,7 +424,7 @@ def plot_beta_eq(crystal, lambda_p=None, lambda_l=None, lambda_max=None, save=Fa
 
     plot_function(x, y_list, xlabel, ylabel, title, legends, axis, save, path, save_data, ylim=(-.1,1.1), kwargs=kwargs)
 
-def plot_Isat(crystal, save=False, save_path=None, save_data=False, xlim=None, ylim=(0,200), lambda0 = None, legends=None, show_title=True, axis=None, kwargs=None):
+def plot_Isat(crystal, save=False, save_path=None, save_data=False, xlim=None, ylim=(0,200), lambda0 = None, legends=None, show_title=True, axis=None, kwargs=None, custom_legend=""):
     """
     Plot the saturation intensity of a crystal.
     """
@@ -439,6 +439,7 @@ def plot_Isat(crystal, save=False, save_path=None, save_data=False, xlim=None, y
     fname = f"{crystal.material}_{crystal.temperature}K_Isat.pdf"
     path = create_save_path(save_path, fname)
     lambd = crystal.to_display_lambda(lambd)
+    legends = None if custom_legend == "" else custom_legend
 
     if lambda0 is not None:
         Isat_lambda0 = crystal.I_sat(crystal.to_internal_lambda(lambda0)) * 1e-7
@@ -449,7 +450,7 @@ def plot_Isat(crystal, save=False, save_path=None, save_data=False, xlim=None, y
 
     plot_function(lambd, Isat, xlabel, ylabel, title, legends, axis, save, path, save_data, xlim=xlim, ylim=ylim, kwargs=kwargs)
 
-def plot_Fsat(crystal, save=False, save_path=None, save_data=False, xlim=None, ylim=(0,200), lambda0 = None, legends=None, show_title=True, axis=None, kwargs=None):
+def plot_Fsat(crystal, save=False, save_path=None, save_data=False, xlim=None, ylim=(0,200), lambda0 = None, legends=None, show_title=True, axis=None, kwargs=None, custom_legend=""):
     """
     Plot the saturation fluence of a crystal.
     """
@@ -464,6 +465,7 @@ def plot_Fsat(crystal, save=False, save_path=None, save_data=False, xlim=None, y
     fname = f"{crystal.material}_{crystal.temperature}K_Fsat.pdf"
     path = create_save_path(save_path, fname)
     lambd = crystal.to_display_lambda(lambd)
+    legends = None if custom_legend == "" else custom_legend
 
     if lambda0 is not None:
         Fsat_lambda0 = crystal.F_sat(crystal.to_internal_lambda(lambda0)) * 1e-4
